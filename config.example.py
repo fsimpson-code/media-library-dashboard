@@ -9,9 +9,8 @@ RADARR_API_KEY = ""
 SONARR_URL     = "http://your-sonarr-url:8989"
 SONARR_API_KEY = ""
 
-# Jellyseer / Overseerr
+# Jellyseer / Overseerr (URL only — used for search links in the dashboard)
 SEERR_URL      = "http://your-seerr-url:5055"
-SEERR_API_KEY  = ""
 
 # Database
 DB_PATH     = "./data/library_history.db"

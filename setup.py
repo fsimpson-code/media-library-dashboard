@@ -25,7 +25,7 @@ REQUIRED_KEYS = [
     "DASHBOARD_NAME",
     "RADARR_URL", "RADARR_API_KEY",
     "SONARR_URL", "SONARR_API_KEY",
-    "SEERR_URL", "SEERR_API_KEY",
+    "SEERR_URL",
     "DB_PATH", "HISTORY_DIR",
     "RUNNER_URL", "DASHBOARD_PORT",
     "FINGERPRINT_ENABLED", "FINGERPRINT_MEMBERS",
@@ -94,17 +94,6 @@ def validate_sonarr(url: str, key: str) -> tuple[bool, int]:
         return False, 0
 
 
-def validate_seerr(url: str, key: str) -> tuple[bool, str]:
-    try:
-        r = requests.get(f"{url.rstrip('/')}/api/v1/settings/main",
-                         headers={"X-Api-Key": key}, timeout=8)
-        if r.status_code == 200:
-            name = r.json().get("applicationTitle", "Jellyseer")
-            return True, name
-        return False, ""
-    except Exception:
-        return False, ""
-
 
 def get_radarr_tags(url: str, key: str) -> list[str]:
     try:
@@ -139,7 +128,6 @@ def write_config(cfg: dict):
         f'SONARR_API_KEY      = {repr(cfg["SONARR_API_KEY"])}',
         "",
         f'SEERR_URL           = {repr(cfg["SEERR_URL"])}',
-        f'SEERR_API_KEY       = {repr(cfg["SEERR_API_KEY"])}',
         "",
         f'DB_PATH             = {repr(cfg["DB_PATH"])}',
         f'HISTORY_DIR         = {repr(cfg["HISTORY_DIR"])}',
@@ -165,8 +153,8 @@ def run_validate(cfg: dict):
     ok, count = validate_sonarr(cfg["SONARR_URL"], cfg["SONARR_API_KEY"])
     print(f"  {'✓' if ok else '✗'} Sonarr — {count} series" if ok else "  ✗ Sonarr — connection failed")
 
-    ok, name = validate_seerr(cfg["SEERR_URL"], cfg["SEERR_API_KEY"])
-    print(f"  {'✓' if ok else '✗'} Jellyseer ({name})" if ok else "  ✗ Jellyseer — connection failed")
+    ok = check_connection(cfg["SEERR_URL"])
+    print(f"  {'✓' if ok else '✗'} Jellyseer/Overseerr — {'reachable' if ok else 'not reachable (search links may not work)'}")
     print()
 
 
@@ -242,16 +230,10 @@ def run_full_setup(defaults: dict = None):
 
     # Jellyseer
     print("\n── Jellyseer / Overseerr ────────────────────────────────")
-    while True:
-        cfg["SEERR_URL"]     = prompt("Jellyseer/Overseerr URL", d.get("SEERR_URL", "http://localhost:5055"))
-        cfg["SEERR_API_KEY"] = prompt("API key", d.get("SEERR_API_KEY", ""), secret=True)
-        ok, name = validate_seerr(cfg["SEERR_URL"], cfg["SEERR_API_KEY"])
-        if ok:
-            print(f"  ✓ {name} connected")
-            break
-        print("  ✗ Could not connect. Check URL and API key.")
-        if not confirm("Retry?"):
-            break
+    cfg["SEERR_URL"] = prompt("Jellyseer/Overseerr URL (for search links)", d.get("SEERR_URL", "http://localhost:5055"))
+    if cfg["SEERR_URL"]:
+        ok = check_connection(cfg["SEERR_URL"])
+        print(f"  {'✓' if ok else '✗'} {'Reachable' if ok else 'Not reachable — URL saved anyway'}")
 
     # Paths
     print("\n── Paths ────────────────────────────────────────────────")
