@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Library Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Space Grotesk',sans-serif;background:#080810;color:#c8c8e8;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+.hero{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 24px 60px;text-align:center;
+  background:radial-gradient(ellipse at 50% 0%,#0a1628 0%,#080810 70%);
+  border-bottom:1px solid #1a1a32;
+}
+.hero-logo{
+  font-family:'Orbitron',sans-serif;font-size:clamp(2rem,6vw,3.5rem);font-weight:900;
+  letter-spacing:.05em;margin-bottom:8px;
+}
+.hero-logo span{color:#00e5ff}
+.hero-sub{font-size:clamp(1rem,2.5vw,1.25rem);color:#6666a0;margin-bottom:32px;max-width:560px;line-height:1.6}
+.badge-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:40px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:6px;
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
+  transition:all .2s;letter-spacing:.04em;
+}
+.btn-primary{background:#00e5ff;color:#050510}
+.btn-primary:hover{background:#33eeff;box-shadow:0 0 20px #00e5ff55}
+.btn-ghost{background:transparent;color:#6666a0;border:1px solid #2a2a4a}
+.btn-ghost:hover{border-color:#00e5ff55;color:#c8c8e8}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+.section{padding:64px 24px;max-width:1100px;margin:0 auto}
+.section-title{
+  font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;
+  color:#00e5ff;letter-spacing:.1em;text-transform:uppercase;
+  margin-bottom:32px;text-align:center;
+}
+
+.features{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.feature-card{
+  background:#0d0d1f;border:1px solid #1a1a32;border-radius:8px;
+  padding:24px;transition:border-color .2s;
+}
+.feature-card:hover{border-color:#00e5ff44}
+.feature-icon{font-size:1.8rem;margin-bottom:12px}
+.feature-title{font-weight:700;color:#c8c8e8;margin-bottom:6px;font-size:15px}
+.feature-desc{font-size:13px;color:#6666a0;line-height:1.6}
+.feature-badge{
+  display:inline-block;margin-top:10px;padding:2px 8px;border-radius:3px;
+  font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  background:#0a1628;color:#00e5ff;border:1px solid #00e5ff33;letter-spacing:.05em;
+}
+
+.reqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.req-item{
+  background:#0d0d1f;border:1px solid #1a1a32;border-radius:6px;
+  padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;
+}
+.req-dot{width:8px;height:8px;border-radius:50%;background:#00e5ff;flex-shrink:0}
+
+.install{background:#0d0d1f;border:1px solid #1a1a32;border-radius:8px;padding:32px;margin-top:12px}
+.code-block{
+  background:#050510;border:1px solid #1a1a32;border-radius:6px;
+  padding:20px 24px;font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:#00ff9f;margin-top:16px;overflow-x:auto;line-height:1.8;
+}
+.code-block .prompt{color:#6666a0}
+
+footer{
+  text-align:center;padding:40px 24px;color:#2a2a4a;font-size:12px;
+  border-top:1px solid #1a1a32;
+}
+footer a{color:#44446a}footer a:hover{color:#00e5ff}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-logo">Media Library <span>Dashboard</span></div>
+  <p class="hero-sub">A self-hosted media library dashboard for Radarr, Sonarr, and Jellyseer. SQLite-backed, Docker-ready, zero cloud dependency.</p>
+
+  <div class="badge-row">
+    <img src="https://img.shields.io/github/v/release/fsimpson-code/media-library-dashboard?style=flat-square" alt="version">
+    <img src="https://img.shields.io/github/license/fsimpson-code/media-library-dashboard?style=flat-square" alt="license">
+    <img src="https://img.shields.io/github/last-commit/fsimpson-code/media-library-dashboard?style=flat-square" alt="last commit">
+    <img src="https://img.shields.io/github/issues/fsimpson-code/media-library-dashboard?style=flat-square" alt="issues">
+    <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square" alt="python">
+  </div>
+
+  <div class="btn-row">
+    <a class="btn btn-primary" href="https://github.com/fsimpson-code/media-library-dashboard">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      View on GitHub
+    </a>
+    <a class="btn btn-ghost" href="https://github.com/fsimpson-code/media-library-dashboard/releases">Releases</a>
+    <a class="btn btn-ghost" href="https://github.com/fsimpson-code/media-library-dashboard/issues">Issues</a>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Features</div>
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">🎬</div>
+      <div class="feature-title">Movies & TV Stats</div>
+      <div class="feature-desc">KPIs, codec breakdown, resolution, HDR type, total size, upgrade queue — all from your Radarr and Sonarr libraries.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧬</div>
+      <div class="feature-title">Library DNA</div>
+      <div class="feature-desc">Multi-dimensional scoring and letter-grade system. Measures score authenticity, intentionality, talent crossover, franchise context, and more.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📦</div>
+      <div class="feature-title">Bloat Analysis</div>
+      <div class="feature-desc">Surface oversized encodes and trigger one-click Radarr replacement — no manual file hunting required.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-title">Franchise Tracker</div>
+      <div class="feature-desc">Collection completion with drill-down to missing titles. See which franchises are complete vs. in-progress.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌟</div>
+      <div class="feature-title">Talent Deep Dive</div>
+      <div class="feature-desc">Everywheremen, Unsung Heroes, BTWF, Deep Wounds — powered by IMDb data matched to your library.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <div class="feature-title">Trend History</div>
+      <div class="feature-desc">Sparklines and history table across all pipeline runs. Browse any past snapshot via the run dropdown.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧪</div>
+      <div class="feature-title">Family Fingerprint</div>
+      <div class="feature-desc">Per-member taste profiles, genre overlap, pairwise similarity, and personalized recommendations from your library and IMDb.</div>
+      <span class="feature-badge">OPTIONAL</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">😤</div>
+      <div class="feature-title">Hated Titles</div>
+      <div class="feature-desc">Track titles tagged for removal per member. Surfaces a shared expulsion list of D/F-graded hated titles.</div>
+      <span class="feature-badge">OPTIONAL</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Requirements</div>
+  <div class="reqs">
+    <div class="req-item"><div class="req-dot"></div>Radarr v3+</div>
+    <div class="req-item"><div class="req-dot"></div>Sonarr v3+</div>
+    <div class="req-item"><div class="req-dot"></div>Jellyseer / Overseerr</div>
+    <div class="req-item"><div class="req-dot"></div>Docker + Compose</div>
+    <div class="req-item"><div class="req-dot"></div>Python 3.10+</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Quick Install</div>
+  <div class="install">
+    <p style="color:#6666a0;font-size:13px">Run the interactive setup — it validates your API connections and writes config.py automatically.</p>
+    <div class="code-block">
+      <span class="prompt">$ </span>git clone https://github.com/fsimpson-code/media-library-dashboard<br>
+      <span class="prompt">$ </span>cd media-library-dashboard<br>
+      <span class="prompt">$ </span>python3 setup.py<br>
+      <span class="prompt">$ </span>docker compose up -d
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Media Library Dashboard &mdash; <a href="https://github.com/fsimpson-code/media-library-dashboard">GitHub</a> &mdash; MIT License</p>
+</footer>
+
+</body>
+</html>

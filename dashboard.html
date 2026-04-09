@@ -1,0 +1,2768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Library Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:17px}
+body{font-family:Space Grotesk,sans-serif;background:#080810;color:#c8c8e8;min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{
+  background:#0a0a18;
+  border-bottom:1px solid #1e1e3a;
+  padding:.75rem 1.5rem;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:1rem;
+}
+.logo{white-space:nowrap;font-family:Orbitron,sans-serif;line-height:1}
+.logo-main{color:#00e5ff;font-weight:700;font-size:1.3rem;letter-spacing:.15em;text-transform:uppercase;text-shadow:0 0 22px rgba(0,229,255,.65),0 0 6px rgba(0,229,255,.35);display:block}
+.logo-accent{color:#e040fb;font-weight:900;font-size:.95rem;letter-spacing:.38em;text-transform:uppercase;text-shadow:0 0 20px rgba(224,64,251,.7),0 0 6px rgba(224,64,251,.4);display:block}
+
+.logo-stack{display:flex;flex-direction:column;gap:0;line-height:1}
+.logo-divider{height:1px;background:linear-gradient(90deg,#00e5ff55,#e040fb55);margin:3px 0}
+.topbar-center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.4rem;
+}
+.tabs{display:flex;gap:3px;background:#05050f;border-radius:6px;padding:3px;border:1px solid #1a1a32}
+.tab{padding:5px 16px;border-radius:4px;cursor:pointer;font-size:11px;color:#55558a;border:none;background:transparent;transition:all .2s;font-family:Space Grotesk,sans-serif;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.tab.active{background:#001a2e;color:#00e5ff;font-weight:700;text-shadow:0 0 10px rgba(0,229,255,.4)}
+.tab:hover:not(.active){color:#b060ff;background:#0f0f24}
+
+.topbar-meta{display:flex;align-items:center;gap:8px;font-size:10px;color:#6666a0;white-space:nowrap}
+.snap-select{
+  padding:4px 8px;border-radius:4px;font-size:10px;
+  background:#05050f;color:#4a90d9;
+  border:1px solid #1a3a60;cursor:pointer;
+  font-family:Space Grotesk,sans-serif;
+  max-width:240px;
+}
+
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.run-btn{
+  padding:6px 14px;border-radius:4px;font-size:11px;font-weight:700;
+  background:#001a10;color:#00e5ff;border:1px solid #00e5ff;
+  cursor:pointer;display:flex;align-items:center;gap:5px;
+  transition:all .2s;font-family:Space Grotesk,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;font-weight:700;
+}
+.run-btn:hover:not(:disabled){background:#00e5ff;color:#000;box-shadow:0 0 16px rgba(0,229,255,.5)}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+.run-btn.running{background:#2e1f0a;color:#e8a838;border-color:#e8a838}
+.run-btn svg{width:12px;height:12px}
+
+.dl-btn{
+  padding:6px 14px;border-radius:4px;font-size:11px;font-weight:700;
+  background:#1a0020;color:#e040fb;border:1px solid #e040fb;
+  cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:5px;
+  transition:all .2s;font-family:Space Grotesk,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;font-weight:700;
+}
+.dl-btn:hover{background:#e040fb;color:#000;box-shadow:0 0 16px rgba(224,64,251,.5)}
+.dl-btn svg{width:12px;height:12px}
+
+/* ── Terminal ── */
+.terminal-wrap{display:none;margin:0 1.5rem .75rem}
+.terminal-wrap.visible{display:block}
+.terminal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem}
+.terminal-title{font-size:9px;color:#33335a;text-transform:uppercase;letter-spacing:1px}
+.terminal-status{font-size:9px;font-weight:700;letter-spacing:.5px}
+.terminal-status.running{color:#e8a838}
+.terminal-status.done{color:#1d9e75}
+.terminal-status.error{color:#c0392b}
+.terminal{
+  background:#03030a;border:1px solid #1a1a32;border-radius:4px;
+  padding:.75rem 1rem;font-family:Courier New,monospace;font-size:11px;
+  color:#1d9e75;height:240px;overflow-y:auto;line-height:1.7;
+  white-space:pre-wrap;word-break:break-all;
+}
+.terminal::-webkit-scrollbar{width:4px}
+.terminal::-webkit-scrollbar-track{background:#03030a}
+.terminal::-webkit-scrollbar-thumb{background:#1a1a32}
+
+/* ── Shell ── */
+.shell{max-width:1400px;margin:0 auto;padding:1.25rem 1.5rem}
+.section{display:none}.section.active{display:block}
+
+/* ── KPI row ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.25rem}
+.kpi{background:#0a0a1c;border:1px solid #1e1e3a;border-radius:6px;padding:.875rem 1rem;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.g::before{background:#00e5ff}
+.kpi.p::before{background:#b060ff}
+.kpi.a::before{background:#e8a838}
+.kpi.b::before{background:#00e5ff}
+.kpi.r::before{background:#c0392b}
+.kpi.c::before{background:#e040fb}
+.kpi-label{font-size:10px;font-weight:700;color:#7b7fcc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
+.kpi-value{font-size:2.3rem;font-weight:700;color:#e0e0f0;line-height:1;font-family:JetBrains Mono,monospace}
+.kpi-value.sm{font-size:1.5rem;padding-top:3px}
+.kpi-sub{font-size:10px;color:#7777aa;margin-top:.3rem}
+.kpi.g .kpi-value{color:#00e5ff;text-shadow:0 0 14px rgba(0,229,255,.4)}
+.kpi.p .kpi-value{color:#b060ff;text-shadow:0 0 14px rgba(176,96,255,.4)}
+.kpi.a .kpi-value{color:#ffcc00;text-shadow:0 0 14px rgba(255,204,0,.35)}
+.kpi.b .kpi-value{color:#00e5ff;text-shadow:0 0 14px rgba(0,229,255,.35)}
+.kpi.r .kpi-value{color:#c0392b}
+.kpi.c .kpi-value{color:#e040fb;text-shadow:0 0 14px rgba(224,64,251,.35)}
+
+/* ── Grid layouts ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.grid1{margin-bottom:12px}
+
+/* ── Cards ── */
+.card{background:#0a0a1c;border:1px solid #1e1e3a;border-radius:6px;padding:1rem 1.125rem}
+.card-title{font-size:11px;font-weight:700;color:#00b8d4;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.875rem}
+
+/* ── Donut charts ── */
+.donut-wrap{display:flex;align-items:center;gap:1.25rem}
+.donut-svg{flex-shrink:0}
+.donut-legend{flex:1;min-width:0}
+.donut-legend-item{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.donut-swatch{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.donut-legend-label{font-size:11px;font-weight:500;color:#aaaacc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.donut-legend-val{font-size:10px;color:#9999cc;flex-shrink:0}
+.donut-center-val{font-size:1.3rem;font-weight:700;fill:#e0e0f0;font-family:JetBrains Mono,monospace}
+.donut-center-label{font-size:9px;fill:#44446a;font-family:JetBrains Mono,monospace}
+
+/* ── Bar charts ── */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-label{font-size:11px;font-weight:500;color:#aaaacc;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-label.w80{width:80px}
+.bar-label.w100{width:100px}
+.bar-label.w120{width:120px}
+.bar-label.w150{width:150px}
+.bar-label.w180{width:180px}
+.bar-track{flex:1;background:#0d0d20;border-radius:2px;height:11px;overflow:hidden;min-width:0}
+.bar-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.bar-val{font-size:10px;color:#8888cc;width:44px;text-align:right;flex-shrink:0;font-family:JetBrains Mono,monospace}
+
+/* ── Tables ── */
+.tbl-wrap{overflow-x:auto;margin-top:.4rem}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#05050f;color:#7b7fcc;text-transform:uppercase;letter-spacing:.08em;font-size:10px;padding:8px 9px;text-align:left;border-bottom:1px solid #1a1a38;white-space:nowrap;font-family:Space Grotesk,sans-serif;font-weight:700}
+td{padding:7px 9px;border-bottom:1px solid #0d0d20;color:#aaaac8;white-space:nowrap;font-family:JetBrains Mono,monospace;font-size:11px}
+tr:hover td{background:#0d0d1e}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.04em;font-family:JetBrains Mono,monospace}
+.bg{background:#0a2e1e;color:#1d9e75}
+.ba{background:#2e1f0a;color:#e8a838}
+.br{background:#2e0a0a;color:#c0392b}
+.bp{background:#1a0f2e;color:#8b6fd6}
+.bb{background:#0a1a2e;color:#4a90d9}
+.bc{background:#0a1e2e;color:#4a9ed6}
+
+/* ── Franchise progress ── */
+.fr-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.fr-name{font-size:11px;font-weight:500;color:#aaaacc;width:200px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fr-track{flex:1;background:#0d0d20;border-radius:2px;height:8px;overflow:hidden}
+.fr-fill{height:100%;border-radius:2px}
+.fr-pct{font-size:10px;color:#8888cc;width:36px;text-align:right;flex-shrink:0;font-family:JetBrains Mono,monospace}
+.fr-status{font-size:9px;width:72px;flex-shrink:0;text-align:right}
+
+/* ── Trends ── */
+.spark-wrap{display:flex;align-items:flex-end;gap:2px;height:40px;margin-top:.75rem}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;min-width:3px}
+.spark-dates{display:flex;justify-content:space-between;font-size:9px;color:#33335a;margin-top:3px;font-family:JetBrains Mono,monospace}
+.trend-table{width:100%;border-collapse:collapse;font-size:11px}
+.trend-table th{color:#44446a;text-transform:uppercase;font-size:9px;letter-spacing:.5px;padding:6px 8px;border-bottom:1px solid #1a1a32;text-align:left}
+.trend-table td{padding:7px 9px;border-bottom:1px solid #0d0d20;color:#aaaac8;font-family:JetBrains Mono,monospace}
+.trend-table tr:hover td{background:#0d0d1e}
+.delta-pos{color:#00ff9f}
+.delta-neg{color:#ff6b6b}
+
+/* ── Loading / error ── */
+.loading{text-align:center;padding:4rem;color:#55558a;font-size:1rem;font-family:Space Grotesk,sans-serif;letter-spacing:.05em}
+.err{text-align:center;padding:2rem;color:#c0392b;background:#1a0808;border-radius:6px;margin:1rem 0;font-family:Space Grotesk,sans-serif}
+.no-data{text-align:center;padding:3rem;color:#55558a;font-size:.9rem;font-family:Space Grotesk,sans-serif}
+
+/* ── Specials badge ── */
+.spec-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;background:#0a1e30;color:#4a9ed6;font-family:JetBrains Mono,monospace;margin-left:4px}
+
+
+
+/* ── Bloat ── */
+.bloat-table{width:100%;border-collapse:collapse;font-size:11px}
+.bloat-table th{background:#05050f;color:#7b7fcc;text-transform:uppercase;letter-spacing:.08em;font-size:9px;padding:8px 9px;text-align:left;border-bottom:1px solid #1e1e3a;white-space:nowrap;font-family:Space Grotesk,sans-serif;font-weight:700}
+.bloat-table td{padding:7px 9px;border-bottom:1px solid #0d0d20;color:#aaaac8;white-space:nowrap;font-family:JetBrains Mono,monospace;font-size:11px}
+.bloat-table tr:hover td{background:#0d0d1e}
+.bloat-table td.title{font-family:Space Grotesk,sans-serif;font-weight:500;color:#c8c8e8;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.eff-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700}
+.eff-hot{background:#2e0020;color:#e040fb;border:1px solid #e040fb44}
+.eff-warn{background:#2e1a00;color:#ffcc00;border:1px solid #ffcc0044}
+.eff-ok{background:#001a10;color:#00e5ff;border:1px solid #00e5ff44}
+.eff-good{background:#001a28;color:#00ff9f;border:1px solid #00ff9f44}
+.bloat-tabs{display:flex;gap:6px;margin-bottom:1rem}
+.bloat-tab{padding:5px 14px;border-radius:4px;cursor:pointer;font-size:10px;font-family:Space Grotesk,sans-serif;font-weight:600;color:#55558a;border:1px solid #1e1e3a;background:transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.08em}
+.bloat-tab.active{background:#1a1a3a;color:#e040fb;border-color:#e040fb66}
+.bloat-tab:hover:not(.active){color:#b060ff;border-color:#b060ff44}
+
+
+/* ── Talent sub-tabs (reuse bloat-tab pattern) ── */
+.talent-tabs{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.talent-tab{padding:5px 14px;border-radius:4px;cursor:pointer;font-size:10px;font-family:Space Grotesk,sans-serif;font-weight:600;color:#55558a;border:1px solid #1e1e3a;background:transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.08em}
+.talent-tab.active{background:#1a1a3a;color:#00e5ff;border-color:#00e5ff66}
+.talent-tab:hover:not(.active){color:#b060ff;border-color:#b060ff44}
+.talent-tab[data-tab="btwf"].active{color:#e040fb;border-color:#e040fb66;background:#1a001e}
+.talent-tab[data-tab="unsung"].active{color:#b060ff;border-color:#b060ff66;background:#0f0a24}
+.talent-tab[data-tab="everywhere"].active{color:#00ff9f;border-color:#00ff9f66;background:#001a10}
+.talent-tab[data-tab="loyalty"].active{color:#ffcc00;border-color:#ffcc0066;background:#1a1400}
+.talent-tab[data-tab="wounds"].active{color:#ff6b6b;border-color:#ff6b6b66;background:#1a0808}
+.talent-panel{display:none}.talent-panel.active{display:block}
+
+/* ── Talent deep tables ── */
+.td-table{width:100%;border-collapse:collapse;font-size:11px}
+.td-table th{background:#05050f;color:#7b7fcc;text-transform:uppercase;letter-spacing:.08em;font-size:9px;padding:7px 9px;text-align:left;border-bottom:1px solid #1a1a38;font-family:Space Grotesk,sans-serif;font-weight:700;white-space:nowrap}
+.td-table td{padding:6px 9px;border-bottom:1px solid #0d0d20;color:#aaaac8;font-family:JetBrains Mono,monospace;font-size:10px;vertical-align:top}
+.td-table tr:hover td{background:#0d0d1e}
+.td-table td.name{font-family:Space Grotesk,sans-serif;font-weight:600;color:#c8c8e8;white-space:nowrap}
+.td-table td.films-list{font-family:Space Grotesk,sans-serif;color:#7777aa;font-size:10px;line-height:1.6;white-space:normal;max-width:320px}
+.td-table td.note{font-family:Space Grotesk,sans-serif;font-style:italic;color:#55558a;font-size:10px;white-space:normal;line-height:1.4}
+.td-scroll{max-height:520px;overflow-y:auto}
+.td-scroll::-webkit-scrollbar{width:3px}
+.td-scroll::-webkit-scrollbar-track{background:#03030a}
+.td-scroll::-webkit-scrollbar-thumb{background:#1a1a32}
+.btwf-card{background:#06060f;border:1px solid #1e1e3a;border-left:3px solid #e040fb;border-radius:5px;padding:.75rem 1rem;margin-bottom:8px;transition:border-color .2s}.btwf-card:hover{border-left-color:#00e5ff;background:#08080f}
+.btwf-name{font-family:Space Grotesk,sans-serif;font-weight:700;font-size:14px;color:#ffffff;margin-bottom:3px;letter-spacing:.02em}
+.btwf-breakout{font-size:10px;color:#e040fb;margin-bottom:6px;font-family:JetBrains Mono,monospace;font-weight:600}
+.btwf-early{font-size:10px;color:#8888bb;line-height:1.8}
+.btwf-early span{display:inline-block;background:#0d0d22;border:1px solid #2a2a4a;border-radius:3px;padding:2px 8px;margin:2px 3px 2px 0;color:#c8c8ff;font-family:JetBrains Mono,monospace;transition:border-color .15s}.btwf-early span:hover{border-color:#e040fb55}
+/* ── Constellation ── */
+#constellation-canvas{display:block;width:100%;border-radius:6px;cursor:crosshair}
+.cs-wrap{position:relative;background:#03030a;border:1px solid #1e1e3a;border-radius:6px;overflow:hidden}
+.cs-sidebar{
+  position:absolute;top:0;right:-320px;width:320px;height:100%;
+  background:#0a0a1cee;border-left:1px solid #1e1e3a;
+  transition:right .25s cubic-bezier(.4,0,.2,1);
+  padding:1.25rem;box-sizing:border-box;overflow-y:auto;
+}
+.cs-sidebar.open{right:0}
+.cs-sidebar-close{
+  position:absolute;top:.75rem;right:.75rem;
+  background:none;border:none;color:#44446a;cursor:pointer;font-size:1.1rem;
+  font-family:JetBrains Mono,monospace;
+}
+.cs-sidebar-close:hover{color:#e040fb}
+.cs-title{font-size:1rem;font-weight:700;color:#e0e0f0;margin-bottom:.25rem;line-height:1.3}
+.cs-year{font-family:JetBrains Mono,monospace;font-size:.85rem;color:#7777aa;margin-bottom:.75rem}
+.cs-meta-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.cs-meta-label{font-size:10px;font-weight:700;color:#6666a0;text-transform:uppercase;letter-spacing:.1em}
+.cs-meta-val{font-family:JetBrains Mono,monospace;font-size:.95rem;color:#e0e0f0}
+.cs-genres{font-size:10px;color:#7777aa;margin-top:.75rem;line-height:1.6}
+.cs-quality{display:inline-block;padding:2px 8px;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;background:#001a10;color:#00e5ff;border:1px solid #00e5ff44;margin-top:.5rem}
+.cs-legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem}
+.cs-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#7777aa}
+.cs-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cs-controls{display:flex;align-items:center;gap:1rem;margin-bottom:.75rem;flex-wrap:wrap}
+.cs-control-label{font-size:10px;font-weight:700;color:#6666a0;text-transform:uppercase;letter-spacing:.1em}
+.cs-tooltip{
+  position:absolute;pointer-events:none;
+  background:#0a0a1cf0;border:1px solid #1e1e3a;border-radius:4px;
+  padding:5px 9px;font-size:11px;color:#c8c8e8;
+  font-family:Space Grotesk,sans-serif;
+  white-space:nowrap;display:none;z-index:10;
+}
+
+/* ── Entropy ── */
+.entropy-comp-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.entropy-comp-label{font-size:10px;font-weight:700;color:#7777aa;text-transform:uppercase;letter-spacing:.08em;width:130px;flex-shrink:0}
+.entropy-comp-track{flex:1;background:#0d0d20;border-radius:2px;height:8px;overflow:hidden}
+.entropy-comp-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.entropy-comp-val{font-family:JetBrains Mono,monospace;font-size:10px;color:#8888cc;width:36px;text-align:right;flex-shrink:0}
+.entropy-detail-row{display:flex;justify-content:space-between;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid #1e1e3a}
+.entropy-detail-row:last-child{border-bottom:none}
+.entropy-detail-label{font-size:11px;font-weight:600;color:#aaaacc}
+.entropy-detail-sub{font-size:10px;color:#55558a;margin-top:2px}
+.entropy-detail-score{font-family:JetBrains Mono,monospace;font-size:1rem;font-weight:700}
+
+/* ── DNA Score ── */
+.dna-grade-block{display:flex;align-items:center;gap:1.5rem;padding:.5rem 0}
+.dna-letter{font-family:Orbitron,sans-serif;font-size:5rem;font-weight:900;line-height:1;flex-shrink:0}
+.dna-grade-A{color:#00e5ff;text-shadow:0 0 30px rgba(0,229,255,.6)}
+.dna-grade-B{color:#00ff9f;text-shadow:0 0 30px rgba(0,255,159,.5)}
+.dna-grade-C{color:#ffcc00;text-shadow:0 0 30px rgba(255,204,0,.5)}
+.dna-grade-D{color:#e8a838;text-shadow:0 0 30px rgba(232,168,56,.5)}
+.dna-grade-F{color:#ff6b6b;text-shadow:0 0 30px rgba(255,107,107,.5)}
+.dna-score-num{font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;color:#e0e0f0}
+.dna-note{font-size:11px;color:#7777aa;font-style:italic;margin-top:.4rem;line-height:1.5}
+.dna-dist-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.dna-dist-letter{font-family:Orbitron,sans-serif;font-size:.85rem;font-weight:700;width:18px;flex-shrink:0;text-align:center}
+.dna-dist-track{flex:1;background:#0d0d20;border-radius:2px;height:10px;overflow:hidden}
+.dna-dist-fill{height:100%;border-radius:2px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+.dna-dist-count{font-family:JetBrains Mono,monospace;font-size:10px;color:#8888cc;width:36px;text-align:right;flex-shrink:0}
+.dna-film-table{width:100%;border-collapse:collapse;font-size:11px}
+.dna-film-table th{background:#05050f;color:#7b7fcc;text-transform:uppercase;letter-spacing:.08em;font-size:9px;padding:6px 8px;text-align:left;border-bottom:1px solid #1a1a38;font-family:Space Grotesk,sans-serif;font-weight:700}
+.dna-film-table td{padding:6px 8px;border-bottom:1px solid #0d0d20;color:#aaaac8;font-family:JetBrains Mono,monospace;font-size:10px;vertical-align:top}
+.dna-film-table tr:hover td{background:#0d0d1e}
+.dna-film-table td.title{font-family:Space Grotesk,sans-serif;font-weight:500;color:#c8c8e8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dna-film-table td.note{font-family:Space Grotesk,sans-serif;font-style:italic;color:#55558a;font-size:10px;max-width:260px;white-space:normal;line-height:1.4}
+.dna-grade-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-family:Orbitron,sans-serif;font-size:9px;font-weight:700}
+.dna-badge-A{background:#001a1e;color:#00e5ff;border:1px solid #00e5ff44}
+.dna-badge-B{background:#001a10;color:#00ff9f;border:1px solid #00ff9f44}
+.dna-badge-C{background:#2e2200;color:#ffcc00;border:1px solid #ffcc0044}
+.dna-badge-D{background:#2e1a00;color:#e8a838;border:1px solid #e8a83844}
+.dna-badge-F{background:#2e0a0a;color:#ff6b6b;border:1px solid #ff6b6b44}
+.dna-scroll{max-height:420px;overflow-y:auto}
+.dna-scroll::-webkit-scrollbar{width:3px}
+.dna-scroll::-webkit-scrollbar-track{background:#03030a}
+.dna-scroll::-webkit-scrollbar-thumb{background:#1a1a32}
+@media(max-width:900px){
+  .topbar{grid-template-columns:1fr;justify-items:center;gap:.5rem}
+  .grid2,.grid3,.grid4{grid-template-columns:1fr}
+  .kpi-value{font-size:1.7rem}
+  .donut-wrap{flex-direction:column}
+}
+
+  .sub-tab{background:transparent;border:1px solid #1a1a32;color:#44446a;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:Space Grotesk,sans-serif;font-weight:600;letter-spacing:.04em;transition:all .15s}
+  .sub-tab:hover{border-color:#3a3a5a;color:#aaaacc}
+  .sub-tab.active{background:#1a1a32;border-color:#4a4a8a;color:#e0e0ff}
+  .pair-card{background:#0a0a1c;border:1px solid #1a1a32;border-radius:10px;padding:14px 16px;margin-bottom:10px}
+  .pair-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .pair-names{font-size:13px;font-weight:700;font-family:Space Grotesk,sans-serif}
+  .pair-sim-bar{flex:1;min-width:120px;height:6px;background:#1a1a32;border-radius:3px}
+  .pair-sim-fill{height:100%;border-radius:3px}
+  .pair-sim-pct{font-size:11px;font-family:JetBrains Mono,monospace;color:#aaaacc;min-width:38px;text-align:right}
+  .genre-chip{display:inline-block;background:#12122a;border:1px solid #2a2a4a;border-radius:12px;padding:2px 9px;font-size:10px;color:#8888bb;margin:2px 3px 2px 0;font-family:Space Grotesk,sans-serif}
+  .shared-titles-toggle{font-size:10px;color:#44446a;cursor:pointer;margin-top:6px;user-select:none}
+  .shared-titles-toggle:hover{color:#aaaacc}
+  .shared-titles-list{display:none;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .shared-title-pill{background:#05050f;border:1px solid #1a1a32;border-radius:4px;padding:2px 7px;font-size:9px;color:#6666aa;font-family:Space Grotesk,sans-serif}
+  .filter-input{background:#08081a;border:1px solid #1a1a32;border-radius:6px;color:#e0e0ff;font-family:Space Grotesk,sans-serif;font-size:11px;padding:5px 10px;width:100%;box-sizing:border-box;margin-top:6px;margin-bottom:4px;outline:none}
+  .filter-input:focus{border-color:#4a4a8a}
+  .rec-card{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #0d0d20}
+  .rec-card:last-child{border-bottom:none}
+  .rec-rank{font-size:18px;font-weight:900;color:#1e1e3a;font-family:JetBrains Mono,monospace;min-width:28px}
+  .rec-title{font-size:12px;font-weight:700;color:#e0e0ff;font-family:Space Grotesk,sans-serif}
+  .rec-meta{font-size:10px;color:#44446a;margin-top:2px}
+  .rec-rating{font-size:11px;font-family:JetBrains Mono,monospace;margin-left:auto;color:#ffcc00;white-space:nowrap}
+  .in-lib-badge{display:inline-block;background:#003322;border:1px solid #00ff9f44;color:#00ff9f;border-radius:4px;font-size:9px;padding:1px 6px;margin-left:6px;font-family:Space Grotesk,sans-serif}
+  .imdb-badge{display:inline-block;background:#1a1200;border:1px solid #ffcc0044;color:#ffcc00;border-radius:4px;font-size:9px;padding:1px 6px;margin-left:6px;font-family:Space Grotesk,sans-serif;text-decoration:none}
+  .hate-card{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #1a0a0a}
+  .hate-card:last-child{border-bottom:none}
+  .hate-title{font-size:12px;font-weight:700;color:#e0e0ff;font-family:Space Grotesk,sans-serif}
+  .hate-meta{font-size:10px;color:#44446a;margin-top:2px}
+  .hate-rating{font-size:11px;font-family:JetBrains Mono,monospace;margin-left:auto;color:#ff4444;white-space:nowrap}
+  .consensus-pill{display:inline-flex;align-items:center;gap:6px;background:#1a0505;border:1px solid #3a0a0a;border-radius:8px;padding:5px 10px;margin:3px;font-size:11px;color:#cc4444;font-family:Space Grotesk,sans-serif}
+
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo"><div class="logo-stack"><span class="logo-main" id="logo-main">Media</span><div class="logo-divider"></div><span class="logo-accent" id="logo-accent">Library</span></div></div>
+
+  <div class="topbar-center">
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('movies',this)">Movies</button>
+      <button class="tab" onclick="showTab('tv',this)">TV Series</button>
+      <button class="tab" onclick="showTab('talent',this)">Talent</button>
+      <button class="tab" onclick="showTab('franchises',this)">Franchises</button>
+      <button class="tab" onclick="showTab('bloat',this)">Bloat</button>
+      <button class="tab" onclick="showTab('constellation',this)">Constellation</button>
+      <button class="tab" onclick="showTab('trends',this)">Trends</button>
+      <button class="tab" id="tab-fingerprint" style="display:none" onclick="showTab('fingerprint',this)">Family Fingerprint</button>
+    </div>
+    <div class="topbar-meta">
+      <select class="snap-select" id="snap-select" onchange="loadSnapshot(this.value)" title="View historical snapshot">
+        <option value="">⟳ Live Data</option>
+      </select>
+      <span id="gen-date"></span>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <button class="run-btn" id="run-btn" onclick="triggerRun()">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg>
+      Run Update
+    </button>
+  </div>
+</div>
+
+<!-- TERMINAL -->
+<div class="terminal-wrap" id="terminal-wrap">
+  <div style="padding:.5rem 1.5rem 0">
+    <div class="terminal-header">
+      <span class="terminal-title">▌ Library Update</span>
+      <span class="terminal-status" id="terminal-status"></span>
+    </div>
+    <div class="terminal" id="terminal"></div>
+  </div>
+</div>
+
+<div class="shell">
+  <div id="loading" class="loading">[ Loading... ]</div>
+  <div id="error" class="err" style="display:none"></div>
+
+  <!-- MOVIES -->
+  <div class="section" id="sec-movies">
+    <div class="kpi-row" id="m-kpis"></div>
+    <div class="grid4">
+      <div class="card"><div class="card-title">Resolution</div><div id="m-res"></div></div>
+      <div class="card"><div class="card-title">Video Codec</div><div id="m-codec"></div></div>
+      <div class="card"><div class="card-title">HDR / Dynamic Range</div><div id="m-hdr"></div></div>
+      <div class="card"><div class="card-title">Source</div><div id="m-source"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Top Genres</div><div id="m-genre"></div></div>
+      <div class="card"><div class="card-title">By Decade</div><div id="m-decade"></div></div>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="card-title">Content Rating</div><div id="m-cert"></div></div>
+      <div class="card"><div class="card-title">IMDb Rating Distribution</div><div id="m-ratings"></div></div>
+      <div class="card"><div class="card-title">Top Studios</div><div id="m-studios"></div></div>
+    </div>
+    <div class="grid1">
+      <div class="card">
+        <div class="card-title">Top 20 by IMDb Rating</div>
+        <div class="tbl-wrap"><table id="m-top-table">
+          <thead><tr><th>#</th><th>Title</th><th>Year</th><th>IMDb</th><th>Quality</th><th>Genres</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TV SERIES -->
+  <div class="section" id="sec-tv">
+    <div class="kpi-row" id="tv-kpis"></div>
+    <div class="grid3">
+      <div class="card"><div class="card-title">Library Status</div><div id="tv-status"></div></div>
+      <div class="card"><div class="card-title">Top Networks</div><div id="tv-net"></div></div>
+      <div class="card"><div class="card-title">Top Genres</div><div id="tv-genre"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Content Rating</div><div id="tv-cert"></div></div>
+      <div class="card"><div class="card-title">By Decade</div><div id="tv-decade"></div></div>
+    </div>
+    <div class="grid1">
+      <div class="card">
+        <div class="card-title">Biggest Series by Episode Count</div>
+        <div id="tv-biggest"></div>
+      </div>
+    </div>
+    <div class="grid1">
+      <div class="card">
+        <div class="card-title">Incomplete Series — Main Run Only</div>
+        <div class="tbl-wrap"><table id="tv-incomplete-table">
+          <thead><tr><th>Title</th><th>Have</th><th>Total</th><th>Main Completion</th><th>Specials</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TALENT -->
+  <div class="section" id="sec-talent">
+    <div class="talent-tabs">
+      <button class="talent-tab active" data-tab="top" onclick="showTalentTab('top',this)">⭐ Top Talent</button>
+      <button class="talent-tab" data-tab="btwf" onclick="showTalentTab('btwf',this)">🎬 Before They Were Famous</button>
+      <button class="talent-tab" data-tab="unsung" onclick="showTalentTab('unsung',this)">🎭 The Unsung</button>
+      <button class="talent-tab" data-tab="everywhere" onclick="showTalentTab('everywhere',this)">🌐 The Everywheremen</button>
+      <button class="talent-tab" data-tab="loyalty" onclick="showTalentTab('loyalty',this)">🎯 Director Loyalty</button>
+      <button class="talent-tab" data-tab="wounds" onclick="showTalentTab('wounds',this)">🩸 Deep Wounds</button>
+    </div>
+
+    <!-- Top Talent -->
+    <div class="talent-panel active" id="tp-top">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Top Directors — Films in Library</div>
+          <div id="t-dir-films"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top Directors — Avg IMDb Rating</div>
+          <div id="t-dir-rating"></div>
+        </div>
+      </div>
+      <div class="grid1">
+        <div class="card">
+          <div class="card-title">Top Actors — Films in Library (Top-5 Billed)</div>
+          <div id="t-actors"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Before They Were Famous -->
+    <div class="talent-panel" id="tp-btwf">
+      <div class="card">
+        <div class="card-title">🎬 Before They Were Famous</div>
+        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Actors with lead roles in your library who also appear in earlier films with supporting billing — their "before" moment.</div>
+        <div class="td-scroll" id="btwf-list"><div class="no-data">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- The Unsung -->
+    <div class="talent-panel" id="tp-unsung">
+      <div class="card">
+        <div class="card-title">🎭 The Unsung — Always Present, Never Leading</div>
+        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Actors who appear consistently across the library in supporting roles (billing 4+) with rarely more than 2 lead appearances.</div>
+        <div class="td-scroll">
+          <table class="td-table" id="unsung-table">
+            <thead><tr><th>Name</th><th>Support</th><th>Leads</th><th>Avg IMDb</th><th>Top Genre</th><th>Notable Films</th></tr></thead>
+            <tbody id="unsung-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- The Everywheremen -->
+    <div class="talent-panel" id="tp-everywhere">
+      <div class="card">
+        <div class="card-title">🌐 The Everywheremen — Broadest Library Presence</div>
+        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">The "Hey, it's that guy!" list — character actors who appear constantly across the library but never as the star. Ranked by appearances, billing depth, genre breadth, and fame suppression. If you know their face but not their name, they belong here.</div>
+        <div class="td-scroll">
+          <table class="td-table" id="everywhere-table">
+            <thead><tr><th>Name</th><th>Appearances</th><th>Avg Billing</th><th>Supporting</th><th>Genres</th><th>Decades</th><th>Avg IMDb</th><th>Recent Films</th></tr></thead>
+            <tbody id="everywhere-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Director Loyalty -->
+    <div class="talent-panel" id="tp-loyalty">
+      <div class="card">
+        <div class="card-title">🎯 Director Loyalty Index</div>
+        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Directors ranked by how deeply and consistently the library returns to their work — film count weighted by rating and decade spread.</div>
+        <div class="td-scroll">
+          <table class="td-table" id="loyalty-table">
+            <thead><tr><th>Director</th><th>Films</th><th>Loyalty Score</th><th>Avg IMDb</th><th>Top Genre</th><th>Decades</th><th>Recent Films</th></tr></thead>
+            <tbody id="loyalty-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /tp-loyalty -->
+
+    <!-- Deep Wounds -->
+    <div class="talent-panel" id="tp-wounds">
+      <div class="card">
+        <div class="card-title" style="color:#ff6b6b">🩸 Deep Wounds — Horror &amp; Thriller Roots</div>
+        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Famous actors in your library with horror, thriller, mystery, or crime credits — what you have and what you're missing. Click any missing title to request it on Jellyseer.</div>
+        <div class="td-scroll" id="wounds-list"><div class="no-data">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FRANCHISES -->
+  <div class="section" id="sec-franchises">
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Incomplete Franchises</div>
+        <div id="fr-incomplete"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Complete Franchises</div>
+        <div id="fr-complete"></div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- BLOAT -->
+  <div class="section" id="sec-bloat">
+    <div class="kpi-row" id="bl-kpis"></div>
+    <div class="card">
+      <div class="bloat-tabs">
+        <button class="bloat-tab active" onclick="showBloatTab('worst',this)">Worst GB/hr</button>
+        <button class="bloat-tab" onclick="showBloatTab('efficient',this)">Most Efficient</button>
+        <button class="bloat-tab" onclick="showBloatTab('x264',this)">x264 Hit List</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="bloat-table" id="bl-table">
+          <thead id="bl-thead"></thead>
+          <tbody id="bl-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSTELLATION -->
+  <div class="section" id="sec-constellation">
+    <div class="kpi-row" id="cs-kpis"></div>
+    <div class="cs-controls">
+      <span class="cs-control-label">Color by rating</span>
+      <div class="cs-legend" id="cs-legend"></div>
+      <span class="cs-control-label" style="margin-left:auto">Dot size = file size</span>
+    </div>
+    <div class="cs-wrap" id="cs-wrap">
+      <canvas id="constellation-canvas"></canvas>
+      <div class="cs-tooltip" id="cs-tooltip"></div>
+      <div class="cs-sidebar" id="cs-sidebar">
+        <button class="cs-sidebar-close" onclick="closeSidebar()">✕</button>
+        <div id="cs-sidebar-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDS -->
+  <div class="section" id="sec-trends">
+    <div class="sub-tab-bar" style="display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid #1a1a32;padding-bottom:8px">
+      <button class="sub-tab active" id="trtab-entropy" onclick="showTrendsTab(&#39;entropy&#39;)">&#x26A1; Health Score</button>
+      <button class="sub-tab"        id="trtab-dna"     onclick="showTrendsTab(&#39;dna&#39;)">&#x1F9EC; Library DNA</button>
+      <button class="sub-tab"        id="trtab-history" onclick="showTrendsTab(&#39;history&#39;)">&#x1F4C8; History</button>
+    </div>
+
+    <!-- ── Entropy panel ── -->
+    <div id="tr-panel-entropy">
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="card" style="position:relative;overflow:hidden">
+          <div class="card-title">Library Health Score</div>
+          <div id="entropy-wrap" style="display:flex;align-items:center;gap:1.5rem;min-height:180px">
+            <canvas id="entropy-gauge" width="180" height="180" style="flex-shrink:0"></canvas>
+            <div id="entropy-components" style="flex:1;min-width:0"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Score Breakdown</div>
+          <div id="entropy-detail" style="padding:.25rem 0"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DNA panel ── -->
+    <div id="tr-panel-dna" style="display:none">
+      <div class="grid3" style="margin-bottom:12px">
+        <div class="card">
+          <div class="card-title">Library DNA Score</div>
+          <div id="dna-grade-wrap"><div class="no-data">Loading DNA scores...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dimension Breakdown</div>
+          <div id="dna-dim-wrap"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Grade Distribution</div>
+          <div id="dna-dist-wrap"></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="card">
+          <div class="card-title">&#x1F3C6; Honor Roll &#x2014; Top Films</div>
+          <div class="dna-scroll"><div id="dna-best-wrap"><div class="no-data">Loading...</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">&#x1F4CB; See Me After Class &#x2014; Bottom Films</div>
+          <div class="dna-scroll"><div id="dna-worst-wrap"><div class="no-data">Loading...</div></div></div>
+        </div>
+      </div>
+      <div class="card" style="border-top:2px solid #ff4444;margin-bottom:12px">
+        <div class="card-title" style="color:#ff4444">&#x1F6A8; Expulsion List &#x2014; Failing &amp; Hated</div>
+        <div style="font-size:10px;color:#44446a;margin-bottom:12px;font-family:Space Grotesk,sans-serif">Grade D or F films that at least one family member has actively tagged as hated. These are not earning their keep.</div>
+        <div id="expulsion-wrap"><div class="no-data">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ── History panel ── -->
+    <div id="tr-panel-history" style="display:none">
+      <div class="kpi-row" id="tr-kpis"></div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Library Size Over Time (TB)</div>
+          <div id="tr-size-spark"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Movie Count Over Time</div>
+          <div id="tr-movie-spark"></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">x264 Count &#x2014; Upgrade Progress</div>
+          <div id="tr-x264-spark"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">x265 Count Over Time</div>
+          <div id="tr-x265-spark"></div>
+        </div>
+      </div>
+      <div class="grid1">
+        <div class="card">
+          <div class="card-title">Run History</div>
+          <div class="tbl-wrap">
+            <table class="trend-table" id="tr-table">
+              <thead><tr>
+                <th>Date</th><th>Time</th><th>Movies</th><th>TV</th>
+                <th>Total Size</th><th>Size &#x394;</th>
+                <th>x264</th><th>x265</th><th></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- FAMILY FINGERPRINT -->
+  <div class="section" id="sec-fingerprint">
+    <div class="sub-tab-bar" style="display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid #1a1a32;padding-bottom:8px">
+      <button class="sub-tab active" id="fptab-profiles"  onclick="showFpTab('profiles')">&#x1F9EC; Taste Profiles</button>
+      <button class="sub-tab"        id="fptab-threads"   onclick="showFpTab('threads')">&#x1F517; Common Threads</button>
+      <button class="sub-tab"        id="fptab-recs"      onclick="showFpTab('recs')">&#x2728; You&#x2019;d Probably Like</button>
+      <button class="sub-tab" id="fptab-hated" style="display:none" onclick="showFpTab('hated')">&#x1F624; Hated It</button>
+    </div>
+    <div id="fppanel-profiles">
+      <div class="kpi-row" id="fp-kpis"></div>
+      <div id="fp-grid" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px"></div>
+      <div class="grid1">
+        <div class="card">
+          <div class="card-title">Genre Fingerprint — Side by Side</div>
+          <div id="fp-compare" style="overflow-x:auto"></div>
+        </div>
+      </div>
+    </div>
+    <div id="fppanel-threads" style="display:none">
+      <div id="fp-threads-content"><div class="no-data" style="padding:40px;text-align:center;color:#44446a">Loading…</div></div>
+    </div>
+    <div id="fppanel-recs" style="display:none">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="fp-recs-member-tabs"></div>
+      <div id="fp-recs-content"><div class="no-data" style="padding:40px;text-align:center;color:#44446a">Loading…</div></div>
+    </div>
+    <div id="fppanel-hated" style="display:none">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="fp-hated-member-tabs"></div>
+      <div id="fp-hated-consensus" style="margin-bottom:14px"></div>
+      <div id="fp-hated-content"><div class="no-data" style="padding:40px;text-align:center;color:#44446a">Loading…</div></div>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+
+
+// ── Bloat Hit List ────────────────────────────────────────────────────────────
+let _bloatData = null;
+let _bloatTab  = 'worst';
+
+function effClass(gb_hr) {
+  if (!gb_hr) return 'eff-ok';
+  if (gb_hr > 20) return 'eff-hot';
+  if (gb_hr > 10) return 'eff-warn';
+  if (gb_hr > 5)  return 'eff-ok';
+  return 'eff-good';
+}
+
+function effLabel(gb_hr) {
+  if (!gb_hr) return '—';
+  if (gb_hr > 20) return 'BLOATED';
+  if (gb_hr > 10) return 'HEAVY';
+  if (gb_hr > 5)  return 'OK';
+  return 'LEAN';
+}
+
+function codecColor(codec) {
+  const c = (codec || '').toLowerCase();
+  if (c.includes('265') || c.includes('hevc')) return '#00ff9f';
+  if (c.includes('264') || c.includes('avc'))  return '#ff6b6b';
+  return '#7777aa';
+}
+
+function showBloatTab(name, el) {
+  document.querySelectorAll('.bloat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  _bloatTab = name;
+  if (_bloatData) renderBloatTable(_bloatData, name);
+}
+
+function renderBloatTable(data, tab) {
+  const thead = document.getElementById('bl-thead');
+  const tbody = document.getElementById('bl-tbody');
+
+  if (tab === 'worst' || tab === 'efficient') {
+    thead.innerHTML = `<tr>
+      <th>#</th><th>Title</th><th>Year</th>
+      <th>Size</th><th>GB/hr</th><th>Efficiency</th>
+      <th>Codec</th><th>Runtime</th><th>Release Group</th><th></th>
+    </tr>`;
+    const rows = tab === 'worst' ? data.worst : data.efficient;
+    tbody.innerHTML = rows.map((m, i) => {
+      const gbhr = m.gb_hr ? m.gb_hr.toFixed(1) : '—';
+      const runtime = m.runtime ? `${Math.floor(m.runtime/60)}h ${m.runtime%60}m` : '—';
+      return `<tr>
+        <td style="color:#33335a">${i+1}</td>
+        <td class="title">${m.title}</td>
+        <td style="color:#44446a">${m.year || '—'}</td>
+        <td style="color:#e040fb;font-weight:700">${m.size_gb.toFixed(1)} GB</td>
+        <td style="color:#ffcc00">${gbhr}</td>
+        <td><span class="eff-badge ${effClass(m.gb_hr)}">${effLabel(m.gb_hr)}</span></td>
+        <td style="color:${codecColor(m.codec)}">${m.codec || '—'}</td>
+        <td style="color:#44446a">${runtime}</td>
+        <td style="color:#44446a;font-size:10px">${m.group || '\u2014'}</td>
+        <td style="white-space:nowrap;padding:6px 8px">${m.radarr_id ? `<button data-rid="${m.radarr_id}" data-title="${m.title.replace(/"/g, '&quot;')}" onclick="radarrReplace(this)" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:3px;background:#0a2a1a;border:1px solid #00ff9f88;color:#00ff9f;font-size:9px;font-weight:700;letter-spacing:.5px;font-family:Space Grotesk,sans-serif;cursor:pointer;" onmouseover="this.style.background='#0d3520'" onmouseout="this.style.background='#0a2a1a'">&#8635; REPLACE</button>` : ''}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    // x264 hit list
+    thead.innerHTML = `<tr>
+      <th>#</th><th>Title</th><th>Year</th>
+      <th>Size</th><th>GB/hr</th><th>Quality</th>
+      <th>Runtime</th><th>Release Group</th><th></th>
+    </tr>`;
+    tbody.innerHTML = data.x264.map((m, i) => {
+      const gbhr = m.gb_hr ? m.gb_hr.toFixed(1) : '—';
+      const runtime = m.runtime ? `${Math.floor(m.runtime/60)}h ${m.runtime%60}m` : '—';
+      const priority = i < 10 ? '#ff6b6b' : i < 25 ? '#ffcc00' : '#55558a';
+      return `<tr>
+        <td style="color:${priority};font-weight:700">${i+1}</td>
+        <td class="title">${m.title}</td>
+        <td style="color:#44446a">${m.year || '—'}</td>
+        <td style="color:#e040fb;font-weight:700">${m.size_gb.toFixed(1)} GB</td>
+        <td style="color:#ffcc00">${gbhr}</td>
+        <td style="color:#7777aa;font-size:10px">${m.quality || '—'}</td>
+        <td style="color:#44446a">${runtime}</td>
+        <td style="color:#44446a;font-size:10px">${m.group || '\u2014'}</td>
+        <td style="white-space:nowrap;padding:6px 8px">${m.radarr_id ? `<button data-rid="${m.radarr_id}" data-title="${m.title.replace(/"/g, '&quot;')}" onclick="radarrReplace(this)" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:3px;background:#0a2a1a;border:1px solid #00ff9f88;color:#00ff9f;font-size:9px;font-weight:700;letter-spacing:.5px;font-family:Space Grotesk,sans-serif;cursor:pointer;" onmouseover="this.style.background='#0d3520'" onmouseout="this.style.background='#0a2a1a'">&#8635; REPLACE</button>` : ''}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+
+// ── Radarr one-click replace ──────────────────────────────────────────────
+function radarrReplace(btn) {
+  const radarrId = btn.dataset.rid;
+  const title = btn.dataset.title;
+  if (!confirm('Delete file and trigger replacement search for:\n\n' + title + '\n\nRadarr will search for a better encode automatically.')) return;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '&#8987; ...';
+  btn.disabled = true;
+  fetch('/api/radarr/replace/' + radarrId, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        btn.innerHTML = '&#10003; QUEUED';
+        btn.style.color = '#00ff9f';
+        btn.style.borderColor = '#00ff9f88';
+        btn.style.background = '#0a2a1a';
+      } else {
+        btn.innerHTML = '&#10007; ERROR';
+        btn.style.color = '#ff6b6b';
+        btn.title = data.error || 'Unknown error';
+        btn.disabled = false;
+      }
+    })
+    .catch(() => {
+      btn.innerHTML = '&#10007; FAILED';
+      btn.style.color = '#ff6b6b';
+      btn.disabled = false;
+    });
+}
+
+function loadBloat() {
+  if (_bloatData) { renderBloatTable(_bloatData, _bloatTab); return; }
+  fetch('/api/bloat')
+    .then(r => r.json())
+    .then(data => {
+      _bloatData = data;
+      const k = data.kpi;
+      kpi('bl-kpis', [
+        {label:'x264 Files',        value: k.x264_count.toLocaleString(),        sub: k.x264_gb.toFixed(1)+' GB in x264',      accent:'r'},
+        {label:'Bloat Offenders',   value: k.bloat_count.toLocaleString(),       sub: 'files over 10 GB/hr',                   accent:'a'},
+        {label:'Avg Bloat GB/hr',   value: k.avg_bloat_gb_hr+' GB/hr',          sub: 'avg among offenders',                   accent:'p', sm:true},
+        {label:'Recoverable',       value: k.recoverable_gb.toFixed(1)+' GB',   sub: 'files over 8 GB/hr',                    accent:'c', sm:true},
+      ]);
+      renderBloatTable(data, _bloatTab);
+    })
+    .catch(err => {
+      document.getElementById('sec-bloat').innerHTML =
+        `<div class="err">Failed to load bloat data: ${err.message}</div>`;
+    });
+}
+
+
+// ── Constellation View ────────────────────────────────────────────────────────
+let _csData = null;
+let _csHitmap = [];
+
+const CS_COLORS = {
+  'elite':  {min:8.0, max:10, color:'#00e5ff', label:'8.0+ Elite'},
+  'great':  {min:7.0, max:7.99,color:'#b060ff', label:'7.0–7.9 Great'},
+  'good':   {min:6.0, max:6.99,color:'#e8a838', label:'6.0–6.9 Good'},
+  'meh':    {min:0,   max:5.99,color:'#ff2d78', label:'< 6.0'},
+};
+
+function csColor(rating) {
+  if (rating >= 8.0) return '#00e5ff';
+  if (rating >= 7.0) return '#b060ff';
+  if (rating >= 6.0) return '#e8a838';
+  return '#ff2d78';
+}
+
+function csTier(rating) {
+  if (rating >= 8.0) return 'elite';
+  if (rating >= 7.0) return 'great';
+  if (rating >= 6.0) return 'good';
+  return 'meh';
+}
+
+function renderConstellation(movies) {
+  _csData = movies;
+
+  // KPIs
+  const avgRating = movies.reduce((s,m) => s + m.rating, 0) / movies.length;
+  const maxGb = Math.max(...movies.map(m => m.size_gb));
+  const elite = movies.filter(m => m.rating >= 8).length;
+  kpi('cs-kpis', [
+    {label:'Mapped Films',   value: movies.length.toLocaleString(),    accent:'b'},
+    {label:'Avg IMDb',       value: avgRating.toFixed(2),              accent:'g', sm:true},
+    {label:'Elite (8.0+)',   value: elite.toLocaleString(),            accent:'p'},
+    {label:'Largest File',   value: maxGb.toFixed(1)+' GB',           accent:'a', sm:true},
+  ]);
+
+  // Legend
+  const leg = document.getElementById('cs-legend');
+  leg.innerHTML = Object.values(CS_COLORS).map(t =>
+    `<div class="cs-legend-item">
+      <div class="cs-legend-dot" style="background:${t.color}"></div>
+      <span>${t.label}</span>
+    </div>`
+  ).join('');
+
+  drawCanvas(movies);
+}
+
+function drawCanvas(movies) {
+  const wrap   = document.getElementById('cs-wrap');
+  const canvas = document.getElementById('constellation-canvas');
+  const dpr    = window.devicePixelRatio || 1;
+
+  const W = wrap.clientWidth;
+  const H = Math.max(520, Math.round(W * 0.52));
+  canvas.style.height = H + 'px';
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const PAD = {top:30, right:20, bottom:50, left:52};
+  const pw = W - PAD.left - PAD.right;
+  const ph = H - PAD.top  - PAD.bottom;
+
+  const years   = movies.map(m => m.year);
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...years);
+  const sizes   = movies.map(m => m.size_gb);
+  const maxSize = Math.max(...sizes) || 1;
+
+  function cx(year)   { return PAD.left + ((year - minYear) / (maxYear - minYear || 1)) * pw; }
+  function cy(rating) { return PAD.top  + (1 - (rating / 10)) * ph; }
+  function cr(gb)     { return Math.max(2.5, Math.min(10, 2.5 + (gb / maxSize) * 9)); }
+
+  // Background grid
+  ctx.strokeStyle = '#1e1e3a';
+  ctx.lineWidth   = 0.5;
+  [2,3,4,5,6,7,8,9,10].forEach(r => {
+    const y = cy(r);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
+    ctx.fillStyle = '#44446a';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(r.toFixed(1), PAD.left - 6, y + 3);
+  });
+
+  // Decade lines
+  ctx.fillStyle = '#33335a';
+  ctx.font = '10px Space Grotesk, sans-serif';
+  ctx.textAlign = 'center';
+  for (let decade = Math.ceil(minYear/10)*10; decade <= maxYear; decade += 10) {
+    const x = cx(decade);
+    ctx.strokeStyle = '#1a1a38';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H - PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#33335a';
+    ctx.fillText(decade + 's', x, H - PAD.bottom + 16);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#6666a0';
+  ctx.font = '11px Space Grotesk, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Year', W / 2, H - 6);
+  ctx.save();
+  ctx.translate(12, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('IMDb Rating', 0, 0);
+  ctx.restore();
+
+  // Dots + hitmap
+  _csHitmap = [];
+  // Sort so bigger dots draw first (smaller on top = more clickable)
+  const sorted = [...movies].sort((a,b) => b.size_gb - a.size_gb);
+  sorted.forEach(m => {
+    const x = cx(m.year);
+    const y = cy(m.rating);
+    const r = cr(m.size_gb);
+    const col = csColor(m.rating);
+
+    // Glow
+    const grd = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5);
+    grd.addColorStop(0, col + 'aa');
+    grd.addColorStop(1, col + '00');
+    ctx.beginPath();
+    ctx.arc(x, y, r * 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    // Dot
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    _csHitmap.push({m, x, y, r: Math.max(r, 6)});
+  });
+}
+
+function csHitTest(mx, my) {
+  // Iterate in reverse (top-drawn = smallest dots first in hitmap reversed)
+  for (let i = _csHitmap.length - 1; i >= 0; i--) {
+    const {m, x, y, r} = _csHitmap[i];
+    const dist = Math.sqrt((mx-x)**2 + (my-y)**2);
+    if (dist <= r + 3) return m;
+  }
+  return null;
+}
+
+function openSidebar(m) {
+  const sidebar = document.getElementById('cs-sidebar');
+  const col = csColor(m.rating);
+  document.getElementById('cs-sidebar-content').innerHTML = `
+    <div style="width:100%;height:3px;background:${col};border-radius:2px;margin-bottom:1rem;box-shadow:0 0 10px ${col}88"></div>
+    <div class="cs-title">${m.title}</div>
+    <div class="cs-year">${m.year} · ${m.decade}</div>
+    <div class="cs-meta-row">
+      <span class="cs-meta-label">IMDb Rating</span>
+      <span class="cs-meta-val" style="color:${col};text-shadow:0 0 10px ${col}88">${m.rating.toFixed(1)}</span>
+    </div>
+    <div class="cs-meta-row">
+      <span class="cs-meta-label">File Size</span>
+      <span class="cs-meta-val">${m.size_gb.toFixed(2)} GB</span>
+    </div>
+    <div class="cs-meta-row">
+      <span class="cs-meta-label">Quality</span>
+      <span class="cs-meta-val" style="font-size:.8rem">${m.quality || '—'}</span>
+    </div>
+    <div class="cs-genres">${(m.genres || '').split(',').map(g => g.trim()).filter(Boolean).map(g =>
+      `<span style="display:inline-block;padding:2px 7px;border-radius:3px;background:#0a0a28;border:1px solid #1e1e3a;margin:2px;font-size:9px;color:#7777aa">${g}</span>`
+    ).join('')}</div>
+  `;
+  sidebar.classList.add('open');
+}
+
+function closeSidebar() {
+  document.getElementById('cs-sidebar').classList.remove('open');
+}
+
+// Mouse events
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas  = document.getElementById('constellation-canvas');
+  const tooltip = document.getElementById('cs-tooltip');
+  if (!canvas) return;
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const hit = csHitTest(mx, my);
+    if (hit) {
+      tooltip.style.display = 'block';
+      tooltip.style.left = (mx + 14) + 'px';
+      tooltip.style.top  = (my - 10) + 'px';
+      tooltip.textContent = `${hit.title} (${hit.year}) · ${hit.rating.toFixed(1)} · ${hit.size_gb.toFixed(1)} GB`;
+      canvas.style.cursor = 'pointer';
+    } else {
+      tooltip.style.display = 'none';
+      canvas.style.cursor = 'crosshair';
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
+  });
+
+  canvas.addEventListener('click', e => {
+    const rect = canvas.getBoundingClientRect();
+    const hit = csHitTest(e.clientX - rect.left, e.clientY - rect.top);
+    if (hit) openSidebar(hit);
+    else closeSidebar();
+  });
+
+  window.addEventListener('resize', () => {
+    if (_csData) drawCanvas(_csData);
+  });
+});
+
+function loadConstellation() {
+  if (_csData) return;
+  const sec = document.getElementById('sec-constellation');
+  sec.innerHTML = '<div class="loading">[ Mapping the constellation... ]</div>';
+  fetch('/api/constellation')
+    .then(r => r.json())
+    .then(data => {
+      sec.innerHTML = `
+        <div class="kpi-row" id="cs-kpis"></div>
+        <div class="cs-controls">
+          <span class="cs-control-label">Color by rating</span>
+          <div class="cs-legend" id="cs-legend"></div>
+          <span class="cs-control-label" style="margin-left:auto">Dot size = file size</span>
+        </div>
+        <div class="cs-wrap" id="cs-wrap">
+          <canvas id="constellation-canvas"></canvas>
+          <div class="cs-tooltip" id="cs-tooltip"></div>
+          <div class="cs-sidebar" id="cs-sidebar">
+            <button class="cs-sidebar-close" onclick="closeSidebar()">✕</button>
+            <div id="cs-sidebar-content"></div>
+          </div>
+        </div>`;
+      // Re-attach events after rebuild
+      const canvas  = document.getElementById('constellation-canvas');
+      const tooltip = document.getElementById('cs-tooltip');
+      canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const hit = csHitTest(mx, my);
+        if (hit) {
+          tooltip.style.display = 'block';
+          tooltip.textContent = `${hit.title} (${hit.year}) · ${hit.rating.toFixed(1)} · ${hit.size_gb.toFixed(1)} GB`;
+          canvas.style.cursor = 'pointer';
+          setTimeout(() => {
+            const tw = tooltip.offsetWidth || 200;
+            const cw = canvas.clientWidth;
+            tooltip.style.left = (mx + tw + 16 > cw ? mx - tw - 8 : mx + 14) + 'px';
+            tooltip.style.top  = (my - 10) + 'px';
+          }, 0);
+        } else {
+          tooltip.style.display = 'none';
+          canvas.style.cursor = 'crosshair';
+        }
+      });
+      canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+      canvas.addEventListener('click', e => {
+        const rect = canvas.getBoundingClientRect();
+        const hit = csHitTest(e.clientX - rect.left, e.clientY - rect.top);
+        if (hit) openSidebar(hit);
+        else closeSidebar();
+      });
+      window.addEventListener('resize', () => { if (_csData) drawCanvas(_csData); });
+      requestAnimationFrame(() => renderConstellation(data));
+    })
+    .catch(err => {
+      sec.innerHTML = `<div class="err">Failed to load constellation: ${err.message}</div>`;
+    });
+}
+
+// ── Color palette ─────────────────────────────────────────────────────────────
+const GREEN  = '#1d9e75';
+const PURPLE = '#8b6fd6';
+const AMBER  = '#e8a838';
+const BLUE   = '#4a90d9';
+const CYAN   = '#4a9ed6';
+const CORAL  = '#d6694a';
+const NAVY   = '#4a6fd6';
+const TEAL   = '#2a9d8f';
+const GOLD   = '#e9c46a';
+
+const DONUT_COLORS = [
+  '#1d9e75','#4a90d9','#8b6fd6','#e8a838',
+  '#d6694a','#4a9ed6','#2a9d8f','#e9c46a',
+  '#e76f51','#7b8fa1','#c0392b','#27ae60'
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+let _tvData = null;
+let _mData = null;
+function showTab(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'constellation') loadConstellation();
+  if (name === 'bloat') loadBloat();
+  if (name === 'tv' && _tvData) renderTVCanvas(_tvData);
+  if (name === 'movies' && _mData) renderMoviesCanvas(_mData);
+  if (name === 'trends') { if (_mData && _tvData) renderEntropy(); if (!_dnaData) loadDNA(); }
+  if (name === 'fingerprint' && !_fpData) loadFingerprint();
+}
+
+function kpi(id, items) {
+  document.getElementById(id).innerHTML = items.map(item => `
+    <div class="kpi ${item.accent||''}">
+      <div class="kpi-label">${item.label}</div>
+      <div class="kpi-value ${item.sm?'sm':''}">${item.value}</div>
+      ${item.sub ? `<div class="kpi-sub">${item.sub}</div>` : ''}
+    </div>`).join('');
+}
+
+function bars(id, data, color, opts) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) return;
+  opts = opts || {};
+  const labelClass = opts.labelClass || 'w100';
+  const max = opts.max || Math.max(...data.map(d => d.value));
+  const fmt = opts.fmt || (v => v >= 1000 ? v.toLocaleString() : (Number.isInteger(v) ? v : v.toFixed(1)));
+  el.innerHTML = data.map(d => `
+    <div class="bar-row">
+      <div class="bar-label ${labelClass}" title="${d.label}">${d.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(d.value/max*100)}%;background:${color}"></div></div>
+      <div class="bar-val">${fmt(d.value)}</div>
+    </div>`).join('');
+}
+
+
+// ── Canvas chart helpers ──────────────────────────────────────────────────────
+function _csCanvas(el, h) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = el.clientWidth || el.parentElement.clientWidth;
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = h + 'px';
+  canvas.width  = w * dpr;
+  canvas.height = h * dpr;
+  el.innerHTML = '';
+  el.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  // tooltip div
+  const tip = document.createElement('div');
+  tip.style.cssText = 'position:absolute;pointer-events:none;background:#0a0a1cf0;border:1px solid #1e1e3a;border-radius:4px;padding:4px 9px;font-size:11px;color:#c8c8e8;font-family:Space Grotesk,sans-serif;white-space:nowrap;display:none;z-index:10;';
+  el.style.position = 'relative';
+  el.appendChild(tip);
+  return {ctx, w, h, canvas, tip};
+}
+
+function _tipPos(tip, canvas, mx, my) {
+  const tw = tip.offsetWidth || 160;
+  const th = tip.offsetHeight || 24;
+  const cw = canvas.clientWidth;
+  const ch = canvas.clientHeight;
+  const x = (mx + tw + 16 > cw) ? mx - tw - 8 : mx + 12;
+  const y = (my + th + 8 > ch) ? my - th - 4  : my + 4;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+
+// ── Bubble Pack ───────────────────────────────────────────────────────────────
+function bubblePack(id, data, opts) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) return;
+  const h = opts && opts.h ? opts.h : 240;
+  const {ctx, w, canvas, tip} = _csCanvas(el, h);
+  const maxV = Math.max(...data.map(d => d.value));
+  const minR = 14, maxR = Math.min(w, h) * 0.2;
+  const placed = [];
+  const PAL = DONUT_COLORS;
+  data.slice(0, 14).forEach((d, i) => {
+    const r = minR + (d.value / maxV) * (maxR - minR);
+    const col = PAL[i % PAL.length];
+    let x, y, ok, tries = 0;
+    do {
+      x = r + 4 + Math.random() * (w - r * 2 - 8);
+      y = r + 4 + Math.random() * (h - r * 2 - 8);
+      ok = placed.every(p => Math.hypot(x - p.x, y - p.y) > r + p.r + 2);
+    } while (!ok && ++tries < 600);
+    placed.push({x, y, r, col, label: d.label, value: d.value});
+  });
+  placed.forEach(({x, y, r, col, label, value}) => {
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = col + '18'; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const fs = Math.max(8, Math.round(r * 0.28));
+    ctx.font = '600 ' + fs + 'px Space Grotesk,sans-serif';
+    ctx.fillText(r > 22 ? (label.length > 10 ? label.slice(0,9)+'…' : label) : label.slice(0,3), x, y - (r > 26 ? 5 : 0));
+    if (r > 26) {
+      ctx.font = '9px JetBrains Mono,monospace';
+      ctx.fillStyle = col + 'aa';
+      ctx.fillText(value.toLocaleString(), x, y + 9);
+    }
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const hit = placed.find(p => Math.hypot(mx - p.x, my - p.y) <= p.r);
+    if (hit) {
+      tip.style.display = 'block';
+      tip.textContent = hit.label + ': ' + hit.value.toLocaleString();
+      setTimeout(() => _tipPos(tip, canvas, mx, my), 0);
+    } else { tip.style.display = 'none'; }
+  });
+  canvas.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+}
+
+// ── Lollipop ──────────────────────────────────────────────────────────────────
+function lollipop(id, data, opts) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) return;
+  const h = opts && opts.h ? opts.h : 200;
+  const {ctx, w, canvas, tip} = _csCanvas(el, h);
+  const PAD = {t:14, r:10, b:30, l:42};
+  const pw = w - PAD.l - PAD.r, ph = h - PAD.t - PAD.b;
+  const max = Math.max(...data.map(d => d.value)) || 1;
+  const step = pw / data.length;
+  const PAL = DONUT_COLORS;
+  // grid
+  ctx.strokeStyle = '#1e1e3a'; ctx.lineWidth = 0.5;
+  [0.25,0.5,0.75,1].forEach(f => {
+    const v = Math.round(max * f);
+    const y = PAD.t + ph - f * ph;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(w - PAD.r, y); ctx.stroke();
+    ctx.fillStyle = '#44446a'; ctx.font = '9px JetBrains Mono,monospace';
+    ctx.textAlign = 'right'; ctx.fillText(v >= 1000 ? (v/1000).toFixed(1)+'k' : v, PAD.l - 4, y + 3);
+  });
+  const hits = [];
+  data.forEach((d, i) => {
+    const x = PAD.l + step * i + step / 2;
+    const y = PAD.t + ph - (d.value / max) * ph;
+    const col = PAL[i % PAL.length];
+    ctx.strokeStyle = col + '55'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, PAD.t + ph); ctx.lineTo(x, y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.fillStyle = col; ctx.font = '9px JetBrains Mono,monospace';
+    ctx.textAlign = 'center'; ctx.fillText(d.value.toLocaleString(), x, y - 9);
+    ctx.fillStyle = '#7777aa'; ctx.font = '9px Space Grotesk,sans-serif';
+    ctx.fillText(d.label, x, PAD.t + ph + 16);
+    hits.push({x, y, r: 8, label: d.label, value: d.value});
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const hit = hits.find(p => Math.hypot(mx - p.x, my - p.y) <= p.r + 6);
+    if (hit) {
+      tip.style.display = 'block';
+      tip.textContent = hit.label + ': ' + hit.value.toLocaleString();
+      setTimeout(() => _tipPos(tip, canvas, mx, my), 0);
+    } else { tip.style.display = 'none'; }
+  });
+  canvas.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+}
+
+// ── Waffle Grid ───────────────────────────────────────────────────────────────
+function waffleGrid(id, data, opts) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) return;
+  const h = opts && opts.h ? opts.h : 160;
+  const {ctx, w, canvas, tip} = _csCanvas(el, h);
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const LEG_W = 90;
+  const gw = w - LEG_W - 8;
+  const COLS = 20, ROWS = 4, CELLS = COLS * ROWS;
+  const cw = Math.floor(gw / COLS) - 2;
+  const ch = Math.floor(h / ROWS) - 2;
+  const PAL = DONUT_COLORS;
+  const cellData = [];
+  data.forEach((d, i) => {
+    const n = Math.round(d.value / total * CELLS);
+    for (let j = 0; j < n && cellData.length < CELLS; j++)
+      cellData.push({col: PAL[i % PAL.length], label: d.label, value: d.value});
+  });
+  while (cellData.length < CELLS) cellData.push({col: '#1e1e3a', label: '', value: 0});
+  const cellRects = [];
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const idx = row * COLS + col;
+      const x = col * (cw + 2), y = row * (ch + 2);
+      const c = cellData[idx];
+      ctx.fillStyle = c.col + (c.col === '#1e1e3a' ? '' : '22');
+      ctx.strokeStyle = c.col; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(x, y, cw, ch, 2); ctx.fill(); ctx.stroke();
+      cellRects.push({x, y, w: cw, h: ch, ...c});
+    }
+  }
+  // Legend
+  const lx = gw + 8;
+  const rowH = h / data.length;
+  data.forEach((d, i) => {
+    const y = i * rowH + rowH / 2;
+    ctx.beginPath(); ctx.arc(lx + 5, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = PAL[i % PAL.length]; ctx.fill();
+    ctx.fillStyle = '#aaaacc'; ctx.font = '10px Space Grotesk,sans-serif';
+    ctx.textAlign = 'left'; ctx.fillText(d.label, lx + 14, y - 2);
+    ctx.fillStyle = '#6666a0'; ctx.font = '9px JetBrains Mono,monospace';
+    ctx.fillText(d.value.toLocaleString(), lx + 14, y + 11);
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const hit = cellRects.find(c => c.label && mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h);
+    if (hit) {
+      tip.style.display = 'block';
+      const pct = ((hit.value / total) * 100).toFixed(1);
+      tip.textContent = hit.label + ': ' + hit.value.toLocaleString() + ' (' + pct + '%)';
+      setTimeout(() => _tipPos(tip, canvas, mx, my), 0);
+    } else { tip.style.display = 'none'; }
+  });
+  canvas.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+}
+
+// ── Radial Bar ────────────────────────────────────────────────────────────────
+function radialBar(id, data, opts) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) return;
+  const h = opts && opts.h ? opts.h : 200;
+  const {ctx, w, canvas, tip} = _csCanvas(el, h);
+  const cx = w * 0.38, cy = h / 2;
+  const maxR = Math.min(cx, cy) - 8, minR = maxR * 0.18;
+  const max = Math.max(...data.map(d => d.value)) || 1;
+  const n = data.length;
+  const arcH = (maxR - minR) / n - 3;
+  const PAL = DONUT_COLORS;
+  const arcs = [];
+  data.forEach((d, i) => {
+    const r = minR + (n - 1 - i) * ((maxR - minR) / n) + arcH / 2;
+    const pct = d.value / max;
+    const sA = -Math.PI * 0.8, eA = sA + pct * Math.PI * 1.6;
+    const col = PAL[i % PAL.length];
+    ctx.beginPath(); ctx.arc(cx, cy, r, sA, sA + Math.PI * 1.6);
+    ctx.strokeStyle = col + '22'; ctx.lineWidth = arcH; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r, sA, eA);
+    ctx.strokeStyle = col; ctx.lineWidth = arcH; ctx.stroke();
+    const lx = cx + w * 0.44;
+    const ly = cy - (n / 2 - i) * (h / (n + 1)) + 4;
+    ctx.fillStyle = col; ctx.font = '10px Space Grotesk,sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(d.label, lx, ly);
+    ctx.fillStyle = '#8888cc'; ctx.font = '9px JetBrains Mono,monospace';
+    ctx.fillText(d.value.toLocaleString(), lx + 44, ly);
+    arcs.push({r, arcH, col, label: d.label, value: d.value, cx, cy});
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const dist = Math.hypot(mx - cx, my - cy);
+    const hit = arcs.find(a => Math.abs(dist - a.r) <= a.arcH / 2 + 3);
+    if (hit) {
+      tip.style.display = 'block';
+      tip.textContent = hit.label + ': ' + hit.value.toLocaleString();
+      setTimeout(() => _tipPos(tip, canvas, mx, my), 0);
+    } else { tip.style.display = 'none'; }
+  });
+  canvas.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+}
+
+// ── Treemap ───────────────────────────────────────────────────────────────────
+function treemap(id, data, opts) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) return;
+  const h = opts && opts.h ? opts.h : 180;
+  const {ctx, w, canvas, tip} = _csCanvas(el, h);
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const PAL = DONUT_COLORS;
+  // Simple slice-and-dice treemap
+  function layout(items, x, y, w, h) {
+    const rects = [];
+    const sum = items.reduce((s, d) => s + d.value, 0);
+    if (!sum) return rects;
+    if (w >= h) {
+      let cx = x;
+      items.forEach((d, i) => {
+        const bw = (d.value / sum) * w;
+        rects.push({x: cx, y, w: bw, h, ...d, col: PAL[i % PAL.length]});
+        cx += bw;
+      });
+    } else {
+      let cy = y;
+      items.forEach((d, i) => {
+        const bh = (d.value / sum) * h;
+        rects.push({x, y: cy, w, h: bh, ...d, col: PAL[i % PAL.length]});
+        cy += bh;
+      });
+    }
+    return rects;
+  }
+  const rects = layout(data.slice(0, 16), 0, 0, w, h);
+  rects.forEach(r => {
+    ctx.fillStyle = r.col + '1a'; ctx.strokeStyle = r.col + '77'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2, 3);
+    ctx.fill(); ctx.stroke();
+    if (r.w > 28 && r.h > 18) {
+      ctx.fillStyle = r.col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const fs = Math.min(11, Math.max(8, Math.round(Math.min(r.w, r.h) / 4)));
+      ctx.font = '600 ' + fs + 'px Space Grotesk,sans-serif';
+      const maxChars = Math.floor(r.w / (fs * 0.6));
+      const lbl = r.label.length > maxChars ? r.label.slice(0, maxChars - 1) + '…' : r.label;
+      ctx.fillText(lbl, r.x + r.w / 2, r.y + r.h / 2 - (r.h > 32 ? 6 : 0));
+      if (r.h > 32) {
+        ctx.font = '9px JetBrains Mono,monospace';
+        ctx.fillStyle = r.col + 'aa';
+        ctx.fillText(r.value.toLocaleString(), r.x + r.w / 2, r.y + r.h / 2 + 8);
+      }
+    }
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const hit = [...rects].reverse().find(r => mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h);
+    if (hit) {
+      tip.style.display = 'block';
+      const pct = ((hit.value / total) * 100).toFixed(1);
+      tip.textContent = hit.label + ': ' + hit.value.toLocaleString() + ' (' + pct + '%)';
+      setTimeout(() => _tipPos(tip, canvas, mx, my), 0);
+    } else { tip.style.display = 'none'; }
+  });
+  canvas.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+}
+
+// ── Donut chart ───────────────────────────────────────────────────────────────
+function donut(id, data, opts) {
+  const el = document.getElementById(id);
+  if (!el || !data || !data.length) return;
+  opts = opts || {};
+  const size   = opts.size || 110;
+  const stroke = opts.stroke || 18;
+  const r      = (size - stroke) / 2;
+  const cx     = size / 2;
+  const circ   = 2 * Math.PI * r;
+  const total  = data.reduce((s, d) => s + d.value, 0);
+  const centerLabel = opts.centerLabel || 'Total';
+  const centerVal   = opts.centerVal !== undefined ? opts.centerVal : total.toLocaleString();
+
+  let offset = 0;
+  const segments = data.map((d, i) => {
+    const pct  = d.value / total;
+    const dash = pct * circ;
+    const gap  = circ - dash;
+    const seg  = `<circle
+      cx="${cx}" cy="${cx}" r="${r}"
+      fill="none"
+      stroke="${DONUT_COLORS[i % DONUT_COLORS.length]}"
+      stroke-width="${stroke}"
+      stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}"
+      stroke-dashoffset="${(-offset * circ).toFixed(2)}"
+      transform="rotate(-90 ${cx} ${cx})"
+    />`;
+    offset += pct;
+    return seg;
+  });
+
+  const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="donut-svg">
+    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="#0d0d20" stroke-width="${stroke}"/>
+    ${segments.join('')}
+    <text x="${cx}" y="${cx - 4}" text-anchor="middle" class="donut-center-val">${centerVal}</text>
+    <text x="${cx}" y="${cx + 12}" text-anchor="middle" class="donut-center-label">${centerLabel}</text>
+  </svg>`;
+
+  const legend = data.slice(0, 8).map((d, i) => {
+    const pct = total ? ((d.value / total) * 100).toFixed(1) : 0;
+    return `<div class="donut-legend-item">
+      <div class="donut-swatch" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></div>
+      <div class="donut-legend-label" title="${d.label}">${d.label}</div>
+      <div class="donut-legend-val" style="display:flex;gap:6px;"><span style="min-width:32px;text-align:right">${d.value.toLocaleString()}</span><span style="min-width:38px;text-align:right;color:#9966dd">${pct}%</span></div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="donut-wrap">${svg}<div class="donut-legend">${legend}</div></div>`;
+}
+
+// ── Render: Movies ────────────────────────────────────────────────────────────
+function renderMovies(d) {
+  _mData = d;
+  const k = d.kpi;
+  document.getElementById('gen-date').textContent = k.generated ? '[ ' + k.generated + ' ]' : '';
+
+  kpi('m-kpis', [
+    {label:'Total Movies',  value: k.total.toLocaleString(),         sub: k.downloaded.toLocaleString()+' downloaded', accent:'g'},
+    {label:'Storage',       value: k.total_tb+' TB',                 sub: 'avg '+k.avg_gb+' GB / film',               accent:'p'},
+    {label:'Upgrade Queue', value: k.upgrade_queue.toLocaleString(), sub: 'cutoff not met',                           accent:'a'},
+    {label:'Wishlist',      value: k.wishlist.toLocaleString(),      sub: 'Radarr hunting',                           accent:'b'},
+    {label:'Encode Efficiency', value: k.avg_gb_per_hr+' GB/hr',         sub: 'avg across library',                       accent:'p', sm:true},
+  ]);
+
+  donut('m-res',    d.resolution,         {centerLabel:'Res'});
+  donut('m-codec',  d.codec,              {centerLabel:'Codec'});
+  donut('m-hdr',    d.hdr,                {centerLabel:'HDR'});
+  donut('m-source', d.source,             {centerLabel:'Source'});
+
+  if (document.getElementById('sec-movies').classList.contains('active')) renderMoviesCanvas(d);
+
+  donut('m-cert',   d.certification.slice(0,8), {centerLabel:'Rating', size:100});
+
+
+  const tbody = document.querySelector('#m-top-table tbody');
+  tbody.innerHTML = d.top_movies.map((m,i) => `<tr>
+    <td style="color:#33335a">${i+1}</td>
+    <td style="color:#c8c8e8">${m.Title}</td>
+    <td style="color:#44446a">${m.Year||''}</td>
+    <td><span class="badge ${m['IMDb Rating']>=8?'bg':m['IMDb Rating']>=6?'bb':'br'}">${m['IMDb Rating']?m['IMDb Rating'].toFixed(1):''}</span></td>
+    <td style="color:#44446a;font-size:10px">${m.Quality||''}</td>
+    <td style="color:#33335a;font-size:10px">${(m.Genres||'').split(',').slice(0,2).join(', ')}</td>
+  </tr>`).join('');
+}
+
+// ── Render: TV ────────────────────────────────────────────────────────────────
+function renderTVCanvas(d) {
+  requestAnimationFrame(() => {
+    bubblePack('tv-net',   d.networks.slice(0,12));
+    bubblePack('tv-genre', d.genres.slice(0,12));
+    lollipop('tv-decade', d.decades, {h:200});
+  });
+}
+function renderMoviesCanvas(d) {
+  requestAnimationFrame(() => {
+    bubblePack('m-genre',  d.genres.slice(0,14));
+    lollipop('m-decade', d.decades, {h:200});
+    radialBar('m-ratings', d.ratings.slice(0,8), {h:200});
+    treemap('m-studios', d.studios.slice(0,14), {h:180});
+  });
+}
+function renderTV(d) {
+  _tvData = d;
+  const k = d.kpi;
+  kpi('tv-kpis', [
+    {label:'Total Series',   value: k.total,              sub: k.complete+' fully complete',                    accent:'g'},
+    {label:'Storage',        value: k.total_tb+' TB',     sub: k.total_episodes.toLocaleString()+' main eps',  accent:'p'},
+    {label:'Airing Now',     value: k.airing,             sub: 'active Sonarr feed',                           accent:'a'},
+    {label:'Complete',       value: k.completion_pct+'%', sub: 'main run complete',                            accent:'b'},
+    {label:'Incomplete',     value: k.partial,            sub: 'episodes missing',                             accent:'r'},
+    {label:'Specials Owned', value: k.total_specials.toLocaleString(), sub: k.has_specials+' series with extras', accent:'c'},
+  ]);
+
+  donut('tv-status', d.completion_status, {centerLabel:'Series'});
+  donut('tv-cert', d.certification.slice(0,8), {centerLabel:'Rating', size:100});
+  if (document.getElementById('sec-tv').classList.contains('active')) renderTVCanvas(d);
+
+  bars('tv-biggest', d.biggest.map(s => ({label: s.Title, value: s['Episodes (Have)']})),
+       CORAL, {labelClass:'w180'});
+
+  const tbody = document.querySelector('#tv-incomplete-table tbody');
+  tbody.innerHTML = d.incomplete.map(s => {
+    const pct = s['Main Completion %'];
+    const cls = pct >= 90 ? 'bg' : pct >= 50 ? 'ba' : 'br';
+    const specs = s['Specials'] > 0
+      ? `<span class="spec-badge">+${s['Specials']}</span>`
+      : '<span style="color:#33335a">—</span>';
+    const airing = s.ended === false || s.ended === 'False';
+    return `<tr>
+      <td style="color:#c8c8e8">${s.Title}</td>
+      <td>${s.Have}</td>
+      <td>${s.Total}</td>
+      <td><span class="badge ${cls}">${pct ? pct.toFixed(1) : 0}%</span></td>
+      <td>${specs}</td>
+      <td>${airing ? '<span class="badge bg">Airing</span>' : '<span class="badge bp">Ended</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+
+// ── Talent sub-tab switcher ───────────────────────────────────────────────────
+function showTalentTab(name, btn) {
+  document.querySelectorAll('.talent-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.talent-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tp-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name !== 'top' && !_deepLoaded) loadTalentDeep();
+  if (name === 'wounds' && !_woundsLoaded) loadDeepWounds();
+}
+
+let _deepLoaded = false;
+let _woundsLoaded = false;
+function loadDeepWounds() {
+  if (_woundsLoaded) return;
+  fetch('/api/deep-wounds')
+    .then(r => r.json())
+    .then(data => { _woundsLoaded = true; renderDeepWounds(data); })
+    .catch(err => {
+      const el = document.getElementById('wounds-list');
+      if (el) el.innerHTML = '<div class="no-data">Failed to load: ' + err.message + '</div>';
+    });
+}
+
+let _deepData   = null;
+
+function loadTalentDeep() {
+  if (_deepLoaded) return;
+  fetch('/api/talent/deep')
+    .then(r => r.json())
+    .then(data => {
+      _deepData   = data;
+      _deepLoaded = true;
+      renderTalentDeep(data);
+    })
+    .catch(err => {
+
+      ['btwf-list','unsung-tbody','everywhere-tbody','loyalty-tbody'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<tr><td colspan="9" class="no-data">Failed to load: ' + err.message + '</td></tr>';
+      });
+    });
+}
+
+function renderTalentDeep(data) {
+  // ── Before They Were Famous ──────────────────────────────────────────────────
+  const btwfEl = document.getElementById('btwf-list');
+  if (btwfEl && data.btwf) {
+    if (!data.btwf.length) {
+      btwfEl.innerHTML = '<div class="no-data">No matches found — run an update to rebuild career data.</div>';
+    } else {
+      btwfEl.innerHTML = data.btwf.map(p => {
+        const votes = p.breakout_votes >= 1000000 ? (p.breakout_votes/1000000).toFixed(1)+'M'
+                    : p.breakout_votes >= 1000 ? (p.breakout_votes/1000).toFixed(0)+'k' : '';
+        const breakoutVotesBadge = votes ? `<span style="color:#55558a;font-size:8px;font-family:JetBrains Mono,monospace"> · ${votes} votes</span>` : '';
+        const imdbBadge = p.imdb_source
+          ? `<span style="font-size:8px;color:#00e5ff44;font-family:JetBrains Mono,monospace;border:1px solid #00e5ff22;border-radius:2px;padding:1px 4px;margin-left:6px">IMDb</span>`
+          : `<span style="font-size:8px;color:#55558a;font-family:JetBrains Mono,monospace;border:1px solid #2a2a4a;border-radius:2px;padding:1px 4px;margin-left:6px">library</span>`;
+
+        const inLibHtml = p.early_in_lib && p.early_in_lib.length
+          ? `<div class="btwf-early" style="margin-top:5px">
+               <span style="font-size:9px;color:#44446a;text-transform:uppercase;letter-spacing:.08em;margin-right:6px">In your library —</span>
+               ${p.early_in_lib.map(f =>
+                 `<span title="Billing #${f.ordering}">${f.title} <span style="color:#55558a">(${f.year})</span> <span style="color:#e040fb55;font-size:8px">#${f.ordering}</span></span>`
+               ).join('')}
+             </div>`
+          : '';
+
+        const missingHtml = p.early_missing && p.early_missing.length
+          ? `<div style="margin-top:6px">
+               <span style="font-size:9px;color:#00ff9f88;text-transform:uppercase;letter-spacing:.08em;font-family:JetBrains Mono,monospace">⬇ Not in library — click to request</span><br>
+               <div style="margin-top:4px">
+               ${p.early_missing.map(f => {
+                 const _sb1=(_appConfig&&_appConfig.seerr_url)?_appConfig.seerr_url.replace(/\/$/,''):'';
+                 const url = _sb1?_sb1+'/search?query='+encodeURIComponent(f.title+' '+f.year):'https://www.imdb.com/find?q='+encodeURIComponent(f.title);
+                 const fVotes = f.votes >= 1000000 ? (f.votes/1000000).toFixed(1)+'M' : f.votes >= 1000 ? (f.votes/1000).toFixed(0)+'k' : f.votes;
+                 const fRating = f.rating ? ' · ★' + f.rating : '';
+                 return `<a href="${url}" target="_blank" style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;background:#0a1a10;border:1px solid #00ff9f44;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;color:#00ff9f;text-decoration:none;cursor:pointer" title="Billing #${f.ordering} · ${f.genres} · ${fVotes} votes${fRating}">${f.title} (${f.year})${fRating}</a>`;
+               }).join('')}
+               </div>
+             </div>`
+          : `<div style="margin-top:6px;font-size:9px;color:#1d9e75;font-family:JetBrains Mono,monospace">✓ All known pre-fame appearances are already in your library</div>`;
+
+        const fallbackEarlyHtml = !p.imdb_source && p.early_in_lib && p.early_in_lib.length
+          ? `<div class="btwf-early" style="margin-top:6px">
+               <span style="font-size:9px;color:#44446a;text-transform:uppercase;letter-spacing:.08em;margin-right:6px">Before that —</span>
+               ${p.early_in_lib.map(f =>
+                 `<span title="Billing #${f.ordering}">${f.title} <span style="color:#55558a">(${f.year})</span> <span style="color:#e040fb55;font-size:8px">#${f.ordering}</span></span>`
+               ).join('')}
+             </div>`
+          : '';
+
+        return `<div class="btwf-card">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+            <div class="btwf-name">${p.name}${imdbBadge}</div>
+            <div style="font-size:9px;color:#44446a;font-family:JetBrains Mono,monospace">${p.total_films} films in library</div>
+          </div>
+          <div class="btwf-breakout">
+            <span style="color:#7777aa;font-weight:400">↑ BREAKOUT </span>
+            <span style="color:#e040fb">${p.breakout_film}</span>
+            <span style="color:#55558a"> (${p.breakout_year})</span>${breakoutVotesBadge}
+          </div>
+          ${p.imdb_source ? inLibHtml : fallbackEarlyHtml}
+          ${missingHtml}
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── The Unsung ───────────────────────────────────────────────────────────────
+  const unsungEl = document.getElementById('unsung-tbody');
+  if (unsungEl && data.unsung) {
+    unsungEl.innerHTML = data.unsung.map((p, i) => {
+      const heat = Math.min(1, p.support_count / 25);
+      const nameCol = `hsl(${260 + heat*40}, 60%, ${55 + heat*20}%)`;
+      return `<tr>
+        <td class="name" style="color:${nameCol}">${p.name}</td>
+        <td style="color:#b060ff;font-weight:700;font-size:12px">${p.support_count}</td>
+        <td style="color:${p.lead_count === 0 ? '#1e1e3a' : '#55558a'}">${p.lead_count || '—'}</td>
+        <td style="color:${p.avg_rating >= 8 ? '#00ff9f' : p.avg_rating >= 7 ? '#ffcc00' : '#ff6b6b'}">${p.avg_rating ?? '—'}</td>
+        <td><span style="display:inline-block;padding:1px 7px;border-radius:3px;background:#0d0d22;border:1px solid #1e1e3a;color:#8888cc;font-size:9px">${p.top_genre}</span></td>
+        <td class="films-list">${p.films.map(f => `<span style="color:#aaaacc">${f.title}</span> <span style="color:#44446a">(${f.year ?? '?'})</span><span style="color:#533483;font-size:8px"> #${f.ordering}</span>`).join(' · ')}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── The Everywheremen ────────────────────────────────────────────────────────
+  const evEl = document.getElementById('everywhere-tbody');
+  if (evEl && data.everywheremen) {
+    evEl.innerHTML = data.everywheremen.map((p, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#44446a">${i+1}</span>`;
+      const billingCol = p.avg_billing >= 7 ? '#00ff9f' : p.avg_billing >= 5 ? '#ffcc00' : '#ff6b6b';
+      return `<tr>
+        <td class="name">${medal} ${p.name}</td>
+        <td style="color:#00e5ff;font-weight:700">${p.film_count}</td>
+        <td style="color:${billingCol};font-weight:700" title="Avg billing position — higher = deeper in cast">#${p.avg_billing}</td>
+        <td style="color:#b060ff">${p.deep_count}</td>
+        <td style="color:#e040fb">${p.genre_count}</td>
+        <td style="color:#7777aa">${p.decade_count}</td>
+        <td style="color:${p.avg_rating >= 8 ? '#00ff9f' : p.avg_rating >= 7 ? '#ffcc00' : '#ff6b6b'}">${p.avg_rating ?? '—'}</td>
+        <td class="films-list">${p.films.map(f => `<span style="color:#aaaacc">${f.title}</span> <span style="color:#44446a">(${f.year ?? '?'})</span><span style="color:#55558a;font-size:8px"> #${f.ordering}</span>`).join(' · ')}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Director Loyalty ─────────────────────────────────────────────────────────
+  const loyEl = document.getElementById('loyalty-tbody');
+  if (loyEl && data.loyalty) {
+    loyEl.innerHTML = data.loyalty.map((d, i) => {
+      const score = d.loyalty_score || 0;
+      const scoreCol = score >= 50 ? '#00ff9f' : score >= 30 ? '#ffcc00' : '#e040fb';
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#44446a">${i+1}</span>`;
+      return `<tr>
+        <td class="name">${medal} ${d.name}</td>
+        <td style="color:#00e5ff;font-weight:700">${d.film_count}</td>
+        <td style="color:${scoreCol};font-weight:700;font-size:12px;text-shadow:0 0 8px ${scoreCol}66">${d.loyalty_score}</td>
+        <td style="color:${d.avg_rating >= 8 ? '#00ff9f' : d.avg_rating >= 7 ? '#ffcc00' : '#ff6b6b'}">${d.avg_rating ?? '—'}</td>
+        <td><span style="display:inline-block;padding:1px 7px;border-radius:3px;background:#0d0d22;border:1px solid #1e1e3a;color:#8888cc;font-size:9px">${d.top_genre}</span></td>
+        <td style="color:#7777aa">${d.decade_count}</td>
+        <td class="films-list">${d.films.map(f => `<span style="color:#aaaacc">${f.title}</span> <span style="color:#44446a">(${f.year ?? '?'})</span>`).join(' · ')}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+
+// ── Deep Wounds ───────────────────────────────────────────────────────────────
+function renderDeepWounds(data) {
+  const el = document.getElementById('wounds-list');
+  if (!el) return;
+  if (data.error) { el.innerHTML = '<div class="no-data">' + data.error + '</div>'; return; }
+  if (!data.actors || !data.actors.length) {
+    el.innerHTML = '<div class="no-data">No horror/thriller career data yet — run an update first.</div>';
+    return;
+  }
+  el.innerHTML = data.actors.map(actor => {
+    const tb = actor.true_breakout;
+    const tbHtml = tb
+      ? `<div style="font-size:10px;color:#00e5ff;margin-bottom:6px;font-family:JetBrains Mono,monospace;text-shadow:0 0 8px #00e5ff44">⚡ Breakout: <span style="color:#00ffff;font-weight:700">${tb.title}</span> <span style="color:#00e5ff66">(${tb.year})</span> · <span style="color:#00e5ff88">${(tb.votes/1000).toFixed(0)}k votes</span></div>`
+      : '';
+    const haveHtml = actor.horror_have.length
+      ? `<div style="margin-bottom:6px">
+           <span style="font-size:9px;color:#ff6b6b88;text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace">🩸 In Library (${actor.horror_have.length})</span><br>
+           ${actor.horror_have.map(f =>
+             `<span style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;background:#1f0505;border:1px solid #ff6b6b55;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;color:#ff8888;box-shadow:0 0 6px #ff6b6b22" title="${f.genres}">${f.title} <span style="color:#ff6b6b55">(${f.year})</span></span>`
+           ).join('')}
+         </div>`
+      : '';
+    const missingHtml = actor.horror_missing.length
+      ? `<div>
+           <span style="font-size:9px;color:#00ff9f88;text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace">💀 Missing — Click to Request</span><br>
+           ${actor.horror_missing.map(f => {
+             const _sb2=(_appConfig&&_appConfig.seerr_url)?_appConfig.seerr_url.replace(/\/$/,''):'';
+             const url = _sb2?_sb2+'/search?query='+encodeURIComponent(f.title+' '+f.year):'https://www.imdb.com/find?q='+encodeURIComponent(f.title);
+             const votes = f.votes >= 1000 ? (f.votes/1000).toFixed(0)+'k' : f.votes;
+             const rating = f.rating ? ' · ★' + f.rating : '';
+             return `<a href="${url}" target="_blank" style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;background:#0a1a10;border:1px solid #00ff9f44;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;color:#00ff9f;text-decoration:none;cursor:pointer" title="${f.genres} · ${votes} votes${rating}">${f.title} (${f.year})${rating}</a>`;
+           }).join('')}
+         </div>`
+      : '';
+    return `<div class="btwf-card" style="border-color:#ff6b6b44;border-left:3px solid #ff6b6b;background:#080308">
+      <div class="btwf-name" style="color:#ff9999;text-shadow:0 0 12px #ff6b6b44">${actor.name}</div>
+      ${tbHtml}
+      ${haveHtml}
+      ${missingHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── Family Fingerprint ────────────────────────────────────────────────────────
+let _fpData = null;
+
+function _fpMembers() {
+  const m = (_appConfig && _appConfig.members) ? _appConfig.members.map(x=>x.name) : [];
+  return [...m, 'family'];
+}
+function _fpColors() {
+  const c = {};
+  if (_appConfig && _appConfig.members) _appConfig.members.forEach(x => { c[x.name] = x.color; });
+  c['family'] = '#ff6b6b';
+  return c;
+}
+function _fpLabels(members) {
+  const l = {};
+  members.forEach(m => { l[m] = m.charAt(0).toUpperCase() + m.slice(1); });
+  return l;
+}
+
+function renderFingerprint(data) {
+  _fpData = data;
+  const MEMBERS = _fpMembers();
+  const LABELS  = _fpLabels(MEMBERS);
+
+  const active = MEMBERS.filter(m => data[m] && data[m].film_count > 0);
+
+  // KPIs
+  const kpiEl = document.getElementById('fp-kpis');
+  if (kpiEl) {
+    kpiEl.innerHTML = active.map(m => {
+      const d = data[m];
+      return `<div class="kpi" style="border-top:2px solid ${d.color}">
+        <div class="kpi-label">${LABELS[m]}</div>
+        <div class="kpi-value" style="font-size:1.8rem;color:${d.color}">${d.film_count}</div>
+        <div class="kpi-sub">${(d.movie_count != null && d.tv_count != null) ? '🎬 ' + d.movie_count + ' · 📺 ' + d.tv_count : (d.avg_rating ? '★ ' + d.avg_rating + ' avg' : 'titles tagged')}</div>
+        ${(d.movie_count != null && d.avg_rating) ? `<div class="kpi-sub" style="margin-top:2px">★ ${d.avg_rating} avg</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Per-member genre cards
+  const grid = document.getElementById('fp-grid');
+  if (grid) {
+    grid.innerHTML = active.map(m => {
+      const d = data[m];
+      const maxCount = d.top_genres.length ? d.top_genres[0].count : 1;
+      return `<div class="card" style="flex:1;min-width:280px">
+        <div class="card-title" style="color:${d.color}">${LABELS[m]}'s Taste Fingerprint <span style="font-size:9px;color:#44446a;font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px">${(d.movie_count != null) ? '🎬 ' + d.movie_count + ' · 📺 ' + d.tv_count : ''}</span></div>
+        ${d.top_genres.map(g => {
+          const pct = Math.round((g.count / maxCount) * 100);
+          return `<div class="bar-row">
+            <div class="bar-label w120">${g.genre}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${d.color}"></div></div>
+            <div class="bar-val">${g.count}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  // Side-by-side genre comparison table
+  const compare = document.getElementById('fp-compare');
+  if (compare && active.length) {
+    const allGenres = [...new Set(active.flatMap(m => data[m].top_genres.map(g => g.genre)))].slice(0,15);
+    compare.innerHTML = `<table style="border-collapse:collapse;font-size:11px;min-width:600px">
+      <thead><tr>
+        <th style="padding:6px 10px;text-align:left;color:#44446a;font-size:9px;text-transform:uppercase;border-bottom:1px solid #1a1a32">Genre</th>
+        ${active.map(m => `<th style="padding:6px 10px;text-align:center;color:${data[m].color};font-size:9px;text-transform:uppercase;border-bottom:1px solid #1a1a32">${LABELS[m]}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${allGenres.map((g, i) => {
+          const bg = i % 2 === 0 ? '#0a0a1c' : '#05050f';
+          return `<tr style="background:${bg}">
+            <td style="padding:5px 10px;color:#aaaacc;font-family:Space Grotesk,sans-serif">${g}</td>
+            ${active.map(m => {
+              const gd = data[m].top_genres.find(x => x.genre === g);
+              const count = gd ? gd.count : 0;
+              const col = count > 0 ? data[m].color : '#1e1e3a';
+              return `<td style="padding:5px 10px;text-align:center;color:${col};font-family:JetBrains Mono,monospace;font-weight:${count>0?'700':'400'}">${count || '—'}</td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
+}
+
+// ── Render: Talent ────────────────────────────────────────────────────────────
+function renderTalent(d) {
+  bars('t-dir-films', d.directors.map(x => ({label:x.name, value:x.films})),
+       '#00e5ff', {labelClass:'w150'});
+  bars('t-dir-rating',
+       d.directors.filter(x=>x.avg_rating).sort((a,b)=>b.avg_rating-a.avg_rating).slice(0,15)
+         .map(x => ({label:x.name, value:x.avg_rating})),
+       '#ffcc00', {labelClass:'w150', max:10, fmt:v=>v.toFixed(2)});
+  bars('t-actors', d.actors.map(x => ({label:x.name, value:x.films})),
+       '#e040fb', {labelClass:'w180'});
+}
+
+// ── Render: Franchises ────────────────────────────────────────────────────────
+function renderFranchises(data) {
+  const incomplete = data.filter(f => f.pct < 100).sort((a,b) => b.missing - a.missing);
+  const complete   = data.filter(f => f.pct === 100).sort((a,b) => b.total - a.total);
+
+  function frBars(id, items) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = items.map(f => {
+      const color = f.pct === 100 ? '#00e5ff' : f.pct >= 75 ? '#b060ff' : '#e040fb';
+      const statusCls = f.pct === 100 ? 'bg' : f.pct >= 75 ? 'ba' : 'br';
+      return `<div class="fr-row">
+        <div class="fr-name" title="${f.franchise}">${f.franchise.replace(' Collection','').replace(' Franchise','')}</div>
+        <div class="fr-track"><div class="fr-fill" style="width:${Math.round(f.pct)}%;background:${color}"></div></div>
+        <div class="fr-pct">${f.pct.toFixed(0)}%</div>
+        <div class="fr-status"><span class="badge ${statusCls}">${f.have}/${f.total}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  frBars('fr-incomplete', incomplete.slice(0,40));
+  frBars('fr-complete',   complete.slice(0,40));
+}
+
+
+// ── DNA Score Dashboard ────────────────────────────────────────────────────────
+let _dnaData = null;
+
+const RADARR_BASE = 'http://your-host:30025';
+
+      function renderDNA(data) {
+  _dnaData = data;
+  if (data.error) {
+    document.getElementById('dna-grade-wrap').innerHTML = '<div class="no-data">' + data.error + '</div>';
+    return;
+  }
+
+  const gradeColor = {A:'#00e5ff',B:'#00ff9f',C:'#ffcc00',D:'#e8a838',F:'#ff6b6b'};
+  const g = data.library_grade;
+  const col = gradeColor[g] || '#8888cc';
+
+  const gradeWrap = document.getElementById('dna-grade-wrap');
+  if (gradeWrap) {
+    gradeWrap.innerHTML = `
+      <div class="dna-grade-block">
+        <div class="dna-letter dna-grade-${g}">${g}</div>
+        <div>
+          <div class="dna-score-num" style="color:${col}">${data.library_score}<span style="font-size:.9rem;color:#55558a"> / 100</span></div>
+          <div style="font-size:10px;color:#44446a;margin-top:4px;font-family:Space Grotesk,sans-serif;text-transform:uppercase;letter-spacing:.08em">
+            ${data.f_count} films below passing &middot; ${(data.grade_distribution['A']||0)+(data.grade_distribution['B']||0)} honor roll
+          </div>
+          <div class="dna-note" style="max-width:340px;margin-top:.6rem">
+            Library score reflects curatorial intent across ${Object.values(data.grade_distribution).reduce((a,b)=>a+b,0).toLocaleString()} films.
+            D2 Intentionality will rise as Radarr tagging catches up.
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Dimension breakdown
+  const dimWrap = document.getElementById('dna-dim-wrap');
+  if (dimWrap && data.dimensions) {
+    const dimColors = {
+      d1:'#00e5ff', d2:'#e040fb', d3:'#00ff9f',
+      d4:'#ffcc00', d5:'#b060ff', d6:'#ff9f40', d7:'#ff6b6b'
+    };
+    const dimDesc = {
+      d1: "IMDb rating weighted by vote count — high score needs both quality and consensus",
+      d2: "How intentionally each film was chosen — rises as Radarr tagging catches up",
+      d3: "How many films share cast/crew with others in the library — a web of connections",
+      d4: "Franchise completeness — standalone films score neutral, orphaned sequels score low",
+      d5: "How well-known each film is relative to its era — older films have lower baselines",
+      d6: "How well each film fits the library's dominant genres — genre outliers score lower",
+      d7: "Agreement between audiences and critics — consensus hits score highest",
+    };
+    dimWrap.innerHTML = data.dimensions.map(d => {
+      const col = dimColors[d.key] || '#8888cc';
+      const pct = Math.round(d.score);
+      const gradeLabel = d.score >= 90 ? 'A' : d.score >= 80 ? 'B' : d.score >= 70 ? 'C' : d.score >= 60 ? 'D' : 'F';
+      const gradeCol = {A:'#00e5ff',B:'#00ff9f',C:'#ffcc00',D:'#e8a838',F:'#ff6b6b'}[gradeLabel];
+      return `<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px">
+          <span style="font-size:10px;color:#aaaacc;font-family:Space Grotesk,sans-serif;font-weight:600">${d.label}</span>
+          <span style="display:flex;gap:8px;align-items:baseline">
+            <span style="font-size:9px;color:#44446a;font-family:JetBrains Mono,monospace">${d.weight}%</span>
+            <span style="font-size:11px;font-weight:700;color:${gradeCol};font-family:JetBrains Mono,monospace">${d.score}</span>
+          </span>
+        </div>
+        <div style="font-size:9px;color:#44446a;font-family:Space Grotesk,sans-serif;margin-bottom:3px;line-height:1.3">${dimDesc[d.key] || ''}</div>
+        <div style="height:4px;background:#0d0d20;border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;box-shadow:0 0 6px ${col}66;transition:width .4s ease"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const distWrap = document.getElementById('dna-dist-wrap');
+  if (distWrap) {
+    const grades = ['A','B','C','D','F'];
+    const dist = data.grade_distribution;
+    const total = Object.values(dist).reduce((a,b)=>a+b,0) || 1;
+    distWrap.innerHTML = grades.map(gr => {
+      const count = dist[gr] || 0;
+      const pct   = Math.round((count / total) * 100);
+      const col   = gradeColor[gr];
+      return `<div class="dna-dist-bar-row">
+        <div class="dna-dist-letter" style="color:${col}">${gr}</div>
+        <div class="dna-dist-track"><div class="dna-dist-fill" style="width:${pct}%;background:${col}"></div></div>
+        <div class="dna-dist-count">${count.toLocaleString()}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const DIM_LABELS = {
+    d1_score:'Score Auth', d2_score:'Intent', d3_score:'Talent',
+    d4_score:'Franchise', d5_score:'Vote Density', d6_score:'Genre Fit', d7_score:'Aud/Critic'
+  };
+  function dimBadges(f) {
+    const dims = ['d1_score','d2_score','d3_score','d4_score','d5_score','d6_score','d7_score'];
+    const vals = dims.map(k => ({key:k, val: f[k] || 0}));
+    const worst = vals.reduce((a,b) => b.val < a.val ? b : a);
+    const best  = vals.reduce((a,b) => b.val > a.val ? b : a);
+    const wCol = '#ff6b6b', bCol = '#00ff9f';
+    return `<span style="font-size:8px;padding:1px 5px;border-radius:2px;background:#1f0505;color:${wCol};border:1px solid ${wCol}44;margin-right:4px" title="${worst.val}">↓ ${DIM_LABELS[worst.key]}</span>` +
+           `<span style="font-size:8px;padding:1px 5px;border-radius:2px;background:#051f0d;color:${bCol};border:1px solid ${bCol}44" title="${best.val}">↑ ${DIM_LABELS[best.key]}</span>`;
+  }
+
+  function filmTable(films) {
+    if (!films || !films.length) return '<div class="no-data">No data.</div>';
+    return `<table class="dna-film-table">
+      <thead><tr><th>Title</th><th>Grade</th><th>Score</th><th>Strengths &amp; Weaknesses</th></tr></thead>
+      <tbody>` +
+      films.map(f => `<tr>
+        <td class="title" title="${f.title}">${f.title}</td>
+        <td><span class="dna-grade-badge dna-badge-${f.grade}">${f.grade}</span></td>
+        <td style="color:${gradeColor[f.grade]||'#8888cc'}">${f.final_score}</td>
+        <td class="note">${dimBadges(f)} <span style="color:#55558a;font-size:9px">${f.teacher_note}</span></td>
+      </tr>`).join('') +
+      '</tbody></table>';
+  }
+
+  function worstFilmTable(films) {
+    if (!films || !films.length) return '<div class="no-data">No data.</div>';
+    const RADARR = 'http://your-host:30025';
+    return `<table class="dna-film-table">
+      <thead><tr><th>Title</th><th>Grade</th><th>Score</th><th>Strengths &amp; Weaknesses</th><th></th></tr></thead>
+      <tbody>` +
+      films.map(f => `<tr>
+        <td class="title" title="${f.title}">${f.title}</td>
+        <td><span class="dna-grade-badge dna-badge-${f.grade}">${f.grade}</span></td>
+        <td style="color:${gradeColor[f.grade]||'#8888cc'}">${f.final_score}</td>
+        <td class="note">${dimBadges(f)} <span style="color:#55558a;font-size:9px">${f.teacher_note}</span></td>
+        <td style="white-space:nowrap">${f.title_slug ? `<a href="${RADARR}/movie/${f.title_slug}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:3px;background:#1a1220;border:1px solid #e8b04b88;color:#e8b04b;font-size:9px;font-weight:700;text-decoration:none;letter-spacing:.5px;font-family:Space Grotesk,sans-serif" onmouseover="this.style.background=&#39;#2a1f30&#39;" onmouseout="this.style.background=&#39;#1a1220&#39;">&#9654; RADARR</a>` : ''}</td>
+      </tr>`).join('') +
+      '</tbody></table>';
+  }
+    const bestWrap  = document.getElementById('dna-best-wrap');
+  const worstWrap = document.getElementById('dna-worst-wrap');
+  if (bestWrap)  bestWrap.innerHTML  = filmTable(data.best);
+  if (worstWrap) worstWrap.innerHTML = worstFilmTable(data.worst);
+  const expEl = document.getElementById('expulsion-wrap');
+  if (expEl) renderExpulsion(data.expulsion || []);
+}
+
+// ── Render: Trends ────────────────────────────────────────────────────────────
+
+// ── Entropy Dashboard ─────────────────────────────────────────────────────────
+function renderEntropy() {
+  if (!_mData || !_tvData) return;
+  const m = _mData;
+  const tv = _tvData;
+
+  // ── Score components ──
+  const totalMovies  = m.kpi.total || 1;
+  const downloaded   = m.kpi.downloaded || 1;
+
+  // 1. Encode Score (30pts)
+  let x265 = 0, x264 = 0;
+  if (m.codec) {
+    const c265 = m.codec.find(c => c.label === 'x265');
+    const c264 = m.codec.find(c => c.label === 'x264');
+    x265 = c265 ? c265.value : 0;
+    x264 = c264 ? c264.value : 0;
+  }
+  const encodeTotal = x265 + x264 || 1;
+  const encodeScore = Math.round((x265 / encodeTotal) * 30);
+
+  // 2. Rating Score (10pts) — light signal, avg above 6.0 gets full marks
+  let ratingSum = 0, ratingCount = 0;
+  if (m.ratings) {
+    m.ratings.forEach(r => {
+      const match = r.label.match(/^([\d.]+)/);
+      if (match) {
+        const v = parseFloat(match[1]) + 0.5;
+        ratingSum += v * r.value;
+        ratingCount += r.value;
+      }
+    });
+  }
+  const avgRating = ratingCount ? ratingSum / ratingCount : 6.5;
+  const ratingScore = Math.round(Math.max(0, Math.min(10, ((avgRating - 5) / 3) * 10)));
+
+  // 3. Upgrade Score (20pts) — fewer upgrades = better
+  const upgradeQ = m.kpi.upgrade_queue || 0;
+  const upgradeScore = Math.round((1 - Math.min(upgradeQ / downloaded, 1)) * 20);
+
+  // 4. TV Completion (15pts)
+  const tvComplete = tv.kpi.completion_pct || 0;
+  const tvScore = Math.round((tvComplete / 100) * 15);
+
+  // 5. Curation Depth (15pts)
+  // 5a. Decade spread — how many decades represented (5pts)
+  const decadeCount = m.decades ? m.decades.filter(d => d.value > 0).length : 0;
+  const decadeScore = Math.round(Math.min(5, (decadeCount / 9) * 5));
+  // 5b. Genre variety — distinct genres (5pts)
+  const genreCount = m.genres ? m.genres.length : 0;
+  const genreScore = Math.round(Math.min(5, (genreCount / 15) * 5));
+  // 5c. Franchise completion — from TV completion + movie franchise proxy (5pts)
+  const franchisePct = tvComplete; // best proxy we have client-side
+  const franchiseDepthScore = Math.round((franchisePct / 100) * 5);
+  const curationScore = decadeScore + genreScore + franchiseDepthScore;
+  const curationDetail = `${decadeCount} decades · ${genreCount} genres · ${franchisePct}% TV`;
+
+  // 6. Efficiency Score (10pts) — weighted by GB/hr of worst offenders
+  const gbHr = m.kpi.avg_gb_per_hr || 5;
+  // Penalize more harshly when avg GB/hr is high — 3 GB/hr = perfect, 20+ = 0
+  const efficiencyScore = Math.round(Math.max(0, Math.min(10, (1 - Math.max(0, gbHr - 3) / 17) * 10)));
+
+  const totalScore = encodeScore + ratingScore + upgradeScore + tvScore + curationScore + efficiencyScore;
+
+  const components = [
+    {label:'Encode Quality',   score:encodeScore,    max:30, detail:`${x265} x265 vs ${x264} x264`,       sub:'30 pts max'},
+    {label:'Upgrade Queue',    score:upgradeScore,   max:20, detail:`${upgradeQ} files pending`,           sub:'20 pts max'},
+    {label:'TV Completion',    score:tvScore,         max:15, detail:`${tvComplete}% main run complete`,   sub:'15 pts max'},
+    {label:'Curation Depth',   score:curationScore,  max:15, detail:curationDetail,                       sub:'15 pts max'},
+    {label:'Encode Efficiency',score:efficiencyScore,max:10, detail:`${gbHr} GB/hr avg`,                  sub:'10 pts max'},
+    {label:'Rating Quality',   score:ratingScore,    max:10, detail:`Avg IMDb ${avgRating.toFixed(2)}`,   sub:'10 pts max'},
+  ];
+
+  // ── Score color ──
+  const scoreColor = totalScore >= 80 ? '#00e5ff' : totalScore >= 60 ? '#b060ff' : totalScore >= 40 ? '#ffcc00' : '#ff6b6b';
+  const scoreLabel = totalScore >= 80 ? 'EXCELLENT' : totalScore >= 60 ? 'GOOD' : totalScore >= 40 ? 'FAIR' : 'NEEDS WORK';
+
+  // ── Draw gauge ──
+  const canvas = document.getElementById('entropy-gauge');
+  if (canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = 180 * dpr;
+    canvas.height = 180 * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const cx = 90, cy = 95, r = 72, sw = 14;
+    const startA = Math.PI * 0.75;
+    const endA   = Math.PI * 2.25;
+    const scoreA = startA + (totalScore / 100) * (endA - startA);
+
+    // Track
+    ctx.beginPath(); ctx.arc(cx, cy, r, startA, endA);
+    ctx.strokeStyle = '#1e1e3a'; ctx.lineWidth = sw; ctx.lineCap = 'round'; ctx.stroke();
+
+    // Score arc
+    ctx.beginPath(); ctx.arc(cx, cy, r, startA, scoreA);
+    ctx.strokeStyle = scoreColor; ctx.lineWidth = sw; ctx.lineCap = 'round'; ctx.stroke();
+
+    // Glow
+    ctx.beginPath(); ctx.arc(cx, cy, r, startA, scoreA);
+    ctx.strokeStyle = scoreColor + '44'; ctx.lineWidth = sw + 8; ctx.stroke();
+
+    // Tick marks
+    for (let i = 0; i <= 10; i++) {
+      const a = startA + (i / 10) * (endA - startA);
+      const inner = r - sw / 2 - 4;
+      const outer = r + sw / 2 + 4;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
+      ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
+      ctx.strokeStyle = '#0a0a1c'; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // Center score
+    ctx.fillStyle = scoreColor;
+    ctx.font = '700 2.2rem JetBrains Mono,monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(totalScore, cx, cy - 8);
+
+    ctx.fillStyle = scoreColor + 'aa';
+    ctx.font = '600 10px Space Grotesk,sans-serif';
+    ctx.fillText(scoreLabel, cx, cy + 18);
+
+    ctx.fillStyle = '#44446a';
+    ctx.font = '9px Space Grotesk,sans-serif';
+    ctx.fillText('/ 100', cx, cy + 32);
+  }
+
+  // ── Component bars ──
+  const compEl = document.getElementById('entropy-components');
+  if (compEl) {
+    compEl.innerHTML = components.map(c => {
+      const pct = Math.round((c.score / c.max) * 100);
+      const col = pct >= 80 ? '#00e5ff' : pct >= 60 ? '#b060ff' : pct >= 40 ? '#ffcc00' : '#ff6b6b';
+      return `<div class="entropy-comp-row">
+        <div class="entropy-comp-label">${c.label}</div>
+        <div class="entropy-comp-track"><div class="entropy-comp-fill" style="width:${pct}%;background:${col}"></div></div>
+        <div class="entropy-comp-val">${c.score}/${c.max}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Detail panel ──
+  const detailEl = document.getElementById('entropy-detail');
+  if (detailEl) {
+    detailEl.innerHTML = components.map(c => {
+      const pct = Math.round((c.score / c.max) * 100);
+      const col = pct >= 80 ? '#00e5ff' : pct >= 60 ? '#b060ff' : pct >= 40 ? '#ffcc00' : '#ff6b6b';
+      return `<div class="entropy-detail-row">
+        <div>
+          <div class="entropy-detail-label">${c.label}</div>
+          <div class="entropy-detail-sub">${c.detail} · ${c.sub}</div>
+        </div>
+        <div class="entropy-detail-score" style="color:${col}">${c.score}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderTrends(runs) {
+  if (!runs || !runs.length) {
+    document.getElementById('tr-kpis').innerHTML =
+      '<div class="no-data">No history yet — run an update to start tracking trends.</div>';
+    return;
+  }
+
+  const latest = runs[runs.length - 1];
+  const first  = runs[0];
+  const gbDelta = runs.length > 1
+    ? (latest.total_gb - runs[runs.length - 2].total_gb).toFixed(2)
+    : 0;
+
+  kpi('tr-kpis', [
+    {label:'Runs Recorded',   value: runs.length,                           accent:'b'},
+    {label:'Current Size',    value: (latest.total_gb/1024).toFixed(2)+' TB', accent:'p'},
+    {label:'Size Since Last', value: (gbDelta > 0 ? '+' : '') + gbDelta + ' GB',
+     accent: gbDelta < 0 ? 'g' : gbDelta > 0 ? 'r' : '', sm:true},
+    {label:'x264 Remaining',  value: latest.x264_count,                    accent:'r'},
+    {label:'x265 Count',      value: latest.x265_count,                    accent:'g'},
+    {label:'Tracking Since',  value: first.run_date,                       accent:'', sm:true},
+  ]);
+
+  function sparkline(id, values, color) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const max   = Math.max(...values) || 1;
+    const min   = Math.min(...values);
+    const range = max - min || 1;
+    el.innerHTML = `<div class="spark-wrap">` +
+      values.map(v => {
+        const h = Math.max(4, Math.round(((v - min) / range) * 34) + 2);
+        return `<div class="spark-bar" style="height:${h}px;background:${color}" title="${v}"></div>`;
+      }).join('') +
+      `</div><div class="spark-dates"><span>${runs[0].run_date}</span><span>${runs[runs.length-1].run_date}</span></div>`;
+  }
+
+  sparkline('tr-size-spark',  runs.map(r => +(r.total_gb/1024).toFixed(2)), '#b060ff');
+  sparkline('tr-movie-spark', runs.map(r => r.movie_count),                 '#00e5ff');
+  sparkline('tr-x264-spark',  runs.map(r => r.x264_count),                  '#ff6b6b');
+  sparkline('tr-x265-spark',  runs.map(r => r.x265_count),                  '#00ff9f');
+
+  const tbody = document.querySelector('#tr-table tbody');
+  tbody.innerHTML = [...runs].reverse().map((r, i, arr) => {
+    const prev      = arr[i + 1];
+    const gbDelta   = prev ? (r.total_gb - prev.total_gb).toFixed(2) : '—';
+    const deltaClass = gbDelta === '—' ? '' : gbDelta < 0 ? 'delta-neg' : 'delta-pos';
+    const deltaStr  = gbDelta === '—' ? '—' : (gbDelta > 0 ? '+' : '') + gbDelta + ' GB';
+    const timeStr   = r.run_ts ? r.run_ts.slice(11,16) : '';
+    return `<tr>
+      <td>${r.run_date}</td>
+      <td style="color:#44446a">${timeStr}</td>
+      <td>${r.movie_count.toLocaleString()}</td>
+      <td>${r.tv_count}</td>
+      <td>${(r.total_gb/1024).toFixed(2)} TB</td>
+      <td class="${deltaClass}">${deltaStr}</td>
+      <td style="color:#ff6b6b">${r.x264_count}</td>
+      <td style="color:#00ff9f">${r.x265_count}</td>
+      <td><button onclick="deleteRun(${r.id})" style="background:none;border:1px solid #2e0a0a;color:#c0392b;border-radius:3px;padding:2px 7px;cursor:pointer;font-size:9px;font-family:JetBrains Mono,monospace">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Run button & terminal ─────────────────────────────────────────────────────
+let _eventSource = null;
+
+function triggerRun() {
+  const btn  = document.getElementById('run-btn');
+  const wrap = document.getElementById('terminal-wrap');
+  const term = document.getElementById('terminal');
+  const stat = document.getElementById('terminal-status');
+
+  btn.disabled = true;
+  btn.classList.add('running');
+  btn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="20"><animateTransform attributeName="transform" type="rotate" from="0 8 8" to="360 8 8" dur="1s" repeatCount="indefinite"/></circle></svg> Running...`;
+  wrap.classList.add('visible');
+  term.textContent = '';
+  stat.textContent = '● Running';
+  stat.className   = 'terminal-status running';
+
+  fetch('/api/run', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'already_running') {
+        term.textContent += '⚠ Already running — connecting to stream...\n';
+      }
+      if (_eventSource) _eventSource.close();
+      _eventSource = new EventSource('/api/run/stream');
+      _eventSource.onmessage = function(e) {
+        const line = e.data;
+        if (line.startsWith('__STATUS__')) {
+          const finalStatus = line.replace('__STATUS__', '');
+          _eventSource.close();
+          _eventSource = null;
+          stat.textContent = finalStatus === 'done' ? '✓ Done' : '✗ Error';
+          stat.className   = 'terminal-status ' + finalStatus;
+          btn.disabled     = false;
+          btn.classList.remove('running');
+          btn.innerHTML    = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg> Run Update`;
+          if (finalStatus === 'done') setTimeout(() => location.reload(), 1500);
+          return;
+        }
+        term.textContent += line + '\n';
+        term.scrollTop = term.scrollHeight;
+      };
+      _eventSource.onerror = function() {
+        fetch('/api/run/status')
+          .then(r => r.json())
+          .then(s => {
+            if (s.running) {
+              stat.textContent = '● Reconnecting...';
+              setTimeout(() => {
+                if (_eventSource) _eventSource.close();
+                _eventSource = new EventSource('/api/run/stream');
+              }, 2000);
+            } else {
+              stat.textContent = s.status === 'done' ? '✓ Done' : '✗ Stream lost';
+              stat.className   = 'terminal-status ' + (s.status === 'done' ? 'done' : 'error');
+              btn.disabled     = false;
+              btn.classList.remove('running');
+              btn.innerHTML    = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg> Run Update`;
+              if (s.status === 'done') setTimeout(() => location.reload(), 1500);
+            }
+          })
+          .catch(() => {
+            stat.textContent = '✗ Stream lost';
+            stat.className   = 'terminal-status error';
+            btn.disabled     = false;
+            btn.classList.remove('running');
+            btn.innerHTML    = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg> Run Update`;
+          });
+      };
+    })
+    .catch(err => {
+      term.textContent = '✗ Failed: ' + err.message;
+      stat.textContent = '✗ Error';
+      stat.className   = 'terminal-status error';
+      btn.disabled     = false;
+      btn.classList.remove('running');
+      btn.innerHTML    = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg> Run Update`;
+    });
+}
+
+// ── Delete run ────────────────────────────────────────────────────────────────
+function deleteRun(runId) {
+  if (!confirm('Delete this run from history? This cannot be undone.')) return;
+  fetch('/api/history/' + runId, {method: 'DELETE'})
+    .then(r => { if (!r.ok) throw new Error('Run not found'); return r.json(); })
+    .then(data => {
+      if (data.error) { alert('Error: ' + data.error); return; }
+      fetch('/api/history/trends')
+        .then(r => r.json())
+        .then(data => renderTrends(data.runs || []));
+    })
+    .catch(err => alert('Failed: ' + err.message));
+}
+
+// ── Snapshot dropdown ─────────────────────────────────────────────────────────
+function loadSnapshot(runId) {
+  const genDate = document.getElementById('gen-date');
+  if (!runId) {
+    genDate.textContent = '';
+    fetch('/api/stats').then(r => r.json()).then(data => {
+      renderMovies(data.movies);
+      renderTV(data.tv);
+      renderTalent(data.talent);
+      renderFranchises(data.franchises);
+    });
+    return;
+  }
+  fetch('/api/history/' + runId + '/snapshot')
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { alert('Error: ' + data.error); return; }
+      const r = data.run;
+      const m = data.movies;
+      const t = data.tv;
+      genDate.textContent = '[ Snapshot: ' + r.run_date + ' | x264: ' + r.x264_count + ' | x265: ' + r.x265_count + ' ]';
+      kpi('m-kpis', [
+        {label:'Total Movies',   value: m.total.toLocaleString(),    sub: m.downloaded+' downloaded',  accent:'g'},
+        {label:'Storage',        value: ((m.total_gb+t.total_gb)/1024).toFixed(2)+' TB',
+                                                                      sub: m.downloaded?(m.total_gb/m.downloaded).toFixed(1)+' GB avg':'', accent:'p'},
+        {label:'Upgrade Queue',  value: m.upgrade_queue,             sub: 'cutoff not met',            accent:'a'},
+        {label:'Wishlist',       value: m.wishlist,                  sub: 'Radarr hunting',            accent:'b'},
+        {label:'x264 Remaining', value: m.x264_count,                sub: 'pending upgrade',           accent:'r'},
+        {label:'x265 Count',     value: m.x265_count,                sub: 'upgraded',                  accent:'g'},
+      ]);
+      if (m.codec)      donut('m-codec',  m.codec,      {centerLabel:'Codec'});
+      if (m.resolution) donut('m-res',    m.resolution, {centerLabel:'Res'});
+      if (m.hdr)        donut('m-hdr',    m.hdr,        {centerLabel:'HDR'});
+    })
+    .catch(err => alert('Failed to load snapshot: ' + err.message));
+}
+
+function populateSnapshotDropdown() {
+  fetch('/api/history')
+    .then(r => r.json())
+    .then(runs => {
+      const sel = document.getElementById('snap-select');
+      runs.forEach(r => {
+        const opt  = document.createElement('option');
+        opt.value  = r.id;
+        const time = r.run_ts ? r.run_ts.slice(11,16) : '';
+        opt.textContent = r.run_date + ' ' + time + ' — x264:' + r.x264_count + ' x265:' + r.x265_count;
+        sel.appendChild(opt);
+      });
+    });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+let _appConfig = null;
+
+fetch('/api/config')
+  .then(r => r.json())
+  .then(cfg => {
+    _appConfig = cfg;
+    // Title and logo
+    document.title = cfg.name;
+    const parts = cfg.name.split(' ');
+    const logoMain = document.getElementById('logo-main');
+    const logoAccent = document.getElementById('logo-accent');
+    if (logoMain && logoAccent) {
+      logoMain.textContent   = parts.slice(0, -1).join(' ') || cfg.name;
+      logoAccent.textContent = parts.length > 1 ? parts[parts.length - 1] : '';
+    }
+    const loadEl = document.getElementById('loading');
+    if (loadEl) loadEl.textContent = '[ Loading ' + cfg.name + '... ]';
+    // Show/hide fingerprint tab
+    const fpTab = document.getElementById('tab-fingerprint');
+    if (fpTab) fpTab.style.display = cfg.fingerprint_enabled ? '' : 'none';
+    // Show/hide hated sub-tab
+    const hatedTab = document.getElementById('fptab-hated');
+    if (hatedTab) hatedTab.style.display = cfg.hated_enabled ? '' : 'none';
+  })
+  .catch(() => { _appConfig = {name:'Media Library',fingerprint_enabled:false,hated_enabled:false,members:[],seerr_url:''}; });
+
+fetch('/api/stats')
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(data => {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('sec-movies').classList.add('active');
+    renderMovies(data.movies);
+    renderTV(data.tv);
+    renderTalent(data.talent);
+    renderFranchises(data.franchises);
+    renderEntropy();
+  })
+  .catch(err => {
+    document.getElementById('loading').style.display = 'none';
+    const el = document.getElementById('error');
+    el.style.display = 'block';
+    el.textContent = 'Failed to load library data: ' + err.message;
+  });
+
+fetch('/api/history/trends')
+  .then(r => r.json())
+  .then(data => renderTrends(data.runs || []))
+  .catch(() => renderTrends([]));
+
+fetch('/api/dna')
+  .then(r => r.json())
+  .then(data => renderDNA(data))
+  .catch(() => renderDNA({error: 'DNA scores unavailable.'}));
+
+
+function loadFingerprint() {
+  fetch('/api/fingerprint')
+    .then(r => r.json())
+    .then(data => requestAnimationFrame(() => renderFingerprint(data)))
+    .catch(err => {
+      const el = document.getElementById('fp-grid');
+      if (el) el.innerHTML = '<div class="no-data">Failed: ' + err.message + '</div>';
+    });
+}
+
+
+let _fpThreadsData=null,_fpRecsData=null,_fpRecsMember=null,_fpHatedData=null,_fpHatedMember=null;
+
+function showFpTab(name){
+  ['profiles','threads','recs','hated'].forEach(t=>{
+    document.getElementById('fppanel-'+t).style.display=(t===name)?'':'none';
+    const b=document.getElementById('fptab-'+t);
+    if(b)b.classList.toggle('active',t===name);
+  });
+  if(name==='threads'&&!_fpThreadsData)loadThreads();
+  if(name==='recs'&&!_fpRecsData)loadRecs();
+  if(name==='hated'&&!_fpHatedData)loadHated();
+}
+
+function filterPills(id,q){
+  const el=document.getElementById(id);if(!el)return;
+  const s=q.toLowerCase();
+  el.querySelectorAll('.shared-title-pill').forEach(p=>{p.style.display=p.textContent.toLowerCase().includes(s)?'':'none';});
+}
+
+function togglePills(id,btn){
+  const el=document.getElementById(id);if(!el)return;
+  const open=el.style.display==='flex';
+  el.style.display=open?'none':'flex';
+  btn.textContent=btn.textContent.replace(open?'▼':'▶',open?'▶':'▼');
+}
+
+function renderThreads(data){
+  _fpThreadsData=data;
+  const el=document.getElementById('fp-threads-content');if(!el)return;
+  const COLORS=_fpColors();
+  const LABELS=_fpLabels(_fpMembers());
+  if(!data.pairs||!data.pairs.length){el.innerHTML='<div class="no-data">No pair data.</div>';return;}
+  let famHtml='';
+  const fs=data.family_shared;
+  if(fs&&fs.count>0){
+    const chips=fs.top_genres.map(g=>'<span class="genre-chip">'+g.genre+' <b style="color:#aaaacc">'+g.count+'</b></span>').join('');
+    const pills=fs.titles.map(t=>'<span class="shared-title-pill">'+t+'</span>').join('');
+    const filt=fs.count>20?'<input class="filter-input" placeholder="Filter '+fs.count+' titles…" oninput="filterPills(&apos;pills-family-all&apos;,this.value)">':'';
+    famHtml='<div class="pair-card" style="border-color:#ffcc0033;margin-bottom:14px"><div class="pair-header"><div class="pair-names" style="font-size:15px;color:#ffcc00">&#x1F46A; Whole Family</div><div style="font-size:10px;color:#44446a">'+fs.count+' titles everyone shares</div></div><div>'+chips+'</div><div class="shared-titles-toggle" onclick="togglePills(&#39;pills-family-all&#39;,this)">▶ '+fs.count+' shared titles</div>'+filt+'<div class="shared-titles-list" id="pills-family-all">'+pills+'</div></div>';
+  }
+  const pairs=data.pairs.map(p=>{
+    const[m1,m2]=p.pair,c1=COLORS[m1]||'#8888cc',c2=COLORS[m2]||'#8888cc';
+    const pct=Math.round(p.similarity*100);
+    const chips=p.top_shared_genres.map(g=>'<span class="genre-chip">'+g.genre+' <b style="color:#aaaacc">'+g.count+'</b></span>').join('');
+    const pid='pills-'+m1+'-'+m2;
+    const pills=p.shared_titles.map(t=>'<span class="shared-title-pill">'+t+'</span>').join('');
+    const filt=p.shared_count>20?'<input class="filter-input" placeholder="Filter '+p.shared_count+' titles…" oninput="filterPills(&#39;'+pid+'&#39;,this.value)">':'';
+    return '<div class="pair-card"><div class="pair-header"><div class="pair-names"><span style="color:'+c1+'">'+LABELS[m1]+'</span><span style="color:#2a2a4a;margin:0 5px">&times;</span><span style="color:'+c2+'">'+LABELS[m2]+'</span></div><div style="font-size:10px;color:#44446a">'+p.shared_count+' shared &middot; '+p.only_left+' only '+LABELS[m1]+' &middot; '+p.only_right+' only '+LABELS[m2]+'</div><div class="pair-sim-bar"><div class="pair-sim-fill" style="width:'+pct+'%;background:linear-gradient(90deg,'+c1+','+c2+')"></div></div><div class="pair-sim-pct">'+pct+'%</div></div><div>'+chips+'</div>'+(p.shared_count>0?'<div class="shared-titles-toggle" onclick="togglePills(&#39;'+pid+'&#39;,this)">▶ '+p.shared_count+' shared titles</div>'+filt+'<div class="shared-titles-list" id="'+pid+'">'+pills+'</div>':'')+'</div>';
+  }).join('');
+  el.innerHTML=famHtml+pairs;
+}
+
+function loadThreads(){
+  fetch('/api/fingerprint/threads').then(r=>r.json()).then(data=>renderThreads(data)).catch(err=>{const el=document.getElementById('fp-threads-content');if(el)el.innerHTML='<div class="no-data">Failed: '+err.message+'</div>';});
+}
+
+function renderRecs(data){
+  _fpRecsData=data;
+  const MEMBERS=(_appConfig&&_appConfig.members)?_appConfig.members.map(x=>x.name):[];
+  const LABELS=_fpLabels(MEMBERS);
+  const COLORS=_fpColors();
+  if(!_fpRecsMember&&MEMBERS.length)_fpRecsMember=MEMBERS[0];
+  const tabsEl=document.getElementById('fp-recs-member-tabs');
+  if(tabsEl){tabsEl.innerHTML=MEMBERS.map(m=>{const a=m===_fpRecsMember;return '<button class="sub-tab '+(a?'active':'')+'" style="'+(a?'background:#1a1a32;color:'+COLORS[m]+';border-color:'+COLORS[m]+';':'')+'" onclick="switchRecsMember(&#39;'+m+'&#39;)">'+LABELS[m]+'</button>';}).join('');}
+  renderRecsMember(_fpRecsMember);
+}
+
+function switchRecsMember(m){_fpRecsMember=m;renderRecs(_fpRecsData);}
+
+function renderRecsMember(member){
+  const el=document.getElementById('fp-recs-content');if(!el||!_fpRecsData)return;
+  const d=_fpRecsData[member];if(!d){el.innerHTML='<div class="no-data">No data.</div>';return;}
+  const LABELS=_fpLabels(_fpMembers());
+  const COLORS=_fpColors();
+  const color=COLORS[member]||'#8888cc',twin=d.taste_twin,twinC=twin?(COLORS[twin]||'#8888cc'):'#8888cc',simP=d.twin_similarity?Math.round(d.twin_similarity*100):0;
+  const recRow=(item,i)=>{
+    const badge=item.in_library?'<span class="in-lib-badge">IN LIBRARY</span>':'<a href="https://www.imdb.com/title/'+item.imdb_id+'/" target="_blank" class="imdb-badge">IMDb &#x2197;</a>';
+    const votes=item.votes?' &middot; '+(item.votes/1000).toFixed(0)+'K votes':'';
+    const icon=item.source==='tv'?'&#x1F4FA;':'&#x1F3AC;';
+    return '<div class="rec-card"><div class="rec-rank">'+String(i+1).padStart(2,'0')+'</div><div style="flex:1;min-width:0"><div class="rec-title">'+icon+' '+item.title+' <span style="color:#44446a;font-weight:400">('+( item.year||'?')+')</span>'+badge+'</div><div class="rec-meta">'+(item.genres||'')+votes+'</div></div><div class="rec-rating">'+(item.rating?'&#x2605; '+item.rating:'&mdash;')+'</div></div>';
+  };
+  const inLib=d.in_library_recs.length?d.in_library_recs.map(recRow).join(''):'<div class="no-data" style="padding:16px;font-size:11px">Nothing from your taste twin yet.</div>';
+  const imdb=!d.imdb_available?'<div class="no-data" style="padding:16px;font-size:11px;color:#44446a">IMDb data unavailable.</div>':d.imdb_recs.length?d.imdb_recs.map(recRow).join(''):'<div class="no-data" style="padding:16px;font-size:11px">No IMDb suggestions matched.</div>';
+  el.innerHTML='<div class="card" style="margin-bottom:12px;border-top:2px solid '+color+'"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;color:#44446a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Taste Twin</div><div style="font-size:18px;font-weight:800;color:'+twinC+';font-family:Space Grotesk,sans-serif">'+(twin?LABELS[twin]:'&mdash;')+'</div></div><div style="flex:1;min-width:120px"><div style="font-size:9px;color:#44446a;margin-bottom:4px">Genre similarity</div><div style="height:6px;background:#1a1a32;border-radius:3px"><div style="height:100%;width:'+simP+'%;border-radius:3px;background:linear-gradient(90deg,'+color+','+twinC+')"></div></div></div><div style="font-size:20px;font-weight:900;font-family:JetBrains Mono,monospace;color:#aaaacc">'+simP+'%</div></div></div><div class="grid2" style="gap:12px"><div class="card"><div class="card-title" style="color:'+twinC+'">Already in the Library</div><div style="font-size:10px;color:#44446a;margin-bottom:10px">'+(twin?LABELS[twin]+' has these &mdash; you don&#x27;t yet':'')+'</div>'+inLib+'</div><div class="card"><div class="card-title" style="color:'+color+'">Not Yet in the Library</div><div style="font-size:10px;color:#44446a;margin-bottom:10px">IMDb-wide picks matching your genre profile</div>'+imdb+'</div></div>';
+}
+
+function loadRecs(){
+  const el=document.getElementById('fp-recs-content');
+  if(el)el.innerHTML='<div class="no-data" style="padding:40px;text-align:center;color:#44446a">Loading IMDb data &mdash; first load ~30s&hellip;</div>';
+  fetch('/api/fingerprint/recommendations').then(r=>r.json()).then(data=>requestAnimationFrame(()=>renderRecs(data))).catch(err=>{if(el)el.innerHTML='<div class="no-data">Failed: '+err.message+'</div>';});
+}
+
+function renderHated(data){
+  _fpHatedData=data;
+  const MEMBERS=(_appConfig&&_appConfig.members)?_appConfig.members.map(x=>x.name):[];
+  const LABELS=_fpLabels(MEMBERS);
+  const COLORS=_fpColors();
+  if(!_fpHatedMember&&MEMBERS.length)_fpHatedMember=MEMBERS[0];
+  const tabsEl=document.getElementById('fp-hated-member-tabs');
+  if(tabsEl){tabsEl.innerHTML=MEMBERS.map(m=>{const cnt=data.members[m]?data.members[m].count:0,a=m===_fpHatedMember;return '<button class="sub-tab '+(a?'active':'')+'" style="'+(a?'background:#1a0505;color:#ff6666;border-color:#ff4444;':'border-color:#ff444433;')+'" onclick="switchHatedMember(&#39;'+m+'&#39;)">'+LABELS[m]+(cnt>0?' <span style="color:#ff4444;font-size:9px">('+cnt+')</span>':'')+'</button>';}).join('');}
+  const consEl=document.getElementById('fp-hated-consensus');
+  if(consEl&&data.consensus&&data.consensus.length){
+    const pills=data.consensus.map(c=>'<span class="consensus-pill">&#x1F480; '+c.title+' <span style="font-size:9px;opacity:.7">'+c.haters.map(h=>LABELS[h]).join(' + ')+'</span></span>').join('');
+    consEl.innerHTML='<div class="card" style="border-top:2px solid #ff4444"><div class="card-title" style="color:#ff4444">Universally Panned</div><div style="font-size:10px;color:#44446a;margin-bottom:8px">Hated by 2+ family members</div><div>'+pills+'</div></div>';
+  }else if(consEl)consEl.innerHTML='';
+  renderHatedMember(_fpHatedMember);
+}
+
+function switchHatedMember(m){_fpHatedMember=m;renderHated(_fpHatedData);}
+
+function renderHatedMember(member){
+  const el=document.getElementById('fp-hated-content');if(!el||!_fpHatedData)return;
+  const d=_fpHatedData.members[member];
+  const LABELS=_fpLabels(_fpMembers());
+  const COLORS=_fpColors();
+  if(!d){el.innerHTML='<div class="no-data">No data.</div>';return;}
+  if(!d.hated||!d.hated.length){
+    el.innerHTML='<div class="card" style="border-top:2px solid '+(COLORS[member]||'#8888cc')+'"><div style="padding:30px;text-align:center;color:#44446a;font-size:12px">'+LABELS[member]+' hasn&#x27;t marked anything as hated yet.<br><span style="font-size:10px;display:block;margin-top:6px">Add a <code style="color:#ff6666">'+member+'-hate</code> tag in Radarr or Sonarr.</span></div></div>';
+    return;
+  }
+  el.innerHTML='<div class="card" style="border-top:2px solid #ff4444"><div class="card-title" style="color:#ff4444">'+LABELS[member]+'’s Hall of Shame <span style="color:#44446a;font-weight:400;font-size:10px">'+d.count+' title'+(d.count!==1?'s':'')+'</span></div>'+d.hated.map(item=>'<div class="hate-card"><div style="font-size:16px">'+(item.source==='tv'?'&#x1F4FA;':'&#x1F3AC;')+'</div><div style="flex:1;min-width:0"><div class="hate-title">'+item.title+' <span style="color:#44446a;font-weight:400">('+( item.year||'?')+')</span></div><div class="hate-meta">'+(item.genres||'')+'</div></div><div class="hate-rating">'+(item.rating?'&#x2605; '+item.rating:'&mdash;')+'</div></div>').join('')+'</div>';
+}
+
+function loadHated(){
+  fetch('/api/fingerprint/hated').then(r=>r.json()).then(data=>renderHated(data)).catch(err=>{const el=document.getElementById('fp-hated-content');if(el)el.innerHTML='<div class="no-data">Failed: '+err.message+'</div>';});
+}
+
+// ── Trends sub-tab switcher ──────────────────────────────────────────────────
+function showTrendsTab(name) {
+  ['entropy','dna','history'].forEach(t => {
+    document.getElementById('tr-panel-'+t).style.display = t===name ? '' : 'none';
+    const btn = document.getElementById('trtab-'+t);
+    if (btn) btn.classList.toggle('active', t===name);
+  });
+  if (name === 'entropy' && _mData && _tvData) renderEntropy();
+  if (name === 'dna' && !_dnaData) loadDNA();
+}
+
+// ── DNA lazy loader ───────────────────────────────────────────────────────────
+function loadDNA() {
+  fetch('/api/dna').then(r=>r.json()).then(data=>{
+    _dnaData=data;
+    renderDNA(data);
+  }).catch(err=>{
+    const el=document.getElementById('dna-grade-wrap');
+    if(el)el.innerHTML='<div class="no-data">Failed: '+err.message+'</div>';
+  });
+}
+
+// ── Expulsion List renderer ───────────────────────────────────────────────────
+function renderExpulsion(data) {
+  const el=document.getElementById('expulsion-wrap');
+  if(!el)return;
+  if(!data||!data.length){
+    el.innerHTML='<div class="no-data" style="color:#1d9e75;padding:20px">&#x1F393; No expulsion candidates &mdash; all hated titles are passing.</div>';
+    return;
+  }
+  const COLORS=_fpColors();
+  const LABELS=_fpLabels(_fpMembers());
+  const _seerBase=(_appConfig&&_appConfig.seerr_url)?_appConfig.seerr_url.replace(/\/$/,''):'';
+  function expCard(f,isExpelled){
+    const border=isExpelled?'#ff4444':'#e8a838';
+    const bg=isExpelled?'#0f0303':'#0f0a03';
+    const chips=f.haters.map(h=>'<span style="padding:1px 7px;border-radius:3px;font-size:9px;font-weight:700;background:#1a1a32;color:'+COLORS[h]+';border:1px solid '+COLORS[h]+'44">'+LABELS[h]+'</span>').join(' ');
+    const seerUrl=_seerBase?_seerBase+'/search?query='+encodeURIComponent(f.title):'';
+    return '<div style="background:'+bg+';border:1px solid '+border+'33;border-left:3px solid '+border+';border-radius:5px;padding:.65rem 1rem;margin-bottom:6px;display:flex;align-items:center;gap:12px">'
+      +'<div style="font-family:Orbitron,sans-serif;font-size:1.1rem;font-weight:700;color:'+border+';min-width:28px;text-align:center">'+f.grade+'</div>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-family:Space Grotesk,sans-serif;font-weight:700;color:#c8c8e8;font-size:13px">'+f.title+'</div>'
+        +'<div style="font-size:9px;color:#44446a;margin-top:2px;font-family:JetBrains Mono,monospace">'+f.teacher_note+'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">'
+        +'<div>'+chips+'</div>'
+        +'<a href="'+seerUrl+'" target="_blank" style="font-size:9px;color:#ff6b6b;text-decoration:none;font-family:JetBrains Mono,monospace;border:1px solid #ff444433;padding:1px 7px;border-radius:3px">Remove &#x2197;</a>'
+      +'</div>'
+    +'</div>';
+  }
+  const expelled=data.filter(x=>x.tier==='expulsion');
+  const detained=data.filter(x=>x.tier==='detention');
+  let html='';
+  if(expelled.length){
+    html+='<div style="font-size:10px;color:#ff4444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:JetBrains Mono,monospace">&#x1F6A8; Immediate Expulsion &mdash; Grade F + Hated</div>';
+    html+=expelled.map(f=>expCard(f,true)).join('');
+  }
+  if(detained.length){
+    html+='<div style="font-size:10px;color:#e8a838;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;'+(expelled.length?'margin-top:16px;':'')+';font-family:JetBrains Mono,monospace">&#x26A0;&#xFE0F; Detention &mdash; Grade D + Hated</div>';
+    html+=detained.map(f=>expCard(f,false)).join('');
+  }
+  el.innerHTML=html;
+}
+
+populateSnapshotDropdown();
+</script>
+</body>
+</html>

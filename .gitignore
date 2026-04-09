@@ -1,0 +1,12 @@
+config.py
+CLAUDE.md
+*.db
+data/
+__pycache__/
+*.pyc
+.env
+*.xlsx
+*.bak*
+migrate_xlsx.py
+migrate.py
+patch_*.py
