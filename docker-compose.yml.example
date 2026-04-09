@@ -1,0 +1,41 @@
+services:
+  python-utils:
+    image: python:3.11-slim
+    container_name: python-utils
+    restart: unless-stopped
+    working_dir: /scripts
+    volumes:
+      - ./scripts:/scripts
+      - /path/to/music:/music        # optional
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_PATH=/scripts/data/library_history.db
+    ports:
+      - "5757:5757"
+    command: >
+      bash -c "
+        pip install requests cinemagoer flask --quiet &&
+        python3 /scripts/runner.py
+      "
+
+  library-dashboard:
+    image: python:3.11-slim
+    container_name: library-dashboard
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./data:/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_PATH=/data/library_history.db
+      - RUNNER_URL=http://python-utils:5757
+    ports:
+      - "${DASHBOARD_PORT:-8686}:8686"
+    command: >
+      bash -c "
+        pip install flask requests --quiet &&
+        python3 /app/app.py
+      "
+    depends_on:
+      - python-utils

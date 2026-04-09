@@ -1,0 +1,45 @@
+name: Validate Config Example
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate config.example.py has all required keys
+        run: |
+          python3 - <<'EOF'
+          import importlib.util, sys
+
+          REQUIRED = [
+              "DASHBOARD_NAME",
+              "RADARR_URL", "RADARR_API_KEY",
+              "SONARR_URL", "SONARR_API_KEY",
+              "SEERR_URL", "SEERR_API_KEY",
+              "DB_PATH", "HISTORY_DIR",
+              "RUNNER_URL", "DASHBOARD_PORT",
+              "FINGERPRINT_ENABLED", "FINGERPRINT_MEMBERS",
+              "HATED_ENABLED",
+          ]
+
+          spec = importlib.util.spec_from_file_location("cfg", "config.example.py")
+          mod  = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          present = dir(mod)
+
+          missing = [k for k in REQUIRED if k not in present]
+          if missing:
+              print(f"FAIL: config.example.py is missing keys: {missing}")
+              sys.exit(1)
+          print(f"OK: all {len(REQUIRED)} required keys present")
+          EOF
