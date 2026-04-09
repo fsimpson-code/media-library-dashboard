@@ -1434,21 +1434,31 @@ def api_fingerprint_recs():
         return jsonify({"error": str(e)}), 500
 
 def parse_fingerprint_hated():
-    MEMBERS = FINGERPRINT_MEMBERS
-    COLORS  = _member_colors(MEMBERS)
+    MEMBERS = FINGERPRINT_MEMBERS + ["family"]
+    COLORS  = _member_colors(FINGERPRINT_MEMBERS)
+    COLORS["family"] = "#ff6b6b"
 
-    md = _fingerprint_member_data()
-    all_rows = []
-    for m in (MEMBERS + ["family"]):
-        all_rows.extend(md[m]["rows"])
-    # Deduplicate by title+source
-    seen = set()
+    # Query ALL library films directly — do not filter by member base tag.
+    # A film tagged only with [member]-hate (no base tag) must still appear.
     deduped = []
-    for row in all_rows:
-        key = (row.get("title"), row.get("source"))
-        if key not in seen:
-            seen.add(key)
-            deduped.append(row)
+    if DB_PATH.exists():
+        try:
+            con = _db()
+            run_id = _latest_run_id(con)
+            if run_id is not None:
+                for r in con.execute("""
+                    SELECT title, imdb_id, year, genres, tags, imdb_rating AS rating, 'movie' AS source
+                    FROM movie_snapshots WHERE run_id = ? AND has_file = 1
+                """, (run_id,)).fetchall():
+                    deduped.append(dict(r))
+                for r in con.execute("""
+                    SELECT title, imdb_id, year, genres, tags, rating, 'tv' AS source
+                    FROM tv_snapshots WHERE run_id = ? AND episodes_have > 0
+                """, (run_id,)).fetchall():
+                    deduped.append(dict(r))
+            con.close()
+        except Exception:
+            pass
 
     hate = {m: [] for m in MEMBERS}
     for row in deduped:
