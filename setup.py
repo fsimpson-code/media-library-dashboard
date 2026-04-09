@@ -237,7 +237,7 @@ def run_full_setup(defaults: dict = None):
 
     # Paths
     print("\n── Paths ────────────────────────────────────────────────")
-    cfg["DB_PATH"]        = prompt("Database path", d.get("DB_PATH", "./data/simpson_history.db"))
+    cfg["DB_PATH"]        = prompt("Database path", d.get("DB_PATH", "./data/library_history.db"))
     cfg["HISTORY_DIR"]    = prompt("History directory", d.get("HISTORY_DIR", "./data/history/"))
     cfg["RUNNER_URL"]     = prompt("Runner URL", d.get("RUNNER_URL", "http://localhost:5757"))
     port_str              = prompt("Dashboard port", d.get("DASHBOARD_PORT", 8686))
