@@ -21,7 +21,12 @@ app = Flask(__name__)
 
 SCRIPT_PATH  = "/scripts/library_runner.py"
 HISTORY_DIR  = Path("/scripts/history")
-DB_PATH      = Path(os.environ.get("DB_PATH", "/scripts/library_history.db"))
+
+try:
+    from config import DB_PATH as _CFG_DB
+    DB_PATH = Path(_CFG_DB)
+except ImportError:
+    DB_PATH = Path(os.environ.get("DB_PATH", "/scripts/library_history.db"))
 
 # ── Run state ─────────────────────────────────────────────────────────────────
 _lock        = threading.Lock()
