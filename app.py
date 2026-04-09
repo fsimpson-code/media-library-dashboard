@@ -7,8 +7,13 @@ All data served from SQLite. No xlsx dependency.
 import os, re, json, sqlite3
 from pathlib import Path
 from collections import Counter, defaultdict
-from flask import Flask, jsonify, send_file, abort, Response, stream_with_context
+from flask import Flask, jsonify, send_file, abort, Response, stream_with_context, request
 import requests as req
+import subprocess
+import threading
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text as sql_text
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -42,6 +47,41 @@ _PALETTE = ["#00e5ff", "#e040fb", "#00ff9f", "#ffcc00", "#b060ff",
 
 def _member_colors(members):
     return {m: _PALETTE[i % len(_PALETTE)] for i, m in enumerate(members)}
+
+
+# ── Multi-backend DB engine ───────────────────────────────────────────────────
+ENV_PATH = Path("/app/.env")
+_engine = None
+_engine_lock = threading.Lock()
+_migrate_proc = None
+_migrate_lines = []
+
+def get_engine():
+    """Return SQLAlchemy engine based on DB_TYPE env var."""
+    global _engine
+    with _engine_lock:
+        if _engine is None:
+            db_type = os.getenv("DB_TYPE", "sqlite")
+            if db_type == "postgres":
+                _engine = create_engine(
+                    "postgresql://{}:{}@{}:{}/{}".format(
+                        os.getenv("DB_USER", ""), os.getenv("DB_PASS", ""),
+                        os.getenv("DB_HOST", ""), os.getenv("DB_PORT", "5432"),
+                        os.getenv("DB_NAME", "")
+                    )
+                )
+            elif db_type == "mysql":
+                _engine = create_engine(
+                    "mysql+pymysql://{}:{}@{}:{}/{}".format(
+                        os.getenv("DB_USER", ""), os.getenv("DB_PASS", ""),
+                        os.getenv("DB_HOST", ""), os.getenv("DB_PORT", "3306"),
+                        os.getenv("DB_NAME", "")
+                    )
+                )
+            else:
+                db_path = os.getenv("DB_PATH", str(DB_PATH))
+                _engine = create_engine("sqlite:///{}".format(db_path))
+    return _engine
 
 def _db():
     con = sqlite3.connect(DB_PATH)
@@ -1506,6 +1546,206 @@ def api_fingerprint_hated():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+# ── Settings & multi-backend endpoints (v1.1.0) ──────────────────────────────
+
+def _read_env_file():
+    """Read .env file into dict."""
+    result = {}
+    if ENV_PATH.exists():
+        for line in ENV_PATH.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                result[k.strip()] = v.strip()
+    return result
+
+_SECRET_KEYS = {"RADARR_API_KEY", "SONARR_API_KEY", "JELLYSEERR_API_KEY", "DB_PASS"}
+
+def _mask_val(val, key):
+    if key in _SECRET_KEYS and val:
+        return "..." + val[-6:] if len(val) > 6 else "****"
+    return val
+
+
+@app.route("/api/settings/config")
+def api_settings_config():
+    env = _read_env_file()
+    fields = [
+        "DB_TYPE", "DB_PATH", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASS",
+        "RADARR_URL", "RADARR_API_KEY", "SONARR_URL", "SONARR_API_KEY",
+        "JELLYSEERR_URL", "JELLYSEERR_API_KEY",
+        "IMDB_BASICS_PATH", "IMDB_RATINGS_PATH",
+        "DEFAULT_TAB", "ROWS_PER_TABLE",
+    ]
+    out = {f.lower(): _mask_val(env.get(f, ""), f) for f in fields}
+    sqlite_src = env.get("DB_PATH", "")
+    out["sqlite_path_exists"] = Path(sqlite_src).exists() if sqlite_src else False
+    try:
+        con = _db()
+        ts = con.execute("SELECT MAX(updated_at) FROM actor_career").fetchone()[0]
+        con.close()
+        out["imdb_last_built"] = ts
+    except Exception:
+        out["imdb_last_built"] = None
+    return jsonify(out)
+
+
+@app.route("/api/settings/save", methods=["POST"])
+def api_settings_save():
+    global _engine
+    data = request.get_json()
+    if not data:
+        return jsonify({"ok": False, "error": "No data"}), 400
+    KEY_MAP = {
+        "db_type": "DB_TYPE", "db_path": "DB_PATH", "db_host": "DB_HOST",
+        "db_port": "DB_PORT", "db_name": "DB_NAME", "db_user": "DB_USER",
+        "db_pass": "DB_PASS", "radarr_url": "RADARR_URL",
+        "radarr_api_key": "RADARR_API_KEY", "sonarr_url": "SONARR_URL",
+        "sonarr_api_key": "SONARR_API_KEY", "jellyseerr_url": "JELLYSEERR_URL",
+        "jellyseerr_api_key": "JELLYSEERR_API_KEY",
+        "imdb_basics_path": "IMDB_BASICS_PATH", "imdb_ratings_path": "IMDB_RATINGS_PATH",
+        "default_tab": "DEFAULT_TAB", "rows_per_table": "ROWS_PER_TABLE",
+    }
+    current = _read_env_file()
+    for js_key, env_key in KEY_MAP.items():
+        if js_key in data:
+            val = str(data[js_key])
+            if val.startswith("...") and len(val) <= 9:
+                continue  # skip masked placeholder
+            current[env_key] = val
+    try:
+        ENV_PATH.write_text("\n".join("{}={}".format(k, v) for k, v in current.items()) + "\n")
+        for k, v in current.items():
+            os.environ[k] = v
+        with _engine_lock:
+            _engine = None
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/db/test", methods=["POST"])
+def api_db_test():
+    data = request.get_json() or {}
+    db_type = data.get("db_type", "sqlite")
+    try:
+        if db_type == "postgres":
+            engine = create_engine("postgresql://{}:{}@{}:{}/{}".format(
+                data.get("db_user", ""), data.get("db_pass", ""),
+                data.get("db_host", ""), data.get("db_port", "5432"),
+                data.get("db_name", "")))
+        elif db_type == "mysql":
+            engine = create_engine("mysql+pymysql://{}:{}@{}:{}/{}".format(
+                data.get("db_user", ""), data.get("db_pass", ""),
+                data.get("db_host", ""), data.get("db_port", "3306"),
+                data.get("db_name", "")))
+        else:
+            engine = create_engine("sqlite:///{}".format(
+                data.get("db_path", str(DB_PATH))))
+        with engine.connect() as conn:
+            conn.execute(sql_text("SELECT 1"))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@app.route("/api/service/test", methods=["POST"])
+def api_service_test():
+    data = request.get_json() or {}
+    service = data.get("service", "")
+    url = (data.get("url") or "").rstrip("/")
+    api_key = data.get("api_key", "")
+    try:
+        if service in ("radarr", "sonarr"):
+            r = req.get("{}/api/v3/system/status".format(url),
+                        params={"apikey": api_key}, timeout=8)
+            r.raise_for_status()
+            return jsonify({"ok": True, "name": r.json().get("instanceName", service.title())})
+        elif service == "jellyseerr":
+            r = req.get("{}/api/v1/auth/me".format(url),
+                        headers={"X-Api-Key": api_key}, timeout=8)
+            r.raise_for_status()
+            return jsonify({"ok": True, "name": r.json().get("displayName", "Jellyseerr")})
+        else:
+            return jsonify({"ok": False, "error": "Unknown service"}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@app.route("/api/db/migrate", methods=["POST"])
+def api_db_migrate():
+    global _migrate_proc, _migrate_lines
+    data = request.get_json() or {}
+    env = _read_env_file()
+    dest_type = env.get("DB_TYPE", "sqlite")
+    if dest_type == "sqlite":
+        return jsonify({"ok": False,
+                        "error": "Destination is SQLite — set DB_TYPE to postgres or mysql first."}), 400
+    cmd = [
+        "python3", "/scripts/migrate_sqlite_to_sql.py",
+        "--src", env.get("DB_PATH", str(DB_PATH)),
+        "--dest-type", dest_type,
+        "--dest-host", env.get("DB_HOST", ""),
+        "--dest-port", env.get("DB_PORT", "5432" if dest_type == "postgres" else "3306"),
+        "--dest-name", env.get("DB_NAME", ""),
+        "--dest-user", env.get("DB_USER", ""),
+        "--dest-pass", env.get("DB_PASS", ""),
+    ]
+    if data.get("wipe_dest"):
+        cmd.append("--wipe-dest")
+    _migrate_lines = []
+    try:
+        _migrate_proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1)
+        def _drain():
+            for line in _migrate_proc.stdout:
+                _migrate_lines.append(line.rstrip())
+            _migrate_proc.wait()
+        threading.Thread(target=_drain, daemon=True).start()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/db/migrate/status")
+def api_db_migrate_status():
+    import time as _time
+    def generate():
+        sent = 0
+        while True:
+            while sent < len(_migrate_lines):
+                yield "data: {}\n\n".format(_migrate_lines[sent])
+                sent += 1
+            if _migrate_proc and _migrate_proc.poll() is not None:
+                while sent < len(_migrate_lines):
+                    yield "data: {}\n\n".format(_migrate_lines[sent])
+                    sent += 1
+                break
+            _time.sleep(0.2)
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.route("/api/imdb/refresh", methods=["POST"])
+def api_imdb_refresh():
+    try:
+        con = _db()
+        con.execute("DELETE FROM actor_career")
+        con.commit()
+        con.close()
+    except Exception as e:
+        return jsonify({"ok": False, "error": "DB clear failed: {}".format(str(e))}), 500
+    try:
+        req.post("{}/run".format(RUNNER_URL), timeout=5)
+    except Exception:
+        pass
+    return jsonify({"ok": True, "message": "Cache cleared. Rebuild started."})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=DASHBOARD_PORT)

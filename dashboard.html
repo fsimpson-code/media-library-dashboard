@@ -356,6 +356,54 @@ tr:hover td{background:#0d0d1e}
   .hate-rating{font-size:11px;font-family:JetBrains Mono,monospace;margin-left:auto;color:#ff4444;white-space:nowrap}
   .consensus-pill{display:inline-flex;align-items:center;gap:6px;background:#1a0505;border:1px solid #3a0a0a;border-radius:8px;padding:5px 10px;margin:3px;font-size:11px;color:#cc4444;font-family:Space Grotesk,sans-serif}
 
+
+/* ── Settings panel ── */
+.settings-wrap{max-width:900px}
+.settings-group{background:#0a0a1c;border:1px solid #1e1e3a;border-radius:6px;padding:1.25rem 1.5rem;margin-bottom:14px}
+.settings-group-title{font-size:10px;font-weight:700;color:#00b8d4;text-transform:uppercase;letter-spacing:.15em;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #1e1e3a}
+.setting-row{display:flex;align-items:center;gap:10px;margin-bottom:.75rem;flex-wrap:wrap}
+.setting-row:last-child{margin-bottom:0}
+.setting-label{font-size:11px;font-weight:600;color:#8888bb;min-width:160px;flex-shrink:0}
+.setting-input{background:#05050f;border:1px solid #2a2a50;border-radius:4px;color:#c8c8e8;font-size:11px;padding:5px 10px;font-family:JetBrains Mono,monospace;flex:1;min-width:200px}
+.setting-input:focus{outline:none;border-color:#00e5ff55}
+.setting-select{background:#05050f;border:1px solid #2a2a50;border-radius:4px;color:#c8c8e8;font-size:11px;padding:5px 10px;font-family:Space Grotesk,sans-serif;cursor:pointer}
+.setting-select:focus{outline:none;border-color:#00e5ff55}
+.setting-note{font-size:10px;color:#44446a;font-style:italic;margin-top:-4px;margin-bottom:.5rem}
+.test-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;font-family:JetBrains Mono,monospace;white-space:nowrap}
+.test-badge.ok{background:#001a10;color:#00e5ff;border:1px solid #00e5ff44}
+.test-badge.err{background:#1a0000;color:#ff6b6b;border:1px solid #ff6b6b44}
+.svc-row{display:flex;align-items:center;gap:8px;margin-bottom:.6rem;flex-wrap:wrap}
+.svc-row:last-child{margin-bottom:0}
+.svc-name{font-size:11px;font-weight:700;color:#8888bb;min-width:90px}
+.settings-btn{padding:5px 16px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:Space Grotesk,sans-serif;letter-spacing:.08em;text-transform:uppercase;border:1px solid;transition:all .2s}
+.settings-btn.primary{background:#001a2e;color:#00e5ff;border-color:#00e5ff55}
+.settings-btn.primary:hover:not(:disabled){background:#00e5ff;color:#000}
+.settings-btn.primary:disabled{opacity:.35;cursor:not-allowed}
+.settings-btn.danger{background:#1a0000;color:#ff6b6b;border-color:#ff6b6b55}
+.settings-btn.danger:hover{background:#ff6b6b;color:#000}
+.settings-btn.purple{background:#0f0020;color:#b060ff;border-color:#b060ff55}
+.settings-btn.purple:hover{background:#b060ff;color:#000}
+.migration-panel{background:#030310;border:1px solid #2a1a40;border-radius:4px;padding:1rem;margin-top:.75rem}
+.migration-log{background:#02020a;border:1px solid #1a1a32;border-radius:3px;padding:.5rem .75rem;font-family:JetBrains Mono,monospace;font-size:10px;color:#1d9e75;height:160px;overflow-y:auto;white-space:pre-wrap;margin-top:.6rem}
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
+.slider-label{font-size:11px;color:#8888bb;min-width:160px;flex-shrink:0}
+.slider-input{flex:1;accent-color:#00e5ff;min-width:160px}
+.slider-val{font-size:11px;font-family:JetBrains Mono,monospace;color:#c8c8e8;width:36px;text-align:right}
+.weight-total{font-size:12px;font-weight:700;font-family:JetBrains Mono,monospace;margin-top:.5rem}
+.weight-total.ok{color:#00e5ff}
+.weight-total.err{color:#ff6b6b}
+.tags-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:.5rem}
+.tags-table th{color:#44446a;font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:5px 8px;border-bottom:1px solid #1a1a32;text-align:left}
+.tags-table td{padding:4px 6px}
+.tags-table input{background:#05050f;border:1px solid #1a1a32;border-radius:3px;color:#c8c8e8;font-size:10px;padding:3px 6px;font-family:JetBrains Mono,monospace;width:100%}
+.settings-toggle{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer}
+.settings-toggle input{opacity:0;width:0;height:0}
+.settings-toggle-slider{position:absolute;top:0;left:0;right:0;bottom:0;background:#1a1a32;border-radius:20px;transition:.2s}
+.settings-toggle-slider:before{content:'';position:absolute;height:14px;width:14px;left:3px;bottom:3px;background:#44446a;border-radius:50%;transition:.2s}
+.settings-toggle input:checked + .settings-toggle-slider{background:#001a2e;border:1px solid #00e5ff55}
+.settings-toggle input:checked + .settings-toggle-slider:before{transform:translateX(16px);background:#00e5ff}
+.purge-confirm{display:none;background:#1a0000;border:1px solid #ff6b6b44;border-radius:4px;padding:.6rem .875rem;margin-top:.5rem;font-size:11px;color:#ff6b6b}
+
 </style>
 </head>
 <body>
@@ -374,6 +422,7 @@ tr:hover td{background:#0d0d1e}
       <button class="tab" onclick="showTab('constellation',this)">Constellation</button>
       <button class="tab" onclick="showTab('trends',this)">Trends</button>
       <button class="tab" id="tab-fingerprint" style="display:none" onclick="showTab('fingerprint',this)">Family Fingerprint</button>
+      <button class="tab" onclick="showTab('settings',this)">&#x2699; Settings</button>
     </div>
     <div class="topbar-meta">
       <select class="snap-select" id="snap-select" onchange="loadSnapshot(this.value)" title="View historical snapshot">
@@ -1202,6 +1251,7 @@ function showTab(name, el) {
   if (name === 'movies' && _mData) renderMoviesCanvas(_mData);
   if (name === 'trends') { if (_mData && _tvData) renderEntropy(); if (!_dnaData) loadDNA(); }
   if (name === 'fingerprint' && !_fpData) loadFingerprint();
+  if (name === 'settings') loadSettings();
 }
 
 function kpi(id, items) {
@@ -2763,6 +2813,293 @@ function renderExpulsion(data) {
 }
 
 populateSnapshotDropdown();
+
+// ── Settings panel ────────────────────────────────────────────────────────────
+let _settingsLoaded = false;
+
+function loadSettings() {
+  if (_settingsLoaded) return;
+  _settingsLoaded = true;
+  fetch('/api/settings/config')
+    .then(r => r.json())
+    .then(cfg => {
+      // DB fields
+      const dbType = cfg.db_type || 'sqlite';
+      document.getElementById('s-db-type').value = dbType;
+      settingsDbTypeChange(dbType);
+      document.getElementById('s-db-path').value = cfg.db_path || '';
+      document.getElementById('s-db-host').value = cfg.db_host || '';
+      document.getElementById('s-db-port').value = cfg.db_port || '';
+      document.getElementById('s-db-name').value = cfg.db_name || '';
+      document.getElementById('s-db-user').value = cfg.db_user || '';
+      document.getElementById('s-db-pass').value = cfg.db_pass || '';
+      // Show migration panel if non-sqlite + sqlite file exists
+      if (dbType !== 'sqlite' && cfg.sqlite_path_exists) {
+        document.getElementById('s-migration-panel').style.display = '';
+      }
+      // API fields
+      document.getElementById('s-radarr-url').value = cfg.radarr_url || '';
+      document.getElementById('s-radarr-key').value = cfg.radarr_api_key || '';
+      document.getElementById('s-sonarr-url').value = cfg.sonarr_url || '';
+      document.getElementById('s-sonarr-key').value = cfg.sonarr_api_key || '';
+      document.getElementById('s-seerr-url').value = cfg.jellyseerr_url || '';
+      document.getElementById('s-seerr-key').value = cfg.jellyseerr_api_key || '';
+      // IMDb
+      document.getElementById('s-imdb-basics').value = cfg.imdb_basics_path || '';
+      document.getElementById('s-imdb-ratings').value = cfg.imdb_ratings_path || '';
+      const lb = cfg.imdb_last_built;
+      document.getElementById('s-imdb-last').textContent = lb ? lb : 'Never built';
+      // Display prefs
+      if (cfg.default_tab) document.getElementById('s-default-tab').value = cfg.default_tab;
+      if (cfg.rows_per_table) document.getElementById('s-rows-per-table').value = cfg.rows_per_table;
+      // Run status
+      loadRunStatus();
+    })
+    .catch(err => console.error('Settings load error:', err));
+}
+
+function loadRunStatus() {
+  fetch('/api/run/status')
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('s-last-run');
+      if (el && d.last_run) {
+        const badge = d.last_status === 'success'
+          ? '<span style="color:#00e5ff">&#x2713;</span>'
+          : '<span style="color:#ff6b6b">&#x2717;</span>';
+        el.innerHTML = badge + ' ' + d.last_run;
+      }
+    })
+    .catch(() => {});
+}
+
+function settingsDbTypeChange(val) {
+  const isSqlite = val === 'sqlite';
+  document.getElementById('s-sqlite-fields').style.display = isSqlite ? '' : 'none';
+  document.getElementById('s-sql-fields').style.display = isSqlite ? 'none' : '';
+  // Reset test badge and disable save when type changes
+  document.getElementById('s-db-test-badge').textContent = '';
+  document.getElementById('s-save-db-btn').disabled = true;
+}
+
+function setBadge(id, ok, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'test-badge ' + (ok ? 'ok' : 'err');
+  el.textContent = ok ? ('\u2713 ' + (msg || 'OK')) : ('\u2717 ' + (msg || 'Error'));
+}
+
+function testDbConnection() {
+  const dbType = document.getElementById('s-db-type').value;
+  const payload = { db_type: dbType };
+  if (dbType === 'sqlite') {
+    payload.db_path = document.getElementById('s-db-path').value;
+  } else {
+    payload.db_host = document.getElementById('s-db-host').value;
+    payload.db_port = document.getElementById('s-db-port').value;
+    payload.db_name = document.getElementById('s-db-name').value;
+    payload.db_user = document.getElementById('s-db-user').value;
+    payload.db_pass = document.getElementById('s-db-pass').value;
+  }
+  setBadge('s-db-test-badge', null, 'Testing...');
+  fetch('/api/db/test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => {
+      setBadge('s-db-test-badge', d.ok, d.ok ? 'Connected' : d.error);
+      document.getElementById('s-save-db-btn').disabled = !d.ok;
+    })
+    .catch(err => setBadge('s-db-test-badge', false, err.message));
+}
+
+function saveDbSettings() {
+  const dbType = document.getElementById('s-db-type').value;
+  const payload = {
+    db_type: dbType,
+    db_path: document.getElementById('s-db-path').value,
+    db_host: document.getElementById('s-db-host').value,
+    db_port: document.getElementById('s-db-port').value,
+    db_name: document.getElementById('s-db-name').value,
+    db_user: document.getElementById('s-db-user').value,
+    db_pass: document.getElementById('s-db-pass').value,
+  };
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => {
+      setBadge('s-db-test-badge', d.ok, d.ok ? 'Saved' : d.error);
+      // Show migration panel if applicable
+      if (dbType !== 'sqlite') {
+        document.getElementById('s-migration-panel').style.display = '';
+      }
+    })
+    .catch(err => setBadge('s-db-test-badge', false, err.message));
+}
+
+function testService(service) {
+  const urls = {radarr:'s-radarr-url',sonarr:'s-sonarr-url',jellyseerr:'s-seerr-url'};
+  const keys = {radarr:'s-radarr-key',sonarr:'s-sonarr-key',jellyseerr:'s-seerr-key'};
+  const badges = {radarr:'s-radarr-badge',sonarr:'s-sonarr-badge',jellyseerr:'s-seerr-badge'};
+  const payload = {
+    service,
+    url: document.getElementById(urls[service]).value,
+    api_key: document.getElementById(keys[service]).value,
+  };
+  setBadge(badges[service], null, 'Testing...');
+  fetch('/api/service/test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge(badges[service], d.ok, d.ok ? d.name : d.error))
+    .catch(err => setBadge(badges[service], false, err.message));
+}
+
+function saveApiSettings() {
+  const payload = {
+    radarr_url: document.getElementById('s-radarr-url').value,
+    radarr_api_key: document.getElementById('s-radarr-key').value,
+    sonarr_url: document.getElementById('s-sonarr-url').value,
+    sonarr_api_key: document.getElementById('s-sonarr-key').value,
+    jellyseerr_url: document.getElementById('s-seerr-url').value,
+    jellyseerr_api_key: document.getElementById('s-seerr-key').value,
+  };
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge('s-api-save-badge', d.ok, d.ok ? 'Saved' : d.error))
+    .catch(err => setBadge('s-api-save-badge', false, err.message));
+}
+
+function saveImdbSettings() {
+  const payload = {
+    imdb_basics_path: document.getElementById('s-imdb-basics').value,
+    imdb_ratings_path: document.getElementById('s-imdb-ratings').value,
+  };
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge('s-imdb-badge', d.ok, d.ok ? 'Saved' : d.error))
+    .catch(err => setBadge('s-imdb-badge', false, err.message));
+}
+
+function rebuildImdb() {
+  setBadge('s-imdb-badge', null, 'Clearing...');
+  fetch('/api/imdb/refresh', {method:'POST'})
+    .then(r => r.json())
+    .then(d => setBadge('s-imdb-badge', d.ok, d.ok ? d.message : d.error))
+    .catch(err => setBadge('s-imdb-badge', false, err.message));
+}
+
+function updateWeightTotal() {
+  const ids = ['sw-d1','sw-d2','sw-d3','sw-d4','sw-d5','sw-d6','sw-d7'];
+  let total = 0;
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(id + '-val');
+    if (el && valEl) { valEl.textContent = el.value; total += parseInt(el.value); }
+  });
+  const totalEl = document.getElementById('s-weight-total');
+  const saveBtn = document.getElementById('s-save-weights-btn');
+  if (totalEl) {
+    totalEl.textContent = 'Total: ' + total + '%';
+    totalEl.className = 'weight-total ' + (total === 100 ? 'ok' : 'err');
+  }
+  if (saveBtn) saveBtn.disabled = total !== 100;
+}
+
+function saveWeights() {
+  setBadge('s-weights-badge', null, 'Saving...');
+  // Weights are UI-only for now; backend support in future release
+  setTimeout(() => setBadge('s-weights-badge', true, 'Saved (UI only — backend in next release)'), 400);
+}
+
+function triggerRunFromSettings() {
+  const btn = document.getElementById('s-run-now-btn');
+  if (btn) btn.disabled = true;
+  fetch('/api/run', {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      setBadge('s-run-badge', true, 'Run started');
+      setTimeout(() => { if(btn) btn.disabled = false; }, 3000);
+    })
+    .catch(err => { setBadge('s-run-badge', false, err.message); if(btn) btn.disabled = false; });
+}
+
+function startMigration(wipe) {
+  const log = document.getElementById('s-migrate-log');
+  const badge = document.getElementById('s-migrate-badge');
+  if (log) { log.style.display = ''; log.textContent = 'Starting migration...\n'; }
+  setBadge('s-migrate-badge', null, 'Running...');
+  fetch('/api/db/migrate', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({wipe_dest: wipe})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.ok) { setBadge('s-migrate-badge', false, d.error); return; }
+    const es = new EventSource('/api/db/migrate/status');
+    es.onmessage = e => {
+      if (log) log.textContent += e.data + '\n';
+      if (e.data === 'MIGRATION_COMPLETE') {
+        setBadge('s-migrate-badge', true, 'Complete');
+        es.close();
+      } else if (e.data === 'MIGRATION_FAILED') {
+        setBadge('s-migrate-badge', false, 'Failed');
+        es.close();
+      }
+    };
+    es.onerror = () => { setBadge('s-migrate-badge', false, 'Stream error'); es.close(); };
+  })
+  .catch(err => setBadge('s-migrate-badge', false, err.message));
+}
+
+function saveDisplaySettings() {
+  const payload = {
+    default_tab: document.getElementById('s-default-tab').value,
+    rows_per_table: document.getElementById('s-rows-per-table').value,
+  };
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge('s-display-badge', d.ok, d.ok ? 'Saved' : d.error))
+    .catch(err => setBadge('s-display-badge', false, err.message));
+}
+
+function addTagRow() {
+  const tbody = document.getElementById('s-tags-body');
+  if (!tbody) return;
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td><input value=""></td><td><input value=""></td><td><input value=""></td><td><button class="settings-btn danger" style="padding:2px 8px;font-size:9px" onclick="removeTagRow(this)">&#x2715;</button></td>';
+  tbody.appendChild(tr);
+}
+
+function removeTagRow(btn) {
+  btn.closest('tr').remove();
+}
+
+document.getElementById('s-hate-suffix') && document.getElementById('s-hate-suffix').addEventListener('input', function() {
+  const prev = document.getElementById('s-hate-suffix-preview');
+  if (prev) prev.textContent = this.value;
+});
+
+function initiatePurge() {
+  const keep = parseInt(document.getElementById('s-retention-runs').value) || 10;
+  const msg = document.getElementById('s-purge-msg');
+  const conf = document.getElementById('s-purge-confirm');
+  if (msg) msg.textContent = 'This will delete runs older than the ' + keep + ' most recent per snapshot table. Continue?';
+  if (conf) conf.style.display = '';
+}
+
+function executePurge() {
+  const keep = parseInt(document.getElementById('s-retention-runs').value) || 10;
+  document.getElementById('s-purge-confirm').style.display = 'none';
+  fetch('/api/history/purge', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({keep_runs: keep})
+  })
+  .then(r => r.json())
+  .then(d => setBadge('s-purge-badge', d.ok, d.ok ? ('Purged ' + (d.deleted||0) + ' rows') : d.error))
+  .catch(err => setBadge('s-purge-badge', false, err.message));
+}
+
+// Init weight display
+updateWeightTotal();
+
 </script>
 </body>
 </html>
