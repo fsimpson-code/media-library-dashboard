@@ -1607,6 +1607,11 @@ def api_settings_save():
         "jellyseerr_api_key": "JELLYSEERR_API_KEY",
         "imdb_basics_path": "IMDB_BASICS_PATH", "imdb_ratings_path": "IMDB_RATINGS_PATH",
         "default_tab": "DEFAULT_TAB", "rows_per_table": "ROWS_PER_TABLE",
+        "theme": "THEME", "theme_custom_bg": "THEME_CUSTOM_BG",
+        "theme_custom_surface": "THEME_CUSTOM_SURFACE", "theme_custom_accent1": "THEME_CUSTOM_ACCENT1",
+        "theme_custom_accent2": "THEME_CUSTOM_ACCENT2", "theme_custom_text": "THEME_CUSTOM_TEXT",
+        "theme_custom_muted": "THEME_CUSTOM_MUTED", "theme_custom_positive": "THEME_CUSTOM_POSITIVE",
+        "theme_custom_warning": "THEME_CUSTOM_WARNING", "theme_custom_danger": "THEME_CUSTOM_DANGER",
     }
     current = _read_env_file()
     for js_key, env_key in KEY_MAP.items():

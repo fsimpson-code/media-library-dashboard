@@ -8,6 +8,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+:root {
+  --bg:       #0a0a1a;
+  --surface:  #12122a;
+  --accent1:  #ff2d9a;
+  --accent2:  #00f5ff;
+  --text:     #e8e8ff;
+  --muted:    #6b6b9a;
+  --positive: #00ff9f;
+  --warning:  #ffb800;
+  --danger:   #ff4444;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 html{font-size:17px}
 body{font-family:Space Grotesk,sans-serif;background:#080810;color:#c8c8e8;min-height:100vh}
@@ -356,6 +367,69 @@ tr:hover td{background:#0d0d1e}
   .hate-rating{font-size:11px;font-family:JetBrains Mono,monospace;margin-left:auto;color:#ff4444;white-space:nowrap}
   .consensus-pill{display:inline-flex;align-items:center;gap:6px;background:#1a0505;border:1px solid #3a0a0a;border-radius:8px;padding:5px 10px;margin:3px;font-size:11px;color:#cc4444;font-family:Space Grotesk,sans-serif}
 
+
+
+/* ── Theme variable overrides (v1.1.1) ── */
+body{background:var(--bg);color:var(--text)}
+.topbar{background:var(--surface)}
+.tabs{background:var(--bg)}
+.tab{color:var(--muted)}
+.tab.active{color:var(--accent2)}
+.tab:hover:not(.active){color:var(--accent1)}
+.logo-main{color:var(--accent2) !important}
+.logo-accent{color:var(--accent1) !important}
+.run-btn{color:var(--accent2);border-color:var(--accent2)}
+.run-btn:hover:not(:disabled){background:var(--accent2);color:var(--bg)}
+.run-btn.running{color:var(--warning);border-color:var(--warning)}
+.dl-btn{color:var(--accent1);border-color:var(--accent1)}
+.dl-btn:hover{background:var(--accent1);color:var(--bg)}
+.terminal{color:var(--positive)}
+.terminal-status.done{color:var(--positive)}
+.terminal-status.error{color:var(--danger)}
+.terminal-status.running{color:var(--warning)}
+.kpi{background:var(--surface)}
+.kpi-value{color:var(--text)}
+.kpi-label{color:var(--muted)}
+.kpi-sub{color:var(--muted)}
+.kpi.g .kpi-value,.kpi.b .kpi-value{color:var(--accent2)}
+.kpi.g::before,.kpi.b::before{background:var(--accent2)}
+.kpi.p .kpi-value,.kpi.c .kpi-value{color:var(--accent1)}
+.kpi.p::before,.kpi.c::before{background:var(--accent1)}
+.kpi.a .kpi-value{color:var(--warning)}
+.kpi.a::before{background:var(--warning)}
+.kpi.r .kpi-value{color:var(--danger)}
+.kpi.r::before{background:var(--danger)}
+.card{background:var(--surface)}
+.card-title{color:var(--accent2)}
+.bloat-tab.active{color:var(--accent1);border-color:var(--accent1)}
+.talent-tab.active{color:var(--accent2);border-color:var(--accent2)}
+.talent-tab[data-tab="btwf"].active{color:var(--accent1);border-color:var(--accent1)}
+.talent-tab[data-tab="wounds"].active{color:var(--danger);border-color:var(--danger)}
+.talent-tab[data-tab="loyalty"].active{color:var(--warning);border-color:var(--warning)}
+.settings-btn.primary{color:var(--accent2);border-color:var(--accent2)}
+.settings-btn.primary:hover:not(:disabled){background:var(--accent2);color:var(--bg)}
+.settings-btn.danger{color:var(--danger);border-color:var(--danger)}
+.settings-btn.danger:hover{background:var(--danger);color:var(--bg)}
+.settings-btn.purple{color:var(--accent1);border-color:var(--accent1)}
+.settings-btn.purple:hover{background:var(--accent1);color:var(--bg)}
+.test-badge.ok{color:var(--accent2);border-color:var(--accent2)}
+.test-badge.err{color:var(--danger);border-color:var(--danger)}
+.settings-group-title{color:var(--accent2)}
+.weight-total.ok{color:var(--accent2)}
+.weight-total.err{color:var(--danger)}
+
+/* ── Theme selector UI ── */
+.theme-cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.theme-card{cursor:pointer;border:2px solid transparent;border-radius:6px;padding:.5rem .75rem;background:var(--bg);transition:all .2s;min-width:90px;text-align:center}
+.theme-card:hover{border-color:var(--muted)}
+.theme-card.active{border-color:var(--accent2)}
+.theme-card-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text);margin-bottom:.4rem}
+.theme-swatches{display:flex;justify-content:center;gap:4px}
+.theme-swatch{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.1)}
+.custom-colors{display:none;margin-top:.75rem;padding:1rem;background:var(--bg);border:1px solid rgba(255,255,255,.08);border-radius:4px}
+.color-picker-row{display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap}
+.color-picker-label{font-size:11px;color:var(--muted);min-width:140px}
+input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);border-radius:3px;cursor:pointer;background:none;padding:1px}
 
 /* ── Settings panel ── */
 .settings-wrap{max-width:900px}
@@ -1013,34 +1087,34 @@ function drawCanvas(movies) {
   function cr(gb)     { return Math.max(2.5, Math.min(10, 2.5 + (gb / maxSize) * 9)); }
 
   // Background grid
-  ctx.strokeStyle = '#1e1e3a';
+  ctx.strokeStyle = cssVar('--muted') + '44';
   ctx.lineWidth   = 0.5;
   [2,3,4,5,6,7,8,9,10].forEach(r => {
     const y = cy(r);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
-    ctx.fillStyle = '#44446a';
+    ctx.fillStyle = cssVar('--muted');
     ctx.font = '10px JetBrains Mono, monospace';
     ctx.textAlign = 'right';
     ctx.fillText(r.toFixed(1), PAD.left - 6, y + 3);
   });
 
   // Decade lines
-  ctx.fillStyle = '#33335a';
+  ctx.fillStyle = cssVar('--muted') + '99';
   ctx.font = '10px Space Grotesk, sans-serif';
   ctx.textAlign = 'center';
   for (let decade = Math.ceil(minYear/10)*10; decade <= maxYear; decade += 10) {
     const x = cx(decade);
-    ctx.strokeStyle = '#1a1a38';
+    ctx.strokeStyle = cssVar('--muted') + '33';
     ctx.lineWidth = 0.5;
     ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H - PAD.bottom); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#33335a';
+    ctx.fillStyle = cssVar('--muted') + '88';
     ctx.fillText(decade + 's', x, H - PAD.bottom + 16);
   }
 
   // Axis labels
-  ctx.fillStyle = '#6666a0';
+  ctx.fillStyle = cssVar('--muted');
   ctx.font = '11px Space Grotesk, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('Year', W / 2, H - 6);
@@ -1161,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadConstellation() {
+  if (_csData) { drawCanvas(_csData); return; }
   if (_csData) return;
   const sec = document.getElementById('sec-constellation');
   sec.innerHTML = '<div class="loading">[ Mapping the constellation... ]</div>';
@@ -1371,12 +1446,12 @@ function lollipop(id, data, opts) {
   const step = pw / data.length;
   const PAL = DONUT_COLORS;
   // grid
-  ctx.strokeStyle = '#1e1e3a'; ctx.lineWidth = 0.5;
+  ctx.strokeStyle = cssVar('--muted') + '44'; ctx.lineWidth = 0.5;
   [0.25,0.5,0.75,1].forEach(f => {
     const v = Math.round(max * f);
     const y = PAD.t + ph - f * ph;
     ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(w - PAD.r, y); ctx.stroke();
-    ctx.fillStyle = '#44446a'; ctx.font = '9px JetBrains Mono,monospace';
+    ctx.fillStyle = cssVar('--muted'); ctx.font = '9px JetBrains Mono,monospace';
     ctx.textAlign = 'right'; ctx.fillText(v >= 1000 ? (v/1000).toFixed(1)+'k' : v, PAD.l - 4, y + 3);
   });
   const hits = [];
@@ -1390,7 +1465,7 @@ function lollipop(id, data, opts) {
     ctx.fillStyle = col; ctx.fill();
     ctx.fillStyle = col; ctx.font = '9px JetBrains Mono,monospace';
     ctx.textAlign = 'center'; ctx.fillText(d.value.toLocaleString(), x, y - 9);
-    ctx.fillStyle = '#7777aa'; ctx.font = '9px Space Grotesk,sans-serif';
+    ctx.fillStyle = cssVar('--muted'); ctx.font = '9px Space Grotesk,sans-serif';
     ctx.fillText(d.label, x, PAD.t + ph + 16);
     hits.push({x, y, r: 8, label: d.label, value: d.value});
   });
@@ -1446,9 +1521,9 @@ function waffleGrid(id, data, opts) {
     const y = i * rowH + rowH / 2;
     ctx.beginPath(); ctx.arc(lx + 5, y, 5, 0, Math.PI * 2);
     ctx.fillStyle = PAL[i % PAL.length]; ctx.fill();
-    ctx.fillStyle = '#aaaacc'; ctx.font = '10px Space Grotesk,sans-serif';
+    ctx.fillStyle = cssVar('--text'); ctx.font = '10px Space Grotesk,sans-serif';
     ctx.textAlign = 'left'; ctx.fillText(d.label, lx + 14, y - 2);
-    ctx.fillStyle = '#6666a0'; ctx.font = '9px JetBrains Mono,monospace';
+    ctx.fillStyle = cssVar('--muted'); ctx.font = '9px JetBrains Mono,monospace';
     ctx.fillText(d.value.toLocaleString(), lx + 14, y + 11);
   });
   canvas.addEventListener('mousemove', e => {
@@ -1491,7 +1566,7 @@ function radialBar(id, data, opts) {
     const ly = cy - (n / 2 - i) * (h / (n + 1)) + 4;
     ctx.fillStyle = col; ctx.font = '10px Space Grotesk,sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(d.label, lx, ly);
-    ctx.fillStyle = '#8888cc'; ctx.font = '9px JetBrains Mono,monospace';
+    ctx.fillStyle = cssVar('--muted'); ctx.font = '9px JetBrains Mono,monospace';
     ctx.fillText(d.value.toLocaleString(), lx + 44, ly);
     arcs.push({r, arcH, col, label: d.label, value: d.value, cx, cy});
   });
@@ -2278,7 +2353,7 @@ function renderEntropy() {
 
     // Track
     ctx.beginPath(); ctx.arc(cx, cy, r, startA, endA);
-    ctx.strokeStyle = '#1e1e3a'; ctx.lineWidth = sw; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.strokeStyle = cssVar('--muted') + '44'; ctx.lineWidth = sw; ctx.lineCap = 'round'; ctx.stroke();
 
     // Score arc
     ctx.beginPath(); ctx.arc(cx, cy, r, startA, scoreA);
@@ -2296,7 +2371,7 @@ function renderEntropy() {
       ctx.beginPath();
       ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
       ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
-      ctx.strokeStyle = '#0a0a1c'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = cssVar('--surface'); ctx.lineWidth = 2; ctx.stroke();
     }
 
     // Center score
@@ -2556,11 +2631,22 @@ function populateSnapshotDropdown() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 let _appConfig = null;
+let _csData = null;
 
 fetch('/api/config')
   .then(r => r.json())
   .then(cfg => {
     _appConfig = cfg;
+    // Apply theme before any rendering
+    {
+      const t = cfg.theme || 'neon-noir';
+      if (t === 'custom') {
+        const cv = {'--bg':cfg.theme_custom_bg||'','--surface':cfg.theme_custom_surface||'','--accent1':cfg.theme_custom_accent1||'','--accent2':cfg.theme_custom_accent2||'','--text':cfg.theme_custom_text||'','--muted':cfg.theme_custom_muted||'','--positive':cfg.theme_custom_positive||'','--warning':cfg.theme_custom_warning||'','--danger':cfg.theme_custom_danger||''};
+        applyTheme('custom', cv);
+      } else {
+        applyTheme(t);
+      }
+    }
     // Title and logo
     document.title = cfg.name;
     const parts = cfg.name.split(' ');
@@ -2814,6 +2900,98 @@ function renderExpulsion(data) {
 
 populateSnapshotDropdown();
 
+
+// ── Theme settings panel ──────────────────────────────────────────────────────
+function buildThemeCards(currentTheme) {
+  const container = document.getElementById('s-theme-cards');
+  if (!container) return;
+  const allThemes = Object.keys(THEMES).concat(['custom']);
+  container.innerHTML = allThemes.map(name => {
+    const vars = THEMES[name] || THEMES['neon-noir'];
+    const swatches = ['--bg','--surface','--accent1','--accent2'].map(k =>
+      '<div class="theme-swatch" style="background:' + vars[k] + '"></div>'
+    ).join('');
+    const label = name.charAt(0).toUpperCase() + name.slice(1).replace('-',' ');
+    return '<div class="theme-card' + (name === currentTheme ? ' active' : '') + '" onclick="selectThemeCard('' + name + '')" data-theme="' + name + '">'
+      + '<div class="theme-card-name">' + label + '</div>'
+      + '<div class="theme-swatches">' + swatches + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function selectThemeCard(name) {
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === name));
+  _currentTheme = name;
+  const customPanel = document.getElementById('s-custom-colors');
+  if (customPanel) customPanel.style.display = name === 'custom' ? '' : 'none';
+  if (name === 'custom') {
+    applyCustomTheme();
+  } else {
+    applyTheme(name);
+    reRenderAll();
+  }
+}
+
+function applyCustomTheme() {
+  const cv = {
+    '--bg':       document.getElementById('cp-bg').value,
+    '--surface':  document.getElementById('cp-surface').value,
+    '--accent1':  document.getElementById('cp-accent1').value,
+    '--accent2':  document.getElementById('cp-accent2').value,
+    '--text':     document.getElementById('cp-text').value,
+    '--muted':    document.getElementById('cp-muted').value,
+    '--positive': document.getElementById('cp-positive').value,
+    '--warning':  document.getElementById('cp-warning').value,
+    '--danger':   document.getElementById('cp-danger').value,
+  };
+  applyTheme('custom', cv);
+  reRenderAll();
+}
+
+function populateCustomPickers(cfg) {
+  const defaults = THEMES['neon-noir'];
+  const map = {
+    'cp-bg':       cfg.theme_custom_bg       || defaults['--bg'],
+    'cp-surface':  cfg.theme_custom_surface   || defaults['--surface'],
+    'cp-accent1':  cfg.theme_custom_accent1   || defaults['--accent1'],
+    'cp-accent2':  cfg.theme_custom_accent2   || defaults['--accent2'],
+    'cp-text':     cfg.theme_custom_text      || defaults['--text'],
+    'cp-muted':    cfg.theme_custom_muted     || defaults['--muted'],
+    'cp-positive': cfg.theme_custom_positive  || defaults['--positive'],
+    'cp-warning':  cfg.theme_custom_warning   || defaults['--warning'],
+    'cp-danger':   cfg.theme_custom_danger    || defaults['--danger'],
+  };
+  Object.entries(map).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el && val) el.value = val;
+  });
+}
+
+function saveThemeSettings() {
+  const name = _currentTheme;
+  const payload = { theme: name };
+  if (name === 'custom') {
+    payload.theme_custom_bg       = document.getElementById('cp-bg').value;
+    payload.theme_custom_surface  = document.getElementById('cp-surface').value;
+    payload.theme_custom_accent1  = document.getElementById('cp-accent1').value;
+    payload.theme_custom_accent2  = document.getElementById('cp-accent2').value;
+    payload.theme_custom_text     = document.getElementById('cp-text').value;
+    payload.theme_custom_muted    = document.getElementById('cp-muted').value;
+    payload.theme_custom_positive = document.getElementById('cp-positive').value;
+    payload.theme_custom_warning  = document.getElementById('cp-warning').value;
+    payload.theme_custom_danger   = document.getElementById('cp-danger').value;
+  } else {
+    // Clear custom values when not using custom
+    ['bg','surface','accent1','accent2','text','muted','positive','warning','danger'].forEach(k => {
+      payload['theme_custom_' + k] = '';
+    });
+  }
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge('s-theme-badge', d.ok, d.ok ? 'Theme saved' : d.error))
+    .catch(err => setBadge('s-theme-badge', false, err.message));
+}
+
 // ── Settings panel ────────────────────────────────────────────────────────────
 let _settingsLoaded = false;
 
@@ -2849,6 +3027,13 @@ function loadSettings() {
       document.getElementById('s-imdb-ratings').value = cfg.imdb_ratings_path || '';
       const lb = cfg.imdb_last_built;
       document.getElementById('s-imdb-last').textContent = lb ? lb : 'Never built';
+      // Theme
+      buildThemeCards(cfg.theme || 'neon-noir');
+      populateCustomPickers(cfg);
+      if (cfg.theme === 'custom') {
+        const customPanel = document.getElementById('s-custom-colors');
+        if (customPanel) customPanel.style.display = '';
+      }
       // Display prefs
       if (cfg.default_tab) document.getElementById('s-default-tab').value = cfg.default_tab;
       if (cfg.rows_per_table) document.getElementById('s-rows-per-table').value = cfg.rows_per_table;
