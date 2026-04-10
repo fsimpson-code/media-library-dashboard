@@ -271,6 +271,24 @@ def run_snapshot(run_id):
     })
 
 
+
+@app.route("/reset", methods=["POST"])
+def reset_runner():
+    global _running, _status
+    with _lock:
+        _running = False
+        _status  = "idle"
+    return jsonify({"ok": True, "message": "Runner state reset."})
+
+
+@app.route("/reset", methods=["POST"])
+def reset_runner():
+    global _running, _status
+    with _lock:
+        _running = False
+        _status  = "idle"
+    return jsonify({"ok": True, "message": "Runner state reset."})
+
 if __name__ == "__main__":
     HISTORY_DIR.mkdir(parents=True, exist_ok=True)
     print("Simpson Library Runner — listening on :5757")
