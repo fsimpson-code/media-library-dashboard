@@ -492,8 +492,10 @@ def api_bloat():
 def api_run():
     try:
         r = req.post(f"{RUNNER_URL}/run", timeout=5)
+        app.logger.info("Runner /run response %s: %s", r.status_code, r.text[:200])
         return jsonify(r.json()), r.status_code
     except Exception as e:
+        app.logger.error("Runner /run failed: %s", e)
         return jsonify({"error": str(e)}), 503
 
 @app.route("/api/run/stream")
@@ -1823,6 +1825,7 @@ def api_db_migrate_status():
 
 @app.route("/api/imdb/refresh", methods=["POST"])
 def api_imdb_refresh():
+    app.logger.info("IMDb refresh triggered")
     try:
         con = _db()
         con.execute("DELETE FROM actor_career")
