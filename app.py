@@ -158,6 +158,9 @@ def api_config():
         "theme_custom_text_heading":    os.getenv("THEME_CUSTOM_TEXT_HEADING", ""),
         "theme_custom_text_label":      os.getenv("THEME_CUSTOM_TEXT_LABEL", ""),
         "theme_custom_link":            os.getenv("THEME_CUSTOM_LINK", ""),
+        "theme_custom_btn_primary_glow":os.getenv("THEME_CUSTOM_BTN_PRIMARY_GLOW", ""),
+        "font_display":                 os.getenv("FONT_DISPLAY", ""),
+        "font_body":                    os.getenv("FONT_BODY", ""),
     })
 
 def parse_movies():
@@ -1640,8 +1643,10 @@ def api_settings_config():
         "THEME_CUSTOM_SCROLLBAR_TRACK", "THEME_CUSTOM_BADGE_BG",
         "THEME_CUSTOM_GRADIENT_START", "THEME_CUSTOM_GRADIENT_END",
         "THEME_CUSTOM_BTN_PRIMARY_BG", "THEME_CUSTOM_BTN_PRIMARY_TEXT",
+        "THEME_CUSTOM_BTN_PRIMARY_GLOW",
         "THEME_CUSTOM_TEXT_HEADING", "THEME_CUSTOM_TEXT_LABEL",
         "THEME_CUSTOM_LINK",
+        "FONT_DISPLAY", "FONT_BODY",
     ]
     out = {f.lower(): _mask_val(env.get(f, ""), f) for f in fields}
     sqlite_src = env.get("DB_PATH", "")
@@ -1699,6 +1704,9 @@ def api_settings_save():
         "theme_custom_text_heading": "THEME_CUSTOM_TEXT_HEADING",
         "theme_custom_text_label": "THEME_CUSTOM_TEXT_LABEL",
         "theme_custom_link": "THEME_CUSTOM_LINK",
+        "theme_custom_btn_primary_glow": "THEME_CUSTOM_BTN_PRIMARY_GLOW",
+        "font_display": "FONT_DISPLAY",
+        "font_body": "FONT_BODY",
     }
     current = _read_env_file()
     for js_key, env_key in KEY_MAP.items():
