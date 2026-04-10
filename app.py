@@ -1676,6 +1676,9 @@ def api_service_test():
     service = data.get("service", "")
     url = (data.get("url") or "").rstrip("/")
     api_key = data.get("api_key", "")
+    if api_key == "__UNCHANGED__":
+        env_map = {"radarr": "RADARR_API_KEY", "sonarr": "SONARR_API_KEY", "jellyseerr": "JELLYSEERR_API_KEY"}
+        api_key = os.environ.get(env_map.get(service, ""), "")
     try:
         if service in ("radarr", "sonarr"):
             r = req.get("{}/api/v3/system/status".format(url),
