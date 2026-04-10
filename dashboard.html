@@ -18,6 +18,21 @@
   --positive: #00ff9f;
   --warning:  #ffb800;
   --danger:   #ff4444;
+  /* Extended theme vars (v1.2) */
+  --glow-primary:    rgba(0,229,255,.35);
+  --glow-secondary:  rgba(224,64,251,.35);
+  --border:          #1e1e3a;
+  --border-accent:   #00e5ff55;
+  --surface-raised:  #0a0a1c;
+  --surface-inset:   #05050f;
+  --tab-active-bg:   #001a2e;
+  --tab-active-text: #00e5ff;
+  --tab-inactive:    #55558a;
+  --scrollbar-thumb: #1a1a32;
+  --scrollbar-track: #03030a;
+  --badge-bg:        #0a0a1c;
+  --gradient-start:  #0a0a18;
+  --gradient-end:    #12082a;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{font-size:17px}
@@ -418,6 +433,46 @@ body{background:var(--bg);color:var(--text)}
 .weight-total.ok{color:var(--accent2)}
 .weight-total.err{color:var(--danger)}
 
+/* ── Extended theme CSS (v1.2) ── */
+.topbar{border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--gradient-start),var(--gradient-end))}
+.logo-main{text-shadow:0 0 22px var(--glow-primary),0 0 6px var(--glow-primary) !important}
+.logo-accent{text-shadow:0 0 20px var(--glow-secondary),0 0 6px var(--glow-secondary) !important}
+.tabs{border:1px solid var(--border)}
+.tab{color:var(--tab-inactive)}
+.tab.active{background:var(--tab-active-bg);color:var(--tab-active-text);text-shadow:0 0 10px var(--glow-primary)}
+.tab:hover:not(.active){color:var(--accent1)}
+.card{border:1px solid var(--border)}
+.kpi{background:var(--surface-raised);border:1px solid var(--border)}
+.settings-group{background:var(--surface-raised);border:1px solid var(--border)}
+.settings-group-title{border-bottom:1px solid var(--border)}
+.setting-input{background:var(--surface-inset);border-color:var(--border)}
+.setting-input:focus{border-color:var(--border-accent)}
+.setting-select{background:var(--surface-inset);border-color:var(--border)}
+.setting-select:focus{border-color:var(--border-accent)}
+.bar-track{background:var(--surface-inset)}
+.fr-track{background:var(--surface-inset)}
+.dna-dist-track{background:var(--surface-inset)}
+.entropy-comp-track{background:var(--surface-inset)}
+.pair-sim-bar{background:var(--surface-inset)}
+th{border-bottom:1px solid var(--border)}
+td{border-bottom:1px solid var(--surface-inset)}
+tr:hover td{background:var(--surface-inset)}
+.run-btn:hover:not(:disabled){box-shadow:0 0 16px var(--glow-primary)}
+.dl-btn:hover{box-shadow:0 0 16px var(--glow-secondary)}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb)}
+::-webkit-scrollbar-track{background:var(--scrollbar-track)}
+.cs-wrap{background:var(--surface-inset);border:1px solid var(--border)}
+.cs-sidebar{background:var(--surface-raised);border-left:1px solid var(--border)}
+.btwf-card{border:1px solid var(--border);background:var(--surface-inset)}
+.cs-tooltip{background:var(--surface-raised);border:1px solid var(--border)}
+.filter-input{background:var(--surface-inset);border:1px solid var(--border)}
+.filter-input:focus{border-color:var(--border-accent)}
+.terminal{background:var(--surface-inset);border:1px solid var(--border)}
+.custom-colors{background:var(--surface-inset);border:1px solid var(--border)}
+.theme-card{background:var(--surface-raised);border:2px solid var(--border)}
+.theme-card:hover{border-color:var(--muted)}
+.theme-card.active{border-color:var(--tab-active-text)}
+
 /* ── Theme selector UI ── */
 .theme-cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
 .theme-card{cursor:pointer;border:2px solid transparent;border-radius:6px;padding:.5rem .75rem;background:var(--bg);transition:all .2s;min-width:90px;text-align:center}
@@ -478,6 +533,15 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
 .settings-toggle input:checked + .settings-toggle-slider:before{transform:translateX(16px);background:#00e5ff}
 .purge-confirm{display:none;background:#1a0000;border:1px solid #ff6b6b44;border-radius:4px;padding:.6rem .875rem;margin-top:.5rem;font-size:11px;color:#ff6b6b}
 
+/* ── Service launch buttons ── */
+.launch-btns{display:flex;gap:5px;align-items:center;margin-right:6px}
+.launch-btn{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;
+  background:transparent;color:var(--accent2);border:1px solid var(--border-accent);
+  cursor:pointer;font-family:Space Grotesk,sans-serif;letter-spacing:.04em;
+  transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;
+  gap:4px;white-space:nowrap;line-height:1}
+.launch-btn:hover{background:var(--accent2);color:var(--bg);box-shadow:0 0 12px var(--glow-secondary);text-decoration:none}
+.launch-btn.dim{opacity:.3;cursor:default;pointer-events:none}
 </style>
 </head>
 <body>
@@ -507,6 +571,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
   </div>
 
   <div class="topbar-right">
+    <div class="launch-btns" id="launch-btns"></div>
     <button class="run-btn" id="run-btn" onclick="triggerRun()">
       <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg>
       Run Update
@@ -937,6 +1002,10 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <button class="settings-btn primary" onclick="testService('radarr')">Test Radarr</button>
           <span id="s-radarr-badge" class="test-badge"></span>
         </div>
+        <div class="setting-row">
+          <label class="setting-label">Radarr Web UI URL</label>
+          <input id="s-radarr-webui" class="setting-input" type="text" placeholder="http://localhost:7878">
+        </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Sonarr URL</label>
           <input id="s-sonarr-url" class="setting-input" type="text" placeholder="http://localhost:8989">
@@ -950,6 +1019,10 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <button class="settings-btn primary" onclick="testService('sonarr')">Test Sonarr</button>
           <span id="s-sonarr-badge" class="test-badge"></span>
         </div>
+        <div class="setting-row">
+          <label class="setting-label">Sonarr Web UI URL</label>
+          <input id="s-sonarr-webui" class="setting-input" type="text" placeholder="http://localhost:8989">
+        </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Jellyseerr URL</label>
           <input id="s-seerr-url" class="setting-input" type="text" placeholder="http://localhost:5055">
@@ -962,6 +1035,14 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <label class="setting-label"></label>
           <button class="settings-btn primary" onclick="testService('jellyseerr')">Test Jellyseerr</button>
           <span id="s-seerr-badge" class="test-badge"></span>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Jellyseerr Web UI URL</label>
+          <input id="s-seerr-webui" class="setting-input" type="text" placeholder="http://localhost:5055">
+        </div>
+        <div class="setting-row" style="margin-top:10px">
+          <label class="setting-label">qBittorrent Web UI URL</label>
+          <input id="s-qbit-webui" class="setting-input" type="text" placeholder="http://localhost:8080">
         </div>
         <div class="setting-row" style="margin-top:12px;gap:8px">
           <label class="setting-label"></label>
@@ -997,6 +1078,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
         <div class="settings-group-title">Theme</div>
         <div id="s-theme-cards" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px"></div>
         <div id="s-custom-colors" class="custom-colors">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Base Colors</div>
           <div class="color-picker-row"><span class="color-picker-label">Background</span><input id="cp-bg" type="color" onchange="applyCustomTheme()"></div>
           <div class="color-picker-row"><span class="color-picker-label">Surface</span><input id="cp-surface" type="color" onchange="applyCustomTheme()"></div>
           <div class="color-picker-row"><span class="color-picker-label">Accent 1</span><input id="cp-accent1" type="color" onchange="applyCustomTheme()"></div>
@@ -1006,6 +1088,24 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <div class="color-picker-row"><span class="color-picker-label">Positive</span><input id="cp-positive" type="color" onchange="applyCustomTheme()"></div>
           <div class="color-picker-row"><span class="color-picker-label">Warning</span><input id="cp-warning" type="color" onchange="applyCustomTheme()"></div>
           <div class="color-picker-row"><span class="color-picker-label">Danger</span><input id="cp-danger" type="color" onchange="applyCustomTheme()"></div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Glow &amp; Borders</div>
+          <div class="color-picker-row"><span class="color-picker-label">Glow Primary</span><input id="cp-glow-primary" type="color" onchange="applyCustomTheme()"><span style="font-size:9px;color:var(--muted);margin-left:6px">main glow</span></div>
+          <div class="color-picker-row"><span class="color-picker-label">Glow Secondary</span><input id="cp-glow-secondary" type="color" onchange="applyCustomTheme()"><span style="font-size:9px;color:var(--muted);margin-left:6px">secondary glow</span></div>
+          <div class="color-picker-row"><span class="color-picker-label">Border</span><input id="cp-border" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Border Accent</span><input id="cp-border-accent" type="color" onchange="applyCustomTheme()"></div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Surfaces &amp; Layers</div>
+          <div class="color-picker-row"><span class="color-picker-label">Surface Raised</span><input id="cp-surface-raised" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Surface Inset</span><input id="cp-surface-inset" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Badge Background</span><input id="cp-badge-bg" type="color" onchange="applyCustomTheme()"></div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Tabs &amp; Navigation</div>
+          <div class="color-picker-row"><span class="color-picker-label">Tab Active BG</span><input id="cp-tab-active-bg" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Tab Active Text</span><input id="cp-tab-active-text" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Tab Inactive</span><input id="cp-tab-inactive" type="color" onchange="applyCustomTheme()"></div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Scrollbar &amp; Gradients</div>
+          <div class="color-picker-row"><span class="color-picker-label">Scrollbar Thumb</span><input id="cp-scrollbar-thumb" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Scrollbar Track</span><input id="cp-scrollbar-track" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Gradient Start</span><input id="cp-gradient-start" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Gradient End</span><input id="cp-gradient-end" type="color" onchange="applyCustomTheme()"></div>
         </div>
         <div class="setting-row" style="margin-top:10px;gap:8px">
           <label class="setting-label"></label>
@@ -1062,6 +1162,24 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
 <script>
 
 // ── Theme system ──────────────────────────────────────────────────────────────
+function initLaunchButtons(cfg) {
+  const wrap = document.getElementById('launch-btns');
+  if (!wrap) return;
+  const services = [
+    {icon:'📡', label:'Radarr',  url: cfg.radarr_webui_url},
+    {icon:'📺', label:'Sonarr',  url: cfg.sonarr_webui_url},
+    {icon:'👁',  label:'Seerr',   url: cfg.jellyseerr_webui_url},
+    {icon:'🌊', label:'Torrent', url: cfg.qbit_webui_url},
+  ];
+  wrap.innerHTML = services.map(s => {
+    const hasUrl = s.url && s.url.trim();
+    if (hasUrl) {
+      return '<a href="' + s.url + '" target="_blank" rel="noopener" class="launch-btn" title="' + s.label + '">' + s.icon + ' ' + s.label + '</a>';
+    }
+    return '<span class="launch-btn dim" title="Configure in Settings">' + s.icon + ' ' + s.label + '</span>';
+  }).join('');
+}
+
 const THEMES = {
   'neon-noir': {
     '--bg':       '#0a0a0f',
@@ -1073,6 +1191,20 @@ const THEMES = {
     '--positive': '#00ff9f',
     '--warning':  '#ffcc00',
     '--danger':   '#ff4444',
+    '--glow-primary':    'rgba(0,229,255,.35)',
+    '--glow-secondary':  'rgba(224,64,251,.35)',
+    '--border':          '#1e1e3a',
+    '--border-accent':   '#00e5ff55',
+    '--surface-raised':  '#0a0a1c',
+    '--surface-inset':   '#05050f',
+    '--tab-active-bg':   '#001a2e',
+    '--tab-active-text': '#00e5ff',
+    '--tab-inactive':    '#55558a',
+    '--scrollbar-thumb': '#1a1a32',
+    '--scrollbar-track': '#03030a',
+    '--badge-bg':        '#0a0a1c',
+    '--gradient-start':  '#0a0a18',
+    '--gradient-end':    '#12082a',
   },
   'arctic': {
     '--bg':       '#0d1b2a',
@@ -1084,6 +1216,20 @@ const THEMES = {
     '--positive': '#80cbc4',
     '--warning':  '#ffca28',
     '--danger':   '#ef5350',
+    '--glow-primary':    'rgba(79,195,247,.35)',
+    '--glow-secondary':  'rgba(129,212,250,.3)',
+    '--border':          '#1e3a52',
+    '--border-accent':   '#4fc3f755',
+    '--surface-raised':  '#182a3a',
+    '--surface-inset':   '#0d1825',
+    '--tab-active-bg':   '#0d2035',
+    '--tab-active-text': '#4fc3f7',
+    '--tab-inactive':    '#4a7fa5',
+    '--scrollbar-thumb': '#1e3a52',
+    '--scrollbar-track': '#07121a',
+    '--badge-bg':        '#182a3a',
+    '--gradient-start':  '#0d1b2a',
+    '--gradient-end':    '#122030',
   },
   'amber': {
     '--bg':       '#0f0c00',
@@ -1095,6 +1241,20 @@ const THEMES = {
     '--positive': '#69f0ae',
     '--warning':  '#ffd54f',
     '--danger':   '#ff6e40',
+    '--glow-primary':    'rgba(255,179,0,.35)',
+    '--glow-secondary':  'rgba(255,143,0,.3)',
+    '--border':          '#2a1f00',
+    '--border-accent':   '#ffb30055',
+    '--surface-raised':  '#1a1500',
+    '--surface-inset':   '#0a0900',
+    '--tab-active-bg':   '#1a1000',
+    '--tab-active-text': '#ffb300',
+    '--tab-inactive':    '#7a6200',
+    '--scrollbar-thumb': '#2a1f00',
+    '--scrollbar-track': '#050400',
+    '--badge-bg':        '#1a1500',
+    '--gradient-start':  '#0f0c00',
+    '--gradient-end':    '#1a1200',
   },
   'synthwave': {
     '--bg':       '#0d0015',
@@ -1106,6 +1266,20 @@ const THEMES = {
     '--positive': '#00ff88',
     '--warning':  '#ffee00',
     '--danger':   '#ff2255',
+    '--glow-primary':    'rgba(255,0,255,.4)',
+    '--glow-secondary':  'rgba(0,255,255,.35)',
+    '--border':          '#2a0040',
+    '--border-accent':   '#ff00ff55',
+    '--surface-raised':  '#1a0030',
+    '--surface-inset':   '#0d0020',
+    '--tab-active-bg':   '#1a0035',
+    '--tab-active-text': '#ff00ff',
+    '--tab-inactive':    '#6600aa',
+    '--scrollbar-thumb': '#2a0040',
+    '--scrollbar-track': '#05000a',
+    '--badge-bg':        '#1a0030',
+    '--gradient-start':  '#0d0015',
+    '--gradient-end':    '#12001e',
   },
   'matrix': {
     '--bg':       '#000a00',
@@ -1117,6 +1291,20 @@ const THEMES = {
     '--positive': '#00ff41',
     '--warning':  '#ffff00',
     '--danger':   '#ff0000',
+    '--glow-primary':    'rgba(0,255,65,.4)',
+    '--glow-secondary':  'rgba(0,204,51,.3)',
+    '--border':          '#002800',
+    '--border-accent':   '#00ff4155',
+    '--surface-raised':  '#001400',
+    '--surface-inset':   '#000a00',
+    '--tab-active-bg':   '#001800',
+    '--tab-active-text': '#00ff41',
+    '--tab-inactive':    '#006600',
+    '--scrollbar-thumb': '#003300',
+    '--scrollbar-track': '#000500',
+    '--badge-bg':        '#001400',
+    '--gradient-start':  '#000a00',
+    '--gradient-end':    '#001000',
   },
 };
 
@@ -1646,7 +1834,10 @@ function _csCanvas(el, h) {
   ctx.scale(dpr, dpr);
   // tooltip div
   const tip = document.createElement('div');
-  tip.style.cssText = 'position:absolute;pointer-events:none;background:#0a0a1cf0;border:1px solid #1e1e3a;border-radius:4px;padding:4px 9px;font-size:11px;color:#c8c8e8;font-family:Space Grotesk,sans-serif;white-space:nowrap;display:none;z-index:10;';
+  tip.style.cssText = 'position:absolute;pointer-events:none;border-radius:4px;padding:4px 9px;font-size:11px;font-family:Space Grotesk,sans-serif;white-space:nowrap;display:none;z-index:10;';
+  tip.style.background = cssVar('--surface-raised') || '#0a0a1c';
+  tip.style.border = '1px solid ' + (cssVar('--border') || '#1e1e3a');
+  tip.style.color = cssVar('--text') || '#c8c8e8';
   el.style.position = 'relative';
   el.appendChild(tip);
   return {ctx, w, h, canvas, tip};
@@ -2661,7 +2852,7 @@ function renderEntropy() {
     ctx.font = '600 10px Space Grotesk,sans-serif';
     ctx.fillText(scoreLabel, cx, cy + 18);
 
-    ctx.fillStyle = '#44446a';
+    ctx.fillStyle = cssVar('--muted') || '#44446a';
     ctx.font = '9px Space Grotesk,sans-serif';
     ctx.fillText('/ 100', cx, cy + 32);
   }
@@ -2913,11 +3104,18 @@ fetch('/api/config')
   .then(r => r.json())
   .then(cfg => {
     _appConfig = cfg;
+    initLaunchButtons(cfg);
     // Apply theme before any rendering
     {
       const t = cfg.theme || 'neon-noir';
       if (t === 'custom') {
-        const cv = {'--bg':cfg.theme_custom_bg||'','--surface':cfg.theme_custom_surface||'','--accent1':cfg.theme_custom_accent1||'','--accent2':cfg.theme_custom_accent2||'','--text':cfg.theme_custom_text||'','--muted':cfg.theme_custom_muted||'','--positive':cfg.theme_custom_positive||'','--warning':cfg.theme_custom_warning||'','--danger':cfg.theme_custom_danger||''};
+        const _tcv = k => cfg['theme_custom_' + k.slice(2).replace(/-/g,'_')] || '';
+      const cv = {};
+      ['--bg','--surface','--accent1','--accent2','--text','--muted','--positive','--warning','--danger',
+       '--glow-primary','--glow-secondary','--border','--border-accent',
+       '--surface-raised','--surface-inset','--tab-active-bg','--tab-active-text',
+       '--tab-inactive','--scrollbar-thumb','--scrollbar-track','--badge-bg',
+       '--gradient-start','--gradient-end'].forEach(k => { cv[k] = _tcv(k); });
         applyTheme('custom', cv);
       } else {
         applyTheme(t);
@@ -3211,16 +3409,31 @@ function selectThemeCard(name) {
 }
 
 function applyCustomTheme() {
+  const _cpv = id => { const e = document.getElementById(id); return e ? e.value : ''; };
   const cv = {
-    '--bg':       document.getElementById('cp-bg').value,
-    '--surface':  document.getElementById('cp-surface').value,
-    '--accent1':  document.getElementById('cp-accent1').value,
-    '--accent2':  document.getElementById('cp-accent2').value,
-    '--text':     document.getElementById('cp-text').value,
-    '--muted':    document.getElementById('cp-muted').value,
-    '--positive': document.getElementById('cp-positive').value,
-    '--warning':  document.getElementById('cp-warning').value,
-    '--danger':   document.getElementById('cp-danger').value,
+    '--bg':              _cpv('cp-bg'),
+    '--surface':         _cpv('cp-surface'),
+    '--accent1':         _cpv('cp-accent1'),
+    '--accent2':         _cpv('cp-accent2'),
+    '--text':            _cpv('cp-text'),
+    '--muted':           _cpv('cp-muted'),
+    '--positive':        _cpv('cp-positive'),
+    '--warning':         _cpv('cp-warning'),
+    '--danger':          _cpv('cp-danger'),
+    '--glow-primary':    _cpv('cp-glow-primary'),
+    '--glow-secondary':  _cpv('cp-glow-secondary'),
+    '--border':          _cpv('cp-border'),
+    '--border-accent':   _cpv('cp-border-accent'),
+    '--surface-raised':  _cpv('cp-surface-raised'),
+    '--surface-inset':   _cpv('cp-surface-inset'),
+    '--tab-active-bg':   _cpv('cp-tab-active-bg'),
+    '--tab-active-text': _cpv('cp-tab-active-text'),
+    '--tab-inactive':    _cpv('cp-tab-inactive'),
+    '--scrollbar-thumb': _cpv('cp-scrollbar-thumb'),
+    '--scrollbar-track': _cpv('cp-scrollbar-track'),
+    '--badge-bg':        _cpv('cp-badge-bg'),
+    '--gradient-start':  _cpv('cp-gradient-start'),
+    '--gradient-end':    _cpv('cp-gradient-end'),
   };
   applyTheme('custom', cv);
   reRenderAll();
@@ -3229,15 +3442,29 @@ function applyCustomTheme() {
 function populateCustomPickers(cfg) {
   const defaults = THEMES['neon-noir'];
   const map = {
-    'cp-bg':       cfg.theme_custom_bg       || defaults['--bg'],
-    'cp-surface':  cfg.theme_custom_surface   || defaults['--surface'],
-    'cp-accent1':  cfg.theme_custom_accent1   || defaults['--accent1'],
-    'cp-accent2':  cfg.theme_custom_accent2   || defaults['--accent2'],
-    'cp-text':     cfg.theme_custom_text      || defaults['--text'],
-    'cp-muted':    cfg.theme_custom_muted     || defaults['--muted'],
-    'cp-positive': cfg.theme_custom_positive  || defaults['--positive'],
-    'cp-warning':  cfg.theme_custom_warning   || defaults['--warning'],
-    'cp-danger':   cfg.theme_custom_danger    || defaults['--danger'],
+    'cp-bg':              cfg.theme_custom_bg             || defaults['--bg'],
+    'cp-surface':         cfg.theme_custom_surface        || defaults['--surface'],
+    'cp-accent1':         cfg.theme_custom_accent1        || defaults['--accent1'],
+    'cp-accent2':         cfg.theme_custom_accent2        || defaults['--accent2'],
+    'cp-text':            cfg.theme_custom_text           || defaults['--text'],
+    'cp-muted':           cfg.theme_custom_muted          || defaults['--muted'],
+    'cp-positive':        cfg.theme_custom_positive       || defaults['--positive'],
+    'cp-warning':         cfg.theme_custom_warning        || defaults['--warning'],
+    'cp-danger':          cfg.theme_custom_danger         || defaults['--danger'],
+    'cp-glow-primary':    cfg.theme_custom_glow_primary   || '',
+    'cp-glow-secondary':  cfg.theme_custom_glow_secondary || '',
+    'cp-border':          cfg.theme_custom_border         || defaults['--border'],
+    'cp-border-accent':   cfg.theme_custom_border_accent  || '',
+    'cp-surface-raised':  cfg.theme_custom_surface_raised || defaults['--surface-raised'],
+    'cp-surface-inset':   cfg.theme_custom_surface_inset  || defaults['--surface-inset'],
+    'cp-tab-active-bg':   cfg.theme_custom_tab_active_bg  || defaults['--tab-active-bg'],
+    'cp-tab-active-text': cfg.theme_custom_tab_active_text|| defaults['--tab-active-text'],
+    'cp-tab-inactive':    cfg.theme_custom_tab_inactive   || defaults['--tab-inactive'],
+    'cp-scrollbar-thumb': cfg.theme_custom_scrollbar_thumb|| defaults['--scrollbar-thumb'],
+    'cp-scrollbar-track': cfg.theme_custom_scrollbar_track|| defaults['--scrollbar-track'],
+    'cp-badge-bg':        cfg.theme_custom_badge_bg       || defaults['--badge-bg'],
+    'cp-gradient-start':  cfg.theme_custom_gradient_start || defaults['--gradient-start'],
+    'cp-gradient-end':    cfg.theme_custom_gradient_end   || defaults['--gradient-end'],
   };
   Object.entries(map).forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -3249,18 +3476,36 @@ function saveThemeSettings() {
   const name = _currentTheme;
   const payload = { theme: name };
   if (name === 'custom') {
-    payload.theme_custom_bg       = document.getElementById('cp-bg').value;
-    payload.theme_custom_surface  = document.getElementById('cp-surface').value;
-    payload.theme_custom_accent1  = document.getElementById('cp-accent1').value;
-    payload.theme_custom_accent2  = document.getElementById('cp-accent2').value;
-    payload.theme_custom_text     = document.getElementById('cp-text').value;
-    payload.theme_custom_muted    = document.getElementById('cp-muted').value;
-    payload.theme_custom_positive = document.getElementById('cp-positive').value;
-    payload.theme_custom_warning  = document.getElementById('cp-warning').value;
-    payload.theme_custom_danger   = document.getElementById('cp-danger').value;
+    const _sv = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+    payload.theme_custom_bg             = _sv('cp-bg');
+    payload.theme_custom_surface        = _sv('cp-surface');
+    payload.theme_custom_accent1        = _sv('cp-accent1');
+    payload.theme_custom_accent2        = _sv('cp-accent2');
+    payload.theme_custom_text           = _sv('cp-text');
+    payload.theme_custom_muted          = _sv('cp-muted');
+    payload.theme_custom_positive       = _sv('cp-positive');
+    payload.theme_custom_warning        = _sv('cp-warning');
+    payload.theme_custom_danger         = _sv('cp-danger');
+    payload.theme_custom_glow_primary   = _sv('cp-glow-primary');
+    payload.theme_custom_glow_secondary = _sv('cp-glow-secondary');
+    payload.theme_custom_border         = _sv('cp-border');
+    payload.theme_custom_border_accent  = _sv('cp-border-accent');
+    payload.theme_custom_surface_raised = _sv('cp-surface-raised');
+    payload.theme_custom_surface_inset  = _sv('cp-surface-inset');
+    payload.theme_custom_tab_active_bg  = _sv('cp-tab-active-bg');
+    payload.theme_custom_tab_active_text= _sv('cp-tab-active-text');
+    payload.theme_custom_tab_inactive   = _sv('cp-tab-inactive');
+    payload.theme_custom_scrollbar_thumb= _sv('cp-scrollbar-thumb');
+    payload.theme_custom_scrollbar_track= _sv('cp-scrollbar-track');
+    payload.theme_custom_badge_bg       = _sv('cp-badge-bg');
+    payload.theme_custom_gradient_start = _sv('cp-gradient-start');
+    payload.theme_custom_gradient_end   = _sv('cp-gradient-end');
   } else {
     // Clear custom values when not using custom
-    ['bg','surface','accent1','accent2','text','muted','positive','warning','danger'].forEach(k => {
+    ['bg','surface','accent1','accent2','text','muted','positive','warning','danger',
+     'glow_primary','glow_secondary','border','border_accent','surface_raised','surface_inset',
+     'tab_active_bg','tab_active_text','tab_inactive','scrollbar_thumb','scrollbar_track',
+     'badge_bg','gradient_start','gradient_end'].forEach(k => {
       payload['theme_custom_' + k] = '';
     });
   }
@@ -3300,6 +3545,12 @@ function loadSettings() {
       document.getElementById('s-sonarr-key').value = cfg.sonarr_api_key || '';
       document.getElementById('s-seerr-url').value = cfg.jellyseerr_url || '';
       document.getElementById('s-seerr-key').value = cfg.jellyseerr_api_key || '';
+      // WebUI URLs
+      const _sEl = id => document.getElementById(id);
+      if (_sEl('s-radarr-webui')) _sEl('s-radarr-webui').value = cfg.radarr_webui_url || '';
+      if (_sEl('s-sonarr-webui')) _sEl('s-sonarr-webui').value = cfg.sonarr_webui_url || '';
+      if (_sEl('s-seerr-webui'))  _sEl('s-seerr-webui').value  = cfg.jellyseerr_webui_url || '';
+      if (_sEl('s-qbit-webui'))   _sEl('s-qbit-webui').value   = cfg.qbit_webui_url || '';
       // IMDb
       document.getElementById('s-imdb-basics').value = cfg.imdb_basics_path || '';
       document.getElementById('s-imdb-ratings').value = cfg.imdb_ratings_path || '';
@@ -3422,6 +3673,10 @@ function saveApiSettings() {
     sonarr_api_key: document.getElementById('s-sonarr-key').value,
     jellyseerr_url: document.getElementById('s-seerr-url').value,
     jellyseerr_api_key: document.getElementById('s-seerr-key').value,
+    radarr_webui_url:     (document.getElementById('s-radarr-webui') || {}).value || '',
+    sonarr_webui_url:     (document.getElementById('s-sonarr-webui') || {}).value || '',
+    jellyseerr_webui_url: (document.getElementById('s-seerr-webui')  || {}).value || '',
+    qbit_webui_url:       (document.getElementById('s-qbit-webui')   || {}).value || '',
   };
   fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(r => r.json())
