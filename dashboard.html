@@ -2933,11 +2933,6 @@ fetch('/api/config')
     }
     const loadEl = document.getElementById('loading');
     if (loadEl) loadEl.textContent = '[ Loading ' + cfg.name + '... ]';
-    // Apply default tab
-    if (cfg.default_tab && cfg.default_tab !== 'movies') {
-      const defTabBtn = document.querySelector('.tab[onclick*="' + cfg.default_tab + '"]');
-      if (defTabBtn) showTab(cfg.default_tab, defTabBtn);
-    }
     // Show/hide fingerprint tab
     const fpTab = document.getElementById('tab-fingerprint');
     if (fpTab) fpTab.style.display = cfg.fingerprint_enabled ? '' : 'none';
@@ -2951,7 +2946,9 @@ fetch('/api/stats')
   .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
   .then(data => {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('sec-movies').classList.add('active');
+    const _defTab = (_appConfig && _appConfig.default_tab) ? _appConfig.default_tab : 'movies';
+    const _defBtn = document.querySelector('.tab[onclick*="' + _defTab + '"]');
+    if (_defBtn) showTab(_defTab, _defBtn); else document.getElementById('sec-movies').classList.add('active');
     renderMovies(data.movies);
     renderTV(data.tv);
     renderTalent(data.talent);
