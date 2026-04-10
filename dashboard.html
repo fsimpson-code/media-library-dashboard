@@ -1049,6 +1049,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
         <div class="setting-row" style="gap:8px">
           <label class="setting-label"></label>
           <button id="s-run-now-btn" class="settings-btn primary" onclick="triggerRunFromSettings()">Run Now</button>
+          <button class="settings-btn" style="background:#7a3a00;color:#ffbb55;border-color:#a05010" onclick="forceResetRunner()">Force Reset</button>
           <span id="s-run-badge" class="test-badge"></span>
         </div>
       </div>
@@ -3507,6 +3508,12 @@ function runMigration() {
   es.onerror = () => es.close();
 }
 
+function forceResetRunner() {
+  fetch("/api/run/reset", {method:"POST"})
+    .then(r => r.json())
+    .then(d => setBadge("s-run-badge", d.ok, d.message || d.error))
+    .catch(e => setBadge("s-run-badge", false, String(e)));
+}
 function triggerRunFromSettings() {
   const btn = document.getElementById('s-run-now-btn');
   if (btn) btn.disabled = true;
