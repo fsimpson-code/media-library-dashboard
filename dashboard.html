@@ -864,137 +864,131 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
   </div>
 
   <div class="section" id="sec-settings">
-    <div style="max-width:700px;margin:0 auto;padding:20px 0">
+    <div class="settings-wrap" style="max-width:700px;margin:0 auto;padding:20px 0">
 
       <!-- Database -->
       <div class="settings-group">
         <div class="settings-group-title">Database</div>
-        <div class="settings-row">
-          <label class="settings-label">Type</label>
-          <select id="s-db-type" class="settings-input" onchange="settingsDbTypeChange(this.value)">
+        <div class="setting-row">
+          <label class="setting-label">Type</label>
+          <select id="s-db-type" class="setting-select" onchange="settingsDbTypeChange(this.value)">
             <option value="sqlite">SQLite</option>
             <option value="postgres">PostgreSQL</option>
             <option value="mysql">MySQL</option>
           </select>
         </div>
         <div id="s-sqlite-fields">
-          <div class="settings-row">
-            <label class="settings-label">DB Path</label>
-            <input id="s-db-path" class="settings-input" type="text" placeholder="/data/library_history.db">
+          <div class="setting-row">
+            <label class="setting-label">DB Path</label>
+            <input id="s-db-path" class="setting-input" type="text" placeholder="/data/library_history.db">
           </div>
         </div>
         <div id="s-sql-fields" style="display:none">
-          <div class="settings-row">
-            <label class="settings-label">Host</label>
-            <input id="s-db-host" class="settings-input" type="text" placeholder="localhost">
+          <div class="setting-row">
+            <label class="setting-label">Host</label>
+            <input id="s-db-host" class="setting-input" type="text" placeholder="localhost">
           </div>
-          <div class="settings-row">
-            <label class="settings-label">Port</label>
-            <input id="s-db-port" class="settings-input" type="text" placeholder="5432">
+          <div class="setting-row">
+            <label class="setting-label">Port</label>
+            <input id="s-db-port" class="setting-input" type="text" placeholder="5432">
           </div>
-          <div class="settings-row">
-            <label class="settings-label">Database</label>
-            <input id="s-db-name" class="settings-input" type="text" placeholder="media_library">
+          <div class="setting-row">
+            <label class="setting-label">Database</label>
+            <input id="s-db-name" class="setting-input" type="text" placeholder="media_library">
           </div>
-          <div class="settings-row">
-            <label class="settings-label">User</label>
-            <input id="s-db-user" class="settings-input" type="text">
+          <div class="setting-row">
+            <label class="setting-label">User</label>
+            <input id="s-db-user" class="setting-input" type="text">
           </div>
-          <div class="settings-row">
-            <label class="settings-label">Password</label>
-            <input id="s-db-pass" class="settings-input" type="password">
+          <div class="setting-row">
+            <label class="setting-label">Password</label>
+            <input id="s-db-pass" class="setting-input" type="password">
           </div>
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="settings-btn" onclick="testDbConnection()">Test Connection</button>
-            <span id="s-db-status" style="font-size:12px"></span>
-          </div>
+        <div class="setting-row" style="gap:8px;margin-top:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="testDbConnection()">Test Connection</button>
+          <span id="s-db-test-badge" class="test-badge" style="font-size:11px"></span>
+        </div>
+        <div class="setting-row">
+          <label class="setting-label"></label>
+          <button id="s-save-db-btn" class="settings-btn primary" disabled onclick="saveDbSettings()">Save Database</button>
         </div>
         <div id="s-migration-panel" style="display:none;margin-top:12px;padding:12px;border:1px solid #333366;border-radius:6px">
           <div style="font-size:12px;color:#ffcc00;margin-bottom:10px">&#9888; SQLite file will not be deleted after migration.</div>
-          <button class="settings-btn" onclick="runMigration()">Run Migration</button>
-          <div id="s-migrate-log" style="margin-top:10px;font-size:11px;font-family:JetBrains Mono,monospace;max-height:150px;overflow-y:auto"></div>
+          <button class="settings-btn purple" onclick="runMigration()">Run Migration</button>
+          <div id="s-migrate-log" class="migration-log"></div>
         </div>
       </div>
 
       <!-- API Connections -->
       <div class="settings-group">
         <div class="settings-group-title">API Connections</div>
-        <div class="settings-row">
-          <label class="settings-label">Radarr URL</label>
-          <input id="s-radarr-url" class="settings-input" type="text" placeholder="http://localhost:7878">
+        <div class="setting-row">
+          <label class="setting-label">Radarr URL</label>
+          <input id="s-radarr-url" class="setting-input" type="text" placeholder="http://localhost:7878">
         </div>
-        <div class="settings-row">
-          <label class="settings-label">Radarr API Key</label>
-          <input id="s-radarr-key" class="settings-input" type="text" placeholder="API key">
+        <div class="setting-row">
+          <label class="setting-label">Radarr API Key</label>
+          <input id="s-radarr-key" class="setting-input" type="text">
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="settings-btn" onclick="testService('radarr')">Test Radarr</button>
-            <span id="s-radarr-status" style="font-size:12px"></span>
-          </div>
+        <div class="setting-row" style="gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="testService('radarr')">Test Radarr</button>
+          <span id="s-radarr-status" class="test-badge"></span>
         </div>
-        <div class="settings-row" style="margin-top:10px">
-          <label class="settings-label">Sonarr URL</label>
-          <input id="s-sonarr-url" class="settings-input" type="text" placeholder="http://localhost:8989">
+        <div class="setting-row" style="margin-top:10px">
+          <label class="setting-label">Sonarr URL</label>
+          <input id="s-sonarr-url" class="setting-input" type="text" placeholder="http://localhost:8989">
         </div>
-        <div class="settings-row">
-          <label class="settings-label">Sonarr API Key</label>
-          <input id="s-sonarr-key" class="settings-input" type="text" placeholder="API key">
+        <div class="setting-row">
+          <label class="setting-label">Sonarr API Key</label>
+          <input id="s-sonarr-key" class="setting-input" type="text">
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="settings-btn" onclick="testService('sonarr')">Test Sonarr</button>
-            <span id="s-sonarr-status" style="font-size:12px"></span>
-          </div>
+        <div class="setting-row" style="gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="testService('sonarr')">Test Sonarr</button>
+          <span id="s-sonarr-status" class="test-badge"></span>
         </div>
-        <div class="settings-row" style="margin-top:10px">
-          <label class="settings-label">Jellyseerr URL</label>
-          <input id="s-seerr-url" class="settings-input" type="text" placeholder="http://localhost:5055">
+        <div class="setting-row" style="margin-top:10px">
+          <label class="setting-label">Jellyseerr URL</label>
+          <input id="s-seerr-url" class="setting-input" type="text" placeholder="http://localhost:5055">
         </div>
-        <div class="settings-row">
-          <label class="settings-label">Jellyseerr API Key</label>
-          <input id="s-seerr-key" class="settings-input" type="text" placeholder="API key">
-          <div style="font-size:10px;color:#5555aa;margin-top:4px">Found at Jellyseerr &rarr; Settings &rarr; General &rarr; API Key</div>
+        <div class="setting-row">
+          <label class="setting-label">Jellyseerr API Key</label>
+          <input id="s-seerr-key" class="setting-input" type="text">
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="settings-btn" onclick="testService('jellyseerr')">Test Jellyseerr</button>
-            <span id="s-seerr-status" style="font-size:12px"></span>
-          </div>
+        <div class="setting-row" style="gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="testService('jellyseerr')">Test Jellyseerr</button>
+          <span id="s-seerr-status" class="test-badge"></span>
         </div>
-        <div class="settings-row" style="margin-top:14px">
-          <label class="settings-label"></label>
-          <button class="settings-btn settings-btn-primary" onclick="saveApiSettings()">Save API Settings</button>
+        <div class="setting-row" style="margin-top:12px;gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="saveApiSettings()">Save API Settings</button>
+          <span id="s-api-save-badge" class="test-badge"></span>
         </div>
       </div>
 
       <!-- IMDb -->
       <div class="settings-group">
         <div class="settings-group-title">IMDb Data</div>
-        <div class="settings-row">
-          <label class="settings-label">title.basics.tsv</label>
-          <input id="s-imdb-basics" class="settings-input" type="text" placeholder="/data/imdb/title.basics.tsv">
+        <div class="setting-row">
+          <label class="setting-label">title.basics.tsv</label>
+          <input id="s-imdb-basics" class="setting-input" type="text" placeholder="/data/imdb/title.basics.tsv">
         </div>
-        <div class="settings-row">
-          <label class="settings-label">title.ratings.tsv</label>
-          <input id="s-imdb-ratings" class="settings-input" type="text" placeholder="/data/imdb/title.ratings.tsv">
+        <div class="setting-row">
+          <label class="setting-label">title.ratings.tsv</label>
+          <input id="s-imdb-ratings" class="setting-input" type="text" placeholder="/data/imdb/title.ratings.tsv">
         </div>
-        <div class="settings-row">
-          <label class="settings-label">Last Built</label>
+        <div class="setting-row">
+          <label class="setting-label">Last Built</label>
           <span id="s-imdb-last" style="font-size:12px;color:#5555aa">—</span>
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="settings-btn" onclick="rebuildImdb()">Rebuild IMDb Cache</button>
-            <span id="s-imdb-status" style="font-size:12px"></span>
-          </div>
+        <div class="setting-row" style="gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="rebuildImdb()">Rebuild IMDb Cache</button>
+          <span id="s-imdb-badge" class="test-badge"></span>
         </div>
       </div>
 
@@ -1002,31 +996,30 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
       <div class="settings-group">
         <div class="settings-group-title">Theme</div>
         <div id="s-theme-cards" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px"></div>
-        <div id="s-custom-colors" style="display:none">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-            <div class="settings-row"><label class="settings-label">Background</label><input id="cp-bg" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Surface</label><input id="cp-surface" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Accent 1</label><input id="cp-accent1" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Accent 2</label><input id="cp-accent2" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Text</label><input id="cp-text" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Muted</label><input id="cp-muted" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Positive</label><input id="cp-positive" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Warning</label><input id="cp-warning" type="color" class="settings-color"></div>
-            <div class="settings-row"><label class="settings-label">Danger</label><input id="cp-danger" type="color" class="settings-color"></div>
-          </div>
+        <div id="s-custom-colors" class="custom-colors">
+          <div class="color-picker-row"><span class="color-picker-label">Background</span><input id="cp-bg" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Surface</span><input id="cp-surface" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Accent 1</span><input id="cp-accent1" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Accent 2</span><input id="cp-accent2" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Text</span><input id="cp-text" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Muted</span><input id="cp-muted" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Positive</span><input id="cp-positive" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Warning</span><input id="cp-warning" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Danger</span><input id="cp-danger" type="color" onchange="applyCustomTheme()"></div>
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <button class="settings-btn settings-btn-primary" onclick="saveThemeSettings()">Save Theme</button>
+        <div class="setting-row" style="margin-top:10px;gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="saveThemeSettings()">Save Theme</button>
+          <span id="s-theme-badge" class="test-badge"></span>
         </div>
       </div>
 
       <!-- Display Preferences -->
       <div class="settings-group">
         <div class="settings-group-title">Display Preferences</div>
-        <div class="settings-row">
-          <label class="settings-label">Default Tab</label>
-          <select id="s-default-tab" class="settings-input">
+        <div class="setting-row">
+          <label class="setting-label">Default Tab</label>
+          <select id="s-default-tab" class="setting-select">
             <option value="movies">Movies</option>
             <option value="tv">TV Series</option>
             <option value="talent">Talent</option>
@@ -1035,29 +1028,28 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
             <option value="trends">Trends</option>
           </select>
         </div>
-        <div class="settings-row">
-          <label class="settings-label">Rows Per Table</label>
-          <input id="s-rows-per-table" class="settings-input" type="number" min="5" max="200" value="10">
+        <div class="setting-row">
+          <label class="setting-label">Rows Per Table</label>
+          <input id="s-rows-per-table" class="setting-input" type="number" min="5" max="200" value="10" style="max-width:80px">
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <button class="settings-btn settings-btn-primary" onclick="saveDisplayPrefs()">Save Preferences</button>
+        <div class="setting-row" style="gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="saveDisplayPrefs()">Save Preferences</button>
+          <span id="s-display-badge" class="test-badge"></span>
         </div>
       </div>
 
-      <!-- Scheduled Runs -->
+      <!-- Library Runner -->
       <div class="settings-group">
         <div class="settings-group-title">Library Runner</div>
-        <div class="settings-row">
-          <label class="settings-label">Last Run</label>
+        <div class="setting-row">
+          <label class="setting-label">Last Run</label>
           <span id="s-last-run" style="font-size:12px;color:#5555aa">—</span>
         </div>
-        <div class="settings-row">
-          <label class="settings-label"></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="settings-btn" onclick="triggerRunFromSettings()">Run Now</button>
-            <span id="s-run-status" style="font-size:12px"></span>
-          </div>
+        <div class="setting-row" style="gap:8px">
+          <label class="setting-label"></label>
+          <button id="s-run-now-btn" class="settings-btn primary" onclick="triggerRunFromSettings()">Run Now</button>
+          <span id="s-run-status" class="test-badge"></span>
         </div>
       </div>
 
