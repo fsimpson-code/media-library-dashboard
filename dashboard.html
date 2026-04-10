@@ -6,7 +6,7 @@
 <title>Media Library Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Nunito:wght@400;600;700&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:       #0a0a1a;
@@ -34,11 +34,16 @@
   --gradient-start:  #0a0a18;
   --gradient-end:    #12082a;
   /* Button + text tokens */
-  --btn-primary-bg:  #001a2e;
-  --btn-primary-text:#00e5ff;
+  --btn-primary-bg:   #001a2e;
+  --btn-primary-text: #00e5ff;
+  --btn-primary-glow: 0 0 8px rgba(0,229,255,.55), 0 0 20px rgba(0,229,255,.25);
   --text-heading:    #e0e0ff;
   --text-label:      #8888bb;
   --link:            #00e5ff;
+  /* Font system */
+  --font-display: 'Orbitron', sans-serif;
+  --font-body:    'Space Grotesk', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{font-size:17px}
@@ -554,6 +559,59 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
   gap:4px;white-space:nowrap;line-height:1}
 .launch-btn:hover{background:var(--accent2);color:var(--bg);box-shadow:var(--glow-secondary);text-decoration:none}
 .launch-btn.dim{opacity:.3;cursor:default;pointer-events:none}
+
+/* ── Font system (v1.3) ── */
+body{font-family:var(--font-body)}
+.logo,.logo-main,.logo-accent,.dna-letter{font-family:var(--font-display)}
+.tab,.run-btn,.dl-btn,.settings-btn,.snap-select,.launch-btn,.bloat-tab,.talent-tab,.sub-tab,.filter-input{font-family:var(--font-body)}
+.kpi-value,.terminal,td,.bar-val,.fr-pct,.slider-val,.dna-score-num,.trend-table td{font-family:var(--font-mono)}
+th,.settings-group-title,.card-title,.kpi-label,.setting-label{font-family:var(--font-body)}
+
+/* ── Button/tab theming (v1.3) ── */
+.run-btn{background:var(--btn-primary-bg);color:var(--btn-primary-text);border-color:var(--btn-primary-text)}
+.run-btn:hover:not(:disabled){background:var(--btn-primary-text);color:var(--bg);box-shadow:var(--btn-primary-glow)}
+.dl-btn{color:var(--accent1);border-color:var(--accent1);background:transparent}
+.dl-btn:hover{background:var(--accent1);color:var(--bg);box-shadow:var(--glow-secondary)}
+.bloat-tab{color:var(--tab-inactive);border-color:var(--border);background:transparent}
+.bloat-tab.active{background:var(--surface-raised);color:var(--accent1);border-color:var(--accent1)}
+.bloat-tab:hover:not(.active){color:var(--accent2);border-color:var(--border-accent)}
+.talent-tab{color:var(--tab-inactive);border-color:var(--border);background:transparent}
+.talent-tab.active{background:var(--surface-raised);color:var(--accent2);border-color:var(--accent2)}
+.talent-tab[data-tab="btwf"].active{color:var(--accent1);border-color:var(--accent1)}
+.talent-tab[data-tab="wounds"].active{color:var(--danger);border-color:var(--danger)}
+.talent-tab[data-tab="loyalty"].active{color:var(--warning);border-color:var(--warning)}
+.talent-tab:hover:not(.active){color:var(--accent2);border-color:var(--border-accent)}
+.sub-tab{border-color:var(--border);color:var(--muted);background:transparent}
+.sub-tab:hover{border-color:var(--border);color:var(--text)}
+.sub-tab.active{background:var(--surface-raised);border-color:var(--tab-active-text);color:var(--tab-active-text)}
+
+/* ── Text/heading theming (v1.3) ── */
+.card-title{color:var(--tab-active-text)}
+.settings-group-title{color:var(--tab-active-text)}
+.kpi-label{color:var(--text-label)}
+.setting-label{color:var(--text-label)}
+.kpi-value{color:var(--accent1)}
+.kpi.g .kpi-value,.kpi.b .kpi-value{color:var(--accent2)}
+.kpi.a .kpi-value{color:var(--warning)}
+.kpi.r .kpi-value{color:var(--danger)}
+th{color:var(--text-label)}
+td,.donut-legend-label,.bar-label,.fr-name,.btwf-early{color:var(--muted)}
+.donut-legend-val,.bar-val{color:var(--muted)}
+a{color:var(--link)}
+.btwf-card{border-color:var(--border);background:var(--surface-inset);border-left-color:var(--accent1)}
+.btwf-card:hover{border-left-color:var(--accent2);background:var(--surface-raised)}
+.btwf-breakout{color:var(--accent1)}
+.cs-sidebar-close:hover{color:var(--accent1)}
+
+/* ── Custom dual-input picker (v1.3) ── */
+.cp-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:nowrap}
+.cp-label{font-size:11px;color:var(--text-label);min-width:140px;flex-shrink:0}
+.cp-swatch{width:32px;height:26px;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:none;padding:1px;flex-shrink:0}
+.cp-hex{background:var(--surface-inset);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--font-mono);font-size:10px;padding:3px 6px;width:78px;flex-shrink:0}
+.cp-hex:focus{outline:none;border-color:var(--border-accent)}
+.cp-glow{background:var(--surface-inset);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--font-mono);font-size:10px;padding:3px 6px;flex:1;min-width:0}
+.cp-glow:focus{outline:none;border-color:var(--border-accent)}
+.cp-section{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
 </style>
 </head>
 <body>
@@ -1120,41 +1178,80 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
       <div class="settings-group">
         <div class="settings-group-title">Theme</div>
         <div id="s-theme-cards" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px"></div>
+
+        <!-- Font selector -->
+        <div style="margin:0 0 14px;padding:.75rem 1rem;background:var(--surface-inset);border:1px solid var(--border);border-radius:4px">
+          <div class="cp-section" style="margin-top:0">Fonts</div>
+          <div class="setting-row">
+            <label class="setting-label">Display Font</label>
+            <select id="s-font-display" class="setting-select" onchange="applyFontChoice()">
+              <option value="Space Grotesk">Space Grotesk</option>
+              <option value="Orbitron">Orbitron</option>
+              <option value="JetBrains Mono">JetBrains Mono</option>
+              <option value="Inter">Inter</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Nunito">Nunito</option>
+              <option value="Rajdhani">Rajdhani</option>
+              <option value="Exo 2">Exo 2</option>
+              <option value="Titillium Web">Titillium Web</option>
+              <option value="IBM Plex Sans">IBM Plex Sans</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label class="setting-label">Body Font</label>
+            <select id="s-font-body" class="setting-select" onchange="applyFontChoice()">
+              <option value="Space Grotesk">Space Grotesk</option>
+              <option value="Orbitron">Orbitron</option>
+              <option value="JetBrains Mono">JetBrains Mono</option>
+              <option value="Inter">Inter</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Nunito">Nunito</option>
+              <option value="Rajdhani">Rajdhani</option>
+              <option value="Exo 2">Exo 2</option>
+              <option value="Titillium Web">Titillium Web</option>
+              <option value="IBM Plex Sans">IBM Plex Sans</option>
+            </select>
+          </div>
+        </div>
         <div id="s-custom-colors" class="custom-colors">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Base Colors</div>
-          <div class="color-picker-row"><span class="color-picker-label">Background</span><input id="cp-bg" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Surface</span><input id="cp-surface" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Accent 1</span><input id="cp-accent1" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Accent 2</span><input id="cp-accent2" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Text</span><input id="cp-text" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Muted</span><input id="cp-muted" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Positive</span><input id="cp-positive" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Warning</span><input id="cp-warning" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Danger</span><input id="cp-danger" type="color" onchange="applyCustomTheme()"></div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Glow &amp; Borders</div>
-          <div class="color-picker-row"><span class="color-picker-label">Glow Primary</span><input id="cp-glow-primary" type="color" onchange="applyCustomTheme()"><span style="font-size:9px;color:var(--muted);margin-left:6px">main glow</span></div>
-          <div class="color-picker-row"><span class="color-picker-label">Glow Secondary</span><input id="cp-glow-secondary" type="color" onchange="applyCustomTheme()"><span style="font-size:9px;color:var(--muted);margin-left:6px">secondary glow</span></div>
-          <div class="color-picker-row"><span class="color-picker-label">Border</span><input id="cp-border" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Border Accent</span><input id="cp-border-accent" type="color" onchange="applyCustomTheme()"></div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Surfaces &amp; Layers</div>
-          <div class="color-picker-row"><span class="color-picker-label">Surface Raised</span><input id="cp-surface-raised" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Surface Inset</span><input id="cp-surface-inset" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Badge Background</span><input id="cp-badge-bg" type="color" onchange="applyCustomTheme()"></div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Tabs &amp; Navigation</div>
-          <div class="color-picker-row"><span class="color-picker-label">Tab Active BG</span><input id="cp-tab-active-bg" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Tab Active Text</span><input id="cp-tab-active-text" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Tab Inactive</span><input id="cp-tab-inactive" type="color" onchange="applyCustomTheme()"></div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Scrollbar &amp; Gradients</div>
-          <div class="color-picker-row"><span class="color-picker-label">Scrollbar Thumb</span><input id="cp-scrollbar-thumb" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Scrollbar Track</span><input id="cp-scrollbar-track" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Gradient Start</span><input id="cp-gradient-start" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Gradient End</span><input id="cp-gradient-end" type="color" onchange="applyCustomTheme()"></div>
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Buttons &amp; Text</div>
-          <div class="color-picker-row"><span class="color-picker-label">Btn Primary BG</span><input id="cp-btn-primary-bg" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Btn Primary Text</span><input id="cp-btn-primary-text" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Heading Text</span><input id="cp-text-heading" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Label Text</span><input id="cp-text-label" type="color" onchange="applyCustomTheme()"></div>
-          <div class="color-picker-row"><span class="color-picker-label">Link Color</span><input id="cp-link" type="color" onchange="applyCustomTheme()"></div>
+          <div class="cp-section">Surfaces</div>
+          <div class="cp-row"><span class="cp-label">Background</span><input type="color" id="cp-bg" class="cp-swatch" onchange="cpSwatchSync('cp-bg','cp-hex-bg')"><input type="text" id="cp-hex-bg" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-bg','cp-hex-bg')"></div>
+          <div class="cp-row"><span class="cp-label">Surface</span><input type="color" id="cp-surface" class="cp-swatch" onchange="cpSwatchSync('cp-surface','cp-hex-surface')"><input type="text" id="cp-hex-surface" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-surface','cp-hex-surface')"></div>
+          <div class="cp-row"><span class="cp-label">Surface Raised</span><input type="color" id="cp-surface-raised" class="cp-swatch" onchange="cpSwatchSync('cp-surface-raised','cp-hex-surface-raised')"><input type="text" id="cp-hex-surface-raised" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-surface-raised','cp-hex-surface-raised')"></div>
+          <div class="cp-row"><span class="cp-label">Surface Inset</span><input type="color" id="cp-surface-inset" class="cp-swatch" onchange="cpSwatchSync('cp-surface-inset','cp-hex-surface-inset')"><input type="text" id="cp-hex-surface-inset" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-surface-inset','cp-hex-surface-inset')"></div>
+          <div class="cp-section">Accents</div>
+          <div class="cp-row"><span class="cp-label">Accent Primary</span><input type="color" id="cp-accent1" class="cp-swatch" onchange="cpSwatchSync('cp-accent1','cp-hex-accent1')"><input type="text" id="cp-hex-accent1" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-accent1','cp-hex-accent1')"></div>
+          <div class="cp-row"><span class="cp-label">Accent Secondary</span><input type="color" id="cp-accent2" class="cp-swatch" onchange="cpSwatchSync('cp-accent2','cp-hex-accent2')"><input type="text" id="cp-hex-accent2" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-accent2','cp-hex-accent2')"></div>
+          <div class="cp-section">Text</div>
+          <div class="cp-row"><span class="cp-label">Heading Text</span><input type="color" id="cp-text-heading" class="cp-swatch" onchange="cpSwatchSync('cp-text-heading','cp-hex-text-heading')"><input type="text" id="cp-hex-text-heading" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-text-heading','cp-hex-text-heading')"></div>
+          <div class="cp-row"><span class="cp-label">Label Text</span><input type="color" id="cp-text-label" class="cp-swatch" onchange="cpSwatchSync('cp-text-label','cp-hex-text-label')"><input type="text" id="cp-hex-text-label" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-text-label','cp-hex-text-label')"></div>
+          <div class="cp-row"><span class="cp-label">Body Text</span><input type="color" id="cp-text" class="cp-swatch" onchange="cpSwatchSync('cp-text','cp-hex-text')"><input type="text" id="cp-hex-text" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-text','cp-hex-text')"></div>
+          <div class="cp-row"><span class="cp-label">Muted Text</span><input type="color" id="cp-muted" class="cp-swatch" onchange="cpSwatchSync('cp-muted','cp-hex-muted')"><input type="text" id="cp-hex-muted" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-muted','cp-hex-muted')"></div>
+          <div class="cp-row"><span class="cp-label">Links</span><input type="color" id="cp-link" class="cp-swatch" onchange="cpSwatchSync('cp-link','cp-hex-link')"><input type="text" id="cp-hex-link" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-link','cp-hex-link')"></div>
+          <div class="cp-section">Borders</div>
+          <div class="cp-row"><span class="cp-label">Border</span><input type="color" id="cp-border" class="cp-swatch" onchange="cpSwatchSync('cp-border','cp-hex-border')"><input type="text" id="cp-hex-border" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-border','cp-hex-border')"></div>
+          <div class="cp-row"><span class="cp-label">Border Accent</span><input type="color" id="cp-border-accent" class="cp-swatch" onchange="cpSwatchSync('cp-border-accent','cp-hex-border-accent')"><input type="text" id="cp-hex-border-accent" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-border-accent','cp-hex-border-accent')"></div>
+          <div class="cp-section">Buttons</div>
+          <div class="cp-row"><span class="cp-label">Button Background</span><input type="color" id="cp-btn-primary-bg" class="cp-swatch" onchange="cpSwatchSync('cp-btn-primary-bg','cp-hex-btn-primary-bg')"><input type="text" id="cp-hex-btn-primary-bg" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-btn-primary-bg','cp-hex-btn-primary-bg')"></div>
+          <div class="cp-row"><span class="cp-label">Button Text</span><input type="color" id="cp-btn-primary-text" class="cp-swatch" onchange="cpSwatchSync('cp-btn-primary-text','cp-hex-btn-primary-text')"><input type="text" id="cp-hex-btn-primary-text" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-btn-primary-text','cp-hex-btn-primary-text')"></div>
+          <div class="cp-section">Tabs</div>
+          <div class="cp-row"><span class="cp-label">Active Tab BG</span><input type="color" id="cp-tab-active-bg" class="cp-swatch" onchange="cpSwatchSync('cp-tab-active-bg','cp-hex-tab-active-bg')"><input type="text" id="cp-hex-tab-active-bg" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-tab-active-bg','cp-hex-tab-active-bg')"></div>
+          <div class="cp-row"><span class="cp-label">Active Tab Text</span><input type="color" id="cp-tab-active-text" class="cp-swatch" onchange="cpSwatchSync('cp-tab-active-text','cp-hex-tab-active-text')"><input type="text" id="cp-hex-tab-active-text" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-tab-active-text','cp-hex-tab-active-text')"></div>
+          <div class="cp-row"><span class="cp-label">Inactive Tab</span><input type="color" id="cp-tab-inactive" class="cp-swatch" onchange="cpSwatchSync('cp-tab-inactive','cp-hex-tab-inactive')"><input type="text" id="cp-hex-tab-inactive" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-tab-inactive','cp-hex-tab-inactive')"></div>
+          <div class="cp-section">Status</div>
+          <div class="cp-row"><span class="cp-label">Positive / Success</span><input type="color" id="cp-positive" class="cp-swatch" onchange="cpSwatchSync('cp-positive','cp-hex-positive')"><input type="text" id="cp-hex-positive" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-positive','cp-hex-positive')"></div>
+          <div class="cp-row"><span class="cp-label">Warning</span><input type="color" id="cp-warning" class="cp-swatch" onchange="cpSwatchSync('cp-warning','cp-hex-warning')"><input type="text" id="cp-hex-warning" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-warning','cp-hex-warning')"></div>
+          <div class="cp-row"><span class="cp-label">Danger / Error</span><input type="color" id="cp-danger" class="cp-swatch" onchange="cpSwatchSync('cp-danger','cp-hex-danger')"><input type="text" id="cp-hex-danger" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-danger','cp-hex-danger')"></div>
+          <div class="cp-section">Gradients</div>
+          <div class="cp-row"><span class="cp-label">Gradient Start</span><input type="color" id="cp-gradient-start" class="cp-swatch" onchange="cpSwatchSync('cp-gradient-start','cp-hex-gradient-start')"><input type="text" id="cp-hex-gradient-start" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-gradient-start','cp-hex-gradient-start')"></div>
+          <div class="cp-row"><span class="cp-label">Gradient End</span><input type="color" id="cp-gradient-end" class="cp-swatch" onchange="cpSwatchSync('cp-gradient-end','cp-hex-gradient-end')"><input type="text" id="cp-hex-gradient-end" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-gradient-end','cp-hex-gradient-end')"></div>
+          <div class="cp-section">Scrollbars</div>
+          <div class="cp-row"><span class="cp-label">Scrollbar Thumb</span><input type="color" id="cp-scrollbar-thumb" class="cp-swatch" onchange="cpSwatchSync('cp-scrollbar-thumb','cp-hex-scrollbar-thumb')"><input type="text" id="cp-hex-scrollbar-thumb" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-scrollbar-thumb','cp-hex-scrollbar-thumb')"></div>
+          <div class="cp-row"><span class="cp-label">Scrollbar Track</span><input type="color" id="cp-scrollbar-track" class="cp-swatch" onchange="cpSwatchSync('cp-scrollbar-track','cp-hex-scrollbar-track')"><input type="text" id="cp-hex-scrollbar-track" class="cp-hex" maxlength="7" placeholder="#000000" oninput="cpHexSync('cp-scrollbar-track','cp-hex-scrollbar-track')"></div>
+          <div class="cp-section">Glows — full CSS shadow string</div>
+          <div class="cp-row"><span class="cp-label">Glow Primary</span><input type="text" id="cp-glow-primary" class="cp-glow" placeholder="0 0 8px rgba(0,229,255,.55), 0 0 20px rgba(0,229,255,.25)" oninput="applyCustomTheme()"></div>
+          <div class="cp-row"><span class="cp-label">Glow Secondary</span><input type="text" id="cp-glow-secondary" class="cp-glow" placeholder="0 0 8px rgba(224,64,251,.55), 0 0 20px rgba(224,64,251,.25)" oninput="applyCustomTheme()"></div>
+          <div class="cp-row"><span class="cp-label">Button Glow</span><input type="text" id="cp-glow-btn-primary" class="cp-glow" placeholder="0 0 8px rgba(0,229,255,.55), 0 0 20px rgba(0,229,255,.25)" oninput="applyCustomTheme()"></div>
         </div>
         <div class="setting-row" style="margin-top:10px;gap:8px">
           <label class="setting-label"></label>
@@ -1259,6 +1356,7 @@ const THEMES = {
     '--text-heading':    '#e0e0ff',
     '--text-label':      '#8888bb',
     '--link':            '#00e5ff',
+    '--btn-primary-glow':'0 0 8px rgba(0,229,255,.55), 0 0 20px rgba(0,229,255,.25)',
   },
   'arctic': {
     '--bg':       '#0d1b2a',
@@ -1289,6 +1387,7 @@ const THEMES = {
     '--text-heading':    '#e0f7ff',
     '--text-label':      '#4a7fa5',
     '--link':            '#4fc3f7',
+    '--btn-primary-glow':'0 0 8px rgba(79,195,247,.5), 0 0 18px rgba(79,195,247,.2)',
   },
   'amber': {
     '--bg':       '#0f0c00',
@@ -1319,6 +1418,7 @@ const THEMES = {
     '--text-heading':    '#fff8e1',
     '--text-label':      '#7a6200',
     '--link':            '#ffb300',
+    '--btn-primary-glow':'0 0 8px rgba(255,179,0,.55), 0 0 20px rgba(255,179,0,.25)',
   },
   'synthwave': {
     '--bg':       '#0d0015',
@@ -1349,6 +1449,7 @@ const THEMES = {
     '--text-heading':    '#f0e0ff',
     '--text-label':      '#6600aa',
     '--link':            '#00ffff',
+    '--btn-primary-glow':'0 0 10px rgba(255,0,255,.6), 0 0 24px rgba(255,0,255,.3)',
   },
   'matrix': {
     '--bg':       '#000a00',
@@ -1379,6 +1480,7 @@ const THEMES = {
     '--text-heading':    '#ccffcc',
     '--text-label':      '#006600',
     '--link':            '#00ff41',
+    '--btn-primary-glow':'0 0 8px rgba(0,255,65,.65), 0 0 20px rgba(0,255,65,.3)',
   },
 };
 
@@ -1395,16 +1497,17 @@ function applyTheme(name, customVars) {
   _currentTheme = name;
 }
 
+let _lastRuns = null;
+
 function reRenderAll() {
   renderEntropy();
-  if (document.getElementById('sec-movies').classList.contains('active')) {
-    renderMoviesCanvas && renderMoviesCanvas(_lastMoviesData);
-    renderTVCanvas && renderTVCanvas(_lastTVData);
-  }
+  if (_mData && document.getElementById('sec-movies').classList.contains('active'))
+    renderMoviesCanvas(_mData);
+  if (_tvData && document.getElementById('sec-tv').classList.contains('active'))
+    renderTVCanvas(_tvData);
+  if (_lastRuns && document.getElementById('sec-trends').classList.contains('active'))
+    renderTrends(_lastRuns);
 }
-
-let _lastMoviesData = null;
-let _lastTVData = null;
 
 
 // ── Bloat Hit List ────────────────────────────────────────────────────────────
@@ -2877,7 +2980,7 @@ function renderEntropy() {
   ];
 
   // ── Score color ──
-  const scoreColor = totalScore >= 80 ? '#00e5ff' : totalScore >= 60 ? '#b060ff' : totalScore >= 40 ? '#ffcc00' : '#ff6b6b';
+  const scoreColor = totalScore >= 80 ? cssVar('--accent2') : totalScore >= 60 ? cssVar('--accent1') : totalScore >= 40 ? cssVar('--warning') : cssVar('--danger');
   const scoreLabel = totalScore >= 80 ? 'EXCELLENT' : totalScore >= 60 ? 'GOOD' : totalScore >= 40 ? 'FAIR' : 'NEEDS WORK';
 
   // ── Draw gauge ──
@@ -2936,7 +3039,7 @@ function renderEntropy() {
   if (compEl) {
     compEl.innerHTML = components.map(c => {
       const pct = Math.round((c.score / c.max) * 100);
-      const col = pct >= 80 ? '#00e5ff' : pct >= 60 ? '#b060ff' : pct >= 40 ? '#ffcc00' : '#ff6b6b';
+      const col = pct >= 80 ? cssVar('--accent2') : pct >= 60 ? cssVar('--accent1') : pct >= 40 ? cssVar('--warning') : cssVar('--danger');
       return `<div class="entropy-comp-row">
         <div class="entropy-comp-label">${c.label}</div>
         <div class="entropy-comp-track"><div class="entropy-comp-fill" style="width:${pct}%;background:${col}"></div></div>
@@ -2950,7 +3053,7 @@ function renderEntropy() {
   if (detailEl) {
     detailEl.innerHTML = components.map(c => {
       const pct = Math.round((c.score / c.max) * 100);
-      const col = pct >= 80 ? '#00e5ff' : pct >= 60 ? '#b060ff' : pct >= 40 ? '#ffcc00' : '#ff6b6b';
+      const col = pct >= 80 ? cssVar('--accent2') : pct >= 60 ? cssVar('--accent1') : pct >= 40 ? cssVar('--warning') : cssVar('--danger');
       return `<div class="entropy-detail-row">
         <div>
           <div class="entropy-detail-label">${c.label}</div>
@@ -2963,6 +3066,7 @@ function renderEntropy() {
 }
 
 function renderTrends(runs) {
+  _lastRuns = runs;
   if (!runs || !runs.length) {
     document.getElementById('tr-kpis').innerHTML =
       '<div class="no-data">No history yet — run an update to start tracking trends.</div>';
@@ -2999,10 +3103,10 @@ function renderTrends(runs) {
       `</div><div class="spark-dates"><span>${runs[0].run_date}</span><span>${runs[runs.length-1].run_date}</span></div>`;
   }
 
-  sparkline('tr-size-spark',  runs.map(r => +(r.total_gb/1024).toFixed(2)), '#b060ff');
-  sparkline('tr-movie-spark', runs.map(r => r.movie_count),                 '#00e5ff');
-  sparkline('tr-x264-spark',  runs.map(r => r.x264_count),                  '#ff6b6b');
-  sparkline('tr-x265-spark',  runs.map(r => r.x265_count),                  '#00ff9f');
+  sparkline('tr-size-spark',  runs.map(r => +(r.total_gb/1024).toFixed(2)), cssVar('--accent1'));
+  sparkline('tr-movie-spark', runs.map(r => r.movie_count),                 cssVar('--accent2'));
+  sparkline('tr-x264-spark',  runs.map(r => r.x264_count),                  cssVar('--danger'));
+  sparkline('tr-x265-spark',  runs.map(r => r.x265_count),                  cssVar('--positive'));
 
   const tbody = document.querySelector('#tr-table tbody');
   tbody.innerHTML = [...runs].reverse().map((r, i, arr) => {
@@ -3182,6 +3286,9 @@ fetch('/api/config')
     // Apply theme before any rendering
     {
       const t = cfg.theme || 'neon-noir';
+      // Apply saved fonts
+      if (cfg.font_display) document.documentElement.style.setProperty('--font-display', "'" + cfg.font_display + "', sans-serif");
+      if (cfg.font_body)    document.documentElement.style.setProperty('--font-body',    "'" + cfg.font_body    + "', sans-serif");
       if (t === 'custom') {
         const _tcv = k => cfg['theme_custom_' + k.slice(2).replace(/-/g,'_')] || '';
       const cv = {};
@@ -3190,7 +3297,7 @@ fetch('/api/config')
        '--surface-raised','--surface-inset','--tab-active-bg','--tab-active-text',
        '--tab-inactive','--scrollbar-thumb','--scrollbar-track','--badge-bg',
        '--gradient-start','--gradient-end',
-       '--btn-primary-bg','--btn-primary-text','--text-heading','--text-label','--link'].forEach(k => { cv[k] = _tcv(k); });
+       '--btn-primary-bg','--btn-primary-text','--btn-primary-glow','--text-heading','--text-label','--link'].forEach(k => { cv[k] = _tcv(k); });
         applyTheme('custom', cv);
       } else {
         applyTheme(t);
@@ -3483,37 +3590,59 @@ function selectThemeCard(name) {
   }
 }
 
+function cpSwatchSync(cpId, hexId) {
+  const sw = document.getElementById(cpId), hx = document.getElementById(hexId);
+  if (hx) { hx.value = sw ? sw.value : ''; hx.style.borderColor = ''; }
+  applyCustomTheme();
+}
+function cpHexSync(cpId, hexId) {
+  const sw = document.getElementById(cpId), hx = document.getElementById(hexId);
+  if (!hx) return;
+  let v = hx.value.trim();
+  if (!v.startsWith('#')) v = '#' + v;
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+    if (sw) sw.value = v; hx.value = v; hx.style.borderColor = '';
+    applyCustomTheme();
+  } else { hx.style.borderColor = 'var(--danger)'; }
+}
+function applyFontChoice() {
+  const disp = document.getElementById('s-font-display');
+  const body = document.getElementById('s-font-body');
+  const root = document.documentElement;
+  if (disp) root.style.setProperty('--font-display', "'" + disp.value + "', sans-serif");
+  if (body) root.style.setProperty('--font-body', "'" + body.value + "', sans-serif");
+}
 function applyCustomTheme() {
   const _cpv = id => { const e = document.getElementById(id); return e ? e.value : ''; };
   const cv = {
-    '--bg':              _cpv('cp-bg'),
-    '--surface':         _cpv('cp-surface'),
-    '--accent1':         _cpv('cp-accent1'),
-    '--accent2':         _cpv('cp-accent2'),
-    '--text':            _cpv('cp-text'),
-    '--muted':           _cpv('cp-muted'),
-    '--positive':        _cpv('cp-positive'),
-    '--warning':         _cpv('cp-warning'),
-    '--danger':          _cpv('cp-danger'),
-    '--glow-primary':    _cpv('cp-glow-primary'),
-    '--glow-secondary':  _cpv('cp-glow-secondary'),
-    '--border':          _cpv('cp-border'),
-    '--border-accent':   _cpv('cp-border-accent'),
-    '--surface-raised':  _cpv('cp-surface-raised'),
-    '--surface-inset':   _cpv('cp-surface-inset'),
-    '--tab-active-bg':   _cpv('cp-tab-active-bg'),
-    '--tab-active-text': _cpv('cp-tab-active-text'),
-    '--tab-inactive':    _cpv('cp-tab-inactive'),
-    '--scrollbar-thumb': _cpv('cp-scrollbar-thumb'),
-    '--scrollbar-track': _cpv('cp-scrollbar-track'),
-    '--badge-bg':        _cpv('cp-badge-bg'),
-    '--gradient-start':  _cpv('cp-gradient-start'),
-    '--gradient-end':    _cpv('cp-gradient-end'),
-    '--btn-primary-bg':  _cpv('cp-btn-primary-bg'),
-    '--btn-primary-text':_cpv('cp-btn-primary-text'),
-    '--text-heading':    _cpv('cp-text-heading'),
-    '--text-label':      _cpv('cp-text-label'),
-    '--link':            _cpv('cp-link'),
+    '--bg':               _cpv('cp-bg'),
+    '--surface':          _cpv('cp-surface'),
+    '--accent1':          _cpv('cp-accent1'),
+    '--accent2':          _cpv('cp-accent2'),
+    '--text':             _cpv('cp-text'),
+    '--muted':            _cpv('cp-muted'),
+    '--positive':         _cpv('cp-positive'),
+    '--warning':          _cpv('cp-warning'),
+    '--danger':           _cpv('cp-danger'),
+    '--glow-primary':     _cpv('cp-glow-primary'),
+    '--glow-secondary':   _cpv('cp-glow-secondary'),
+    '--btn-primary-glow': _cpv('cp-glow-btn-primary'),
+    '--border':           _cpv('cp-border'),
+    '--border-accent':    _cpv('cp-border-accent'),
+    '--surface-raised':   _cpv('cp-surface-raised'),
+    '--surface-inset':    _cpv('cp-surface-inset'),
+    '--tab-active-bg':    _cpv('cp-tab-active-bg'),
+    '--tab-active-text':  _cpv('cp-tab-active-text'),
+    '--tab-inactive':     _cpv('cp-tab-inactive'),
+    '--scrollbar-thumb':  _cpv('cp-scrollbar-thumb'),
+    '--scrollbar-track':  _cpv('cp-scrollbar-track'),
+    '--gradient-start':   _cpv('cp-gradient-start'),
+    '--gradient-end':     _cpv('cp-gradient-end'),
+    '--btn-primary-bg':   _cpv('cp-btn-primary-bg'),
+    '--btn-primary-text': _cpv('cp-btn-primary-text'),
+    '--text-heading':     _cpv('cp-text-heading'),
+    '--text-label':       _cpv('cp-text-label'),
+    '--link':             _cpv('cp-link'),
   };
   applyTheme('custom', cv);
   reRenderAll();
@@ -3531,8 +3660,6 @@ function populateCustomPickers(cfg) {
     'cp-positive':        cfg.theme_custom_positive       || defaults['--positive'],
     'cp-warning':         cfg.theme_custom_warning        || defaults['--warning'],
     'cp-danger':          cfg.theme_custom_danger         || defaults['--danger'],
-    'cp-glow-primary':    cfg.theme_custom_glow_primary   || '',
-    'cp-glow-secondary':  cfg.theme_custom_glow_secondary || '',
     'cp-border':          cfg.theme_custom_border         || defaults['--border'],
     'cp-border-accent':   cfg.theme_custom_border_accent  || '',
     'cp-surface-raised':  cfg.theme_custom_surface_raised || defaults['--surface-raised'],
@@ -3542,7 +3669,6 @@ function populateCustomPickers(cfg) {
     'cp-tab-inactive':    cfg.theme_custom_tab_inactive   || defaults['--tab-inactive'],
     'cp-scrollbar-thumb': cfg.theme_custom_scrollbar_thumb|| defaults['--scrollbar-thumb'],
     'cp-scrollbar-track': cfg.theme_custom_scrollbar_track|| defaults['--scrollbar-track'],
-    'cp-badge-bg':        cfg.theme_custom_badge_bg       || defaults['--badge-bg'],
     'cp-gradient-start':  cfg.theme_custom_gradient_start || defaults['--gradient-start'],
     'cp-gradient-end':    cfg.theme_custom_gradient_end   || defaults['--gradient-end'],
     'cp-btn-primary-bg':  cfg.theme_custom_btn_primary_bg  || defaults['--btn-primary-bg'],
@@ -3551,10 +3677,29 @@ function populateCustomPickers(cfg) {
     'cp-text-label':      cfg.theme_custom_text_label      || defaults['--text-label'],
     'cp-link':            cfg.theme_custom_link            || defaults['--link'],
   };
+  // populate glow text inputs separately
+  const glowMap = {
+    'cp-glow-primary':    cfg.theme_custom_glow_primary    || defaults['--glow-primary']    || '',
+    'cp-glow-secondary':  cfg.theme_custom_glow_secondary  || defaults['--glow-secondary']  || '',
+    'cp-glow-btn-primary':cfg.theme_custom_btn_primary_glow|| defaults['--btn-primary-glow']|| '',
+  };
+  Object.entries(glowMap).forEach(([id, val]) => {
+    const el = document.getElementById(id); if (el) el.value = val;
+  });
+  // populate color swatch + hex pairs
   Object.entries(map).forEach(([id, val]) => {
     const el = document.getElementById(id);
-    if (el && val) el.value = val;
+    if (el && val) {
+      el.value = val;
+      const hexEl = document.getElementById(id.replace(/^cp-/, 'cp-hex-'));
+      if (hexEl && val.startsWith('#')) hexEl.value = val;
+    }
   });
+  // populate font selectors
+  const dispSel = document.getElementById('s-font-display');
+  const bodySel = document.getElementById('s-font-body');
+  if (dispSel && cfg.font_display) dispSel.value = cfg.font_display;
+  if (bodySel && cfg.font_body)    bodySel.value = cfg.font_body;
 }
 
 function saveThemeSettings() {
@@ -3571,8 +3716,9 @@ function saveThemeSettings() {
     payload.theme_custom_positive       = _sv('cp-positive');
     payload.theme_custom_warning        = _sv('cp-warning');
     payload.theme_custom_danger         = _sv('cp-danger');
-    payload.theme_custom_glow_primary   = _sv('cp-glow-primary');
-    payload.theme_custom_glow_secondary = _sv('cp-glow-secondary');
+    payload.theme_custom_glow_primary    = _sv('cp-glow-primary');
+    payload.theme_custom_glow_secondary  = _sv('cp-glow-secondary');
+    payload.theme_custom_btn_primary_glow= _sv('cp-glow-btn-primary');
     payload.theme_custom_border         = _sv('cp-border');
     payload.theme_custom_border_accent  = _sv('cp-border-accent');
     payload.theme_custom_surface_raised = _sv('cp-surface-raised');
@@ -3596,13 +3742,18 @@ function saveThemeSettings() {
      'glow_primary','glow_secondary','border','border_accent','surface_raised','surface_inset',
      'tab_active_bg','tab_active_text','tab_inactive','scrollbar_thumb','scrollbar_track',
      'badge_bg','gradient_start','gradient_end',
-     'btn_primary_bg','btn_primary_text','text_heading','text_label','link'].forEach(k => {
+     'btn_primary_bg','btn_primary_text','btn_primary_glow','text_heading','text_label','link'].forEach(k => {
       payload['theme_custom_' + k] = '';
     });
   }
+  // Always save font choices regardless of theme
+  const _dispSel = document.getElementById('s-font-display');
+  const _bodySel = document.getElementById('s-font-body');
+  if (_dispSel) payload.font_display = _dispSel.value;
+  if (_bodySel) payload.font_body    = _bodySel.value;
   fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(r => r.json())
-    .then(d => setBadge('s-theme-badge', d.ok, d.ok ? 'Theme saved' : d.error))
+    .then(d => { setBadge('s-theme-badge', d.ok, d.ok ? 'Theme saved' : d.error); if (d.ok) applyFontChoice(); })
     .catch(err => setBadge('s-theme-badge', false, err.message));
 }
 
