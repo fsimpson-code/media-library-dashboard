@@ -1152,27 +1152,6 @@ a{color:var(--link)}
         </div>
       </div>
 
-      <!-- IMDb -->
-      <div class="settings-group">
-        <div class="settings-group-title">IMDb Data</div>
-        <div class="setting-row">
-          <label class="setting-label">title.basics.tsv</label>
-          <input id="s-imdb-basics" class="setting-input" type="text" placeholder="/data/imdb/title.basics.tsv">
-        </div>
-        <div class="setting-row">
-          <label class="setting-label">title.ratings.tsv</label>
-          <input id="s-imdb-ratings" class="setting-input" type="text" placeholder="/data/imdb/title.ratings.tsv">
-        </div>
-        <div class="setting-row">
-          <label class="setting-label">Last Built</label>
-          <span id="s-imdb-last" style="font-size:12px;color:#5555aa">—</span>
-        </div>
-        <div class="setting-row" style="gap:8px">
-          <label class="setting-label"></label>
-          <button class="settings-btn primary" onclick="rebuildImdb()">Rebuild IMDb Cache</button>
-          <span id="s-imdb-badge" class="test-badge"></span>
-        </div>
-      </div>
 
       <!-- Theme -->
       <div class="settings-group">
@@ -1260,6 +1239,94 @@ a{color:var(--link)}
         </div>
       </div>
 
+      <!-- DNA Scoring Weights -->
+      <div class="settings-group">
+        <div class="settings-group-title">DNA Scoring Weights</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Weights must total exactly 100. Each slider adjusts one component of the DNA score calculation.</div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">D1 Score Authority</label>
+          <input type="range" id="dna-w-scoreauth" min="0" max="100" value="20" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-scoreauth" style="min-width:32px;text-align:right;font-size:12px">20</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">D2 Intent</label>
+          <input type="range" id="dna-w-intent" min="0" max="100" value="20" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-intent" style="min-width:32px;text-align:right;font-size:12px">20</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">D3 Talent</label>
+          <input type="range" id="dna-w-talent" min="0" max="100" value="10" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-talent" style="min-width:32px;text-align:right;font-size:12px">10</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">D4 Franchise</label>
+          <input type="range" id="dna-w-franchise" min="0" max="100" value="15" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-franchise" style="min-width:32px;text-align:right;font-size:12px">15</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">D5 Vote Density</label>
+          <input type="range" id="dna-w-votedensity" min="0" max="100" value="10" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-votedensity" style="min-width:32px;text-align:right;font-size:12px">10</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">D6 Genre Fit</label>
+          <input type="range" id="dna-w-genrefit" min="0" max="100" value="10" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-genrefit" style="min-width:32px;text-align:right;font-size:12px">10</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">D7 Aud / Critic</label>
+          <input type="range" id="dna-w-audcritic" min="0" max="100" value="15" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-audcritic" style="min-width:32px;text-align:right;font-size:12px">15</span>
+        </div>
+        <div class="setting-row" style="gap:8px;margin-top:8px">
+          <label class="setting-label"></label>
+          <span style="font-size:12px;color:var(--muted)">Total: <strong id="dna-total" style="color:var(--accent1)">100</strong> / 100</span>
+          <button id="dna-save-btn" class="settings-btn primary" onclick="saveDnaWeights()">Save DNA Weights</button>
+          <span id="s-dna-badge" class="test-badge"></span>
+        </div>
+      </div>
+
+      <!-- Health Score Weights -->
+      <div class="settings-group">
+        <div class="settings-group-title">Health Score Weights</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Weights must total exactly 100. Each slider adjusts one component of the library health score.</div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">Encode Quality</label>
+          <input type="range" id="health-w-encode" min="0" max="100" value="30" style="flex:1" oninput="healthWeightUpdate()">
+          <span id="health-v-encode" style="min-width:32px;text-align:right;font-size:12px">30</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">Upgrade Queue</label>
+          <input type="range" id="health-w-upgrade" min="0" max="100" value="20" style="flex:1" oninput="healthWeightUpdate()">
+          <span id="health-v-upgrade" style="min-width:32px;text-align:right;font-size:12px">20</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">TV Completion</label>
+          <input type="range" id="health-w-tvcompletion" min="0" max="100" value="15" style="flex:1" oninput="healthWeightUpdate()">
+          <span id="health-v-tvcompletion" style="min-width:32px;text-align:right;font-size:12px">15</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">Curation Depth</label>
+          <input type="range" id="health-w-curation" min="0" max="100" value="15" style="flex:1" oninput="healthWeightUpdate()">
+          <span id="health-v-curation" style="min-width:32px;text-align:right;font-size:12px">15</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">Efficiency</label>
+          <input type="range" id="health-w-efficiency" min="0" max="100" value="10" style="flex:1" oninput="healthWeightUpdate()">
+          <span id="health-v-efficiency" style="min-width:32px;text-align:right;font-size:12px">10</span>
+        </div>
+        <div class="setting-row" style="align-items:center">
+          <label class="setting-label" style="min-width:140px">Rating Quality</label>
+          <input type="range" id="health-w-rating" min="0" max="100" value="10" style="flex:1" oninput="healthWeightUpdate()">
+          <span id="health-v-rating" style="min-width:32px;text-align:right;font-size:12px">10</span>
+        </div>
+        <div class="setting-row" style="gap:8px;margin-top:8px">
+          <label class="setting-label"></label>
+          <span style="font-size:12px;color:var(--muted)">Total: <strong id="health-total" style="color:var(--accent1)">100</strong> / 100</span>
+          <button id="health-save-btn" class="settings-btn primary" onclick="saveHealthWeights()">Save Health Weights</button>
+          <span id="s-health-badge" class="test-badge"></span>
+        </div>
+      </div>
       <!-- Display Preferences -->
       <div class="settings-group">
         <div class="settings-group-title">Display Preferences</div>
@@ -1285,20 +1352,6 @@ a{color:var(--link)}
         </div>
       </div>
 
-      <!-- Library Runner -->
-      <div class="settings-group">
-        <div class="settings-group-title">Library Runner</div>
-        <div class="setting-row">
-          <label class="setting-label">Last Run</label>
-          <span id="s-last-run" style="font-size:12px;color:#5555aa">—</span>
-        </div>
-        <div class="setting-row" style="gap:8px">
-          <label class="setting-label"></label>
-          <button id="s-run-now-btn" class="settings-btn primary" onclick="triggerRunFromSettings()">Run Now</button>
-          <button class="settings-btn" style="background:#7a3a00;color:#ffbb55;border-color:#a05010" onclick="forceResetRunner()">Force Reset</button>
-          <span id="s-run-badge" class="test-badge"></span>
-        </div>
-      </div>
 
     </div>
   </div>
@@ -2916,7 +2969,16 @@ function renderEntropy() {
   const totalMovies  = m.kpi.total || 1;
   const downloaded   = m.kpi.downloaded || 1;
 
-  // 1. Encode Score (30pts)
+  // Read health weights from sliders (fall back to defaults)
+  const _hw = id => { const el = document.getElementById('health-w-' + id); return el ? (parseInt(el.value)||0) : 0; };
+  const hwEncode    = _hw('encode')       || 30;
+  const hwUpgrade   = _hw('upgrade')      || 20;
+  const hwTv        = _hw('tvcompletion') || 15;
+  const hwCuration  = _hw('curation')     || 15;
+  const hwEfficiency= _hw('efficiency')   || 10;
+  const hwRating    = _hw('rating')       || 10;
+
+  // 1. Encode Score
   let x265 = 0, x264 = 0;
   if (m.codec) {
     const c265 = m.codec.find(c => c.label === 'x265');
@@ -2925,7 +2987,7 @@ function renderEntropy() {
     x264 = c264 ? c264.value : 0;
   }
   const encodeTotal = x265 + x264 || 1;
-  const encodeScore = Math.round((x265 / encodeTotal) * 30);
+  const encodeScore = Math.round((x265 / encodeTotal) * hwEncode);
 
   // 2. Rating Score (10pts) — light signal, avg above 6.0 gets full marks
   let ratingSum = 0, ratingCount = 0;
@@ -2940,43 +3002,43 @@ function renderEntropy() {
     });
   }
   const avgRating = ratingCount ? ratingSum / ratingCount : 6.5;
-  const ratingScore = Math.round(Math.max(0, Math.min(10, ((avgRating - 5) / 3) * 10)));
+  const ratingScore = Math.round(Math.max(0, Math.min(hwRating, ((avgRating - 5) / 3) * hwRating)));
 
   // 3. Upgrade Score (20pts) — fewer upgrades = better
   const upgradeQ = m.kpi.upgrade_queue || 0;
-  const upgradeScore = Math.round((1 - Math.min(upgradeQ / downloaded, 1)) * 20);
+  const upgradeScore = Math.round((1 - Math.min(upgradeQ / downloaded, 1)) * hwUpgrade);
 
   // 4. TV Completion (15pts)
   const tvComplete = tv.kpi.completion_pct || 0;
-  const tvScore = Math.round((tvComplete / 100) * 15);
+  const tvScore = Math.round((tvComplete / 100) * hwTv);
 
   // 5. Curation Depth (15pts)
   // 5a. Decade spread — how many decades represented (5pts)
   const decadeCount = m.decades ? m.decades.filter(d => d.value > 0).length : 0;
-  const decadeScore = Math.round(Math.min(5, (decadeCount / 9) * 5));
+  const decadeScore = Math.round(Math.min(hwCuration/3, (decadeCount / 9) * (hwCuration/3)));
   // 5b. Genre variety — distinct genres (5pts)
   const genreCount = m.genres ? m.genres.length : 0;
-  const genreScore = Math.round(Math.min(5, (genreCount / 15) * 5));
+  const genreScore = Math.round(Math.min(hwCuration/3, (genreCount / 15) * (hwCuration/3)));
   // 5c. Franchise completion — from TV completion + movie franchise proxy (5pts)
   const franchisePct = tvComplete; // best proxy we have client-side
-  const franchiseDepthScore = Math.round((franchisePct / 100) * 5);
+  const franchiseDepthScore = Math.round((franchisePct / 100) * (hwCuration/3));
   const curationScore = decadeScore + genreScore + franchiseDepthScore;
   const curationDetail = `${decadeCount} decades · ${genreCount} genres · ${franchisePct}% TV`;
 
   // 6. Efficiency Score (10pts) — weighted by GB/hr of worst offenders
   const gbHr = m.kpi.avg_gb_per_hr || 5;
   // Penalize more harshly when avg GB/hr is high — 3 GB/hr = perfect, 20+ = 0
-  const efficiencyScore = Math.round(Math.max(0, Math.min(10, (1 - Math.max(0, gbHr - 3) / 17) * 10)));
+  const efficiencyScore = Math.round(Math.max(0, Math.min(hwEfficiency, (1 - Math.max(0, gbHr - 3) / 17) * hwEfficiency)));
 
   const totalScore = encodeScore + ratingScore + upgradeScore + tvScore + curationScore + efficiencyScore;
 
   const components = [
-    {label:'Encode Quality',   score:encodeScore,    max:30, detail:`${x265} x265 vs ${x264} x264`,       sub:'30 pts max'},
-    {label:'Upgrade Queue',    score:upgradeScore,   max:20, detail:`${upgradeQ} files pending`,           sub:'20 pts max'},
-    {label:'TV Completion',    score:tvScore,         max:15, detail:`${tvComplete}% main run complete`,   sub:'15 pts max'},
-    {label:'Curation Depth',   score:curationScore,  max:15, detail:curationDetail,                       sub:'15 pts max'},
-    {label:'Encode Efficiency',score:efficiencyScore,max:10, detail:`${gbHr} GB/hr avg`,                  sub:'10 pts max'},
-    {label:'Rating Quality',   score:ratingScore,    max:10, detail:`Avg IMDb ${avgRating.toFixed(2)}`,   sub:'10 pts max'},
+    {label:'Encode Quality',   score:encodeScore,    max:hwEncode,     detail:`${x265} x265 vs ${x264} x264`,       sub:`${hwEncode} pts max`},
+    {label:'Upgrade Queue',    score:upgradeScore,   max:hwUpgrade,    detail:`${upgradeQ} files pending`,           sub:`${hwUpgrade} pts max`},
+    {label:'TV Completion',    score:tvScore,         max:hwTv,         detail:`${tvComplete}% main run complete`,   sub:`${hwTv} pts max`},
+    {label:'Curation Depth',   score:curationScore,  max:hwCuration,   detail:curationDetail,                       sub:`${hwCuration} pts max`},
+    {label:'Encode Efficiency',score:efficiencyScore,max:hwEfficiency, detail:`${gbHr} GB/hr avg`,                  sub:`${hwEfficiency} pts max`},
+    {label:'Rating Quality',   score:ratingScore,    max:hwRating,     detail:`Avg IMDb ${avgRating.toFixed(2)}`,   sub:`${hwRating} pts max`},
   ];
 
   // ── Score color ──
@@ -3581,7 +3643,7 @@ function selectThemeCard(name) {
   document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === name));
   _currentTheme = name;
   const customPanel = document.getElementById('s-custom-colors');
-  if (customPanel) customPanel.style.display = name === 'custom' ? '' : 'none';
+  if (customPanel) customPanel.style.display = name === 'custom' ? 'block' : 'none';
   if (name === 'custom') {
     applyCustomTheme();
   } else {
@@ -3649,7 +3711,37 @@ function applyCustomTheme() {
 }
 
 function populateCustomPickers(cfg) {
-  const defaults = THEMES['neon-noir'];
+  // Neon Noir defaults — used when no custom theme values are saved
+  const defaults = {
+    '--bg':              '#080810',
+    '--surface':         '#0a0a18',
+    '--surface-raised':  '#10102a',
+    '--surface-inset':   '#060610',
+    '--accent1':         '#ff2d9a',
+    '--accent2':         '#00f5ff',
+    '--text':            '#e8e8f0',
+    '--muted':           '#6666aa',
+    '--positive':        '#00ff88',
+    '--warning':         '#ffaa00',
+    '--danger':          '#ff3355',
+    '--border':          '#1a1a3a',
+    '--border-accent':   '#ff2d9a55',
+    '--tab-active-bg':   '#ff2d9a22',
+    '--tab-active-text': '#ff2d9a',
+    '--tab-inactive':    '#6666aa',
+    '--scrollbar-thumb': '#ff2d9a66',
+    '--scrollbar-track': '#0a0a18',
+    '--gradient-start':  '#ff2d9a',
+    '--gradient-end':    '#00f5ff',
+    '--btn-primary-bg':  '#ff2d9a',
+    '--btn-primary-text':'#ffffff',
+    '--btn-primary-glow':'0 0 8px rgba(255,45,154,.55), 0 0 20px rgba(255,45,154,.25)',
+    '--text-heading':    '#ff2d9a',
+    '--text-label':      '#9999cc',
+    '--link':            '#00f5ff',
+    '--glow-primary':    '0 0 8px rgba(255,45,154,.55), 0 0 20px rgba(255,45,154,.25)',
+    '--glow-secondary':  '0 0 8px rgba(0,245,255,.55), 0 0 20px rgba(0,245,255,.25)',
+  };
   const map = {
     'cp-bg':              cfg.theme_custom_bg             || defaults['--bg'],
     'cp-surface':         cfg.theme_custom_surface        || defaults['--surface'],
@@ -3807,6 +3899,22 @@ function loadSettings() {
       // Theme
       buildThemeCards(cfg.theme || 'neon-noir');
       populateCustomPickers(cfg);
+      // Populate DNA weight sliders
+      const dnaKeys = ['scoreauth','intent','talent','franchise','votedensity','genrefit','audcritic'];
+      const dnaDefaults = {scoreauth:20,intent:20,talent:10,franchise:15,votedensity:10,genrefit:10,audcritic:15};
+      dnaKeys.forEach(k => {
+        const el = document.getElementById('dna-w-' + k);
+        if (el) { el.value = cfg['dna_weight_' + k] || dnaDefaults[k]; }
+      });
+      dnaWeightUpdate();
+      // Populate Health weight sliders
+      const healthKeys = ['encode','upgrade','tvcompletion','curation','efficiency','rating'];
+      const healthDefaults = {encode:30,upgrade:20,tvcompletion:15,curation:15,efficiency:10,rating:10};
+      healthKeys.forEach(k => {
+        const el = document.getElementById('health-w-' + k);
+        if (el) { el.value = cfg['health_weight_' + k] || healthDefaults[k]; }
+      });
+      healthWeightUpdate();
       if (cfg.theme === 'custom') {
         const customPanel = document.getElementById('s-custom-colors');
         if (customPanel) customPanel.style.display = '';
@@ -4048,6 +4156,56 @@ function runMigration() {
   es.onerror = () => es.close();
 }
 
+function dnaWeightUpdate() {
+  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit','audcritic'];
+  let total = 0;
+  ids.forEach(k => {
+    const el = document.getElementById('dna-w-' + k);
+    const lbl = document.getElementById('dna-v-' + k);
+    if (el && lbl) { lbl.textContent = el.value; total += parseInt(el.value) || 0; }
+  });
+  const tot = document.getElementById('dna-total');
+  if (tot) { tot.textContent = total; tot.style.color = total === 100 ? 'var(--positive)' : 'var(--danger)'; }
+  const btn = document.getElementById('dna-save-btn');
+  if (btn) btn.disabled = total !== 100;
+}
+function saveDnaWeights() {
+  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit','audcritic'];
+  const payload = {};
+  ids.forEach(k => {
+    const el = document.getElementById('dna-w-' + k);
+    if (el) payload['dna_weight_' + k] = parseInt(el.value);
+  });
+  fetch('/api/settings/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge('s-dna-badge', d.ok, d.ok ? 'Saved' : d.error))
+    .catch(e => setBadge('s-dna-badge', false, String(e)));
+}
+function healthWeightUpdate() {
+  const ids = ['encode','upgrade','tvcompletion','curation','efficiency','rating'];
+  let total = 0;
+  ids.forEach(k => {
+    const el = document.getElementById('health-w-' + k);
+    const lbl = document.getElementById('health-v-' + k);
+    if (el && lbl) { lbl.textContent = el.value; total += parseInt(el.value) || 0; }
+  });
+  const tot = document.getElementById('health-total');
+  if (tot) { tot.textContent = total; tot.style.color = total === 100 ? 'var(--positive)' : 'var(--danger)'; }
+  const btn = document.getElementById('health-save-btn');
+  if (btn) btn.disabled = total !== 100;
+}
+function saveHealthWeights() {
+  const ids = ['encode','upgrade','tvcompletion','curation','efficiency','rating'];
+  const payload = {};
+  ids.forEach(k => {
+    const el = document.getElementById('health-w-' + k);
+    if (el) payload['health_weight_' + k] = parseInt(el.value);
+  });
+  fetch('/api/settings/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge('s-health-badge', d.ok, d.ok ? 'Saved' : d.error))
+    .catch(e => setBadge('s-health-badge', false, String(e)));
+}
 function forceResetRunner() {
   fetch("/api/run/reset", {method:"POST"})
     .then(r => r.json())
