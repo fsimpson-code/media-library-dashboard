@@ -935,7 +935,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
         <div class="setting-row" style="gap:8px">
           <label class="setting-label"></label>
           <button class="settings-btn primary" onclick="testService('radarr')">Test Radarr</button>
-          <span id="s-radarr-status" class="test-badge"></span>
+          <span id="s-radarr-badge" class="test-badge"></span>
         </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Sonarr URL</label>
@@ -948,7 +948,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
         <div class="setting-row" style="gap:8px">
           <label class="setting-label"></label>
           <button class="settings-btn primary" onclick="testService('sonarr')">Test Sonarr</button>
-          <span id="s-sonarr-status" class="test-badge"></span>
+          <span id="s-sonarr-badge" class="test-badge"></span>
         </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Jellyseerr URL</label>
@@ -961,7 +961,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
         <div class="setting-row" style="gap:8px">
           <label class="setting-label"></label>
           <button class="settings-btn primary" onclick="testService('jellyseerr')">Test Jellyseerr</button>
-          <span id="s-seerr-status" class="test-badge"></span>
+          <span id="s-seerr-badge" class="test-badge"></span>
         </div>
         <div class="setting-row" style="margin-top:12px;gap:8px">
           <label class="setting-label"></label>
@@ -1049,7 +1049,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
         <div class="setting-row" style="gap:8px">
           <label class="setting-label"></label>
           <button id="s-run-now-btn" class="settings-btn primary" onclick="triggerRunFromSettings()">Run Now</button>
-          <span id="s-run-status" class="test-badge"></span>
+          <span id="s-run-badge" class="test-badge"></span>
         </div>
       </div>
 
@@ -2933,6 +2933,11 @@ fetch('/api/config')
     }
     const loadEl = document.getElementById('loading');
     if (loadEl) loadEl.textContent = '[ Loading ' + cfg.name + '... ]';
+    // Apply default tab
+    if (cfg.default_tab && cfg.default_tab !== 'movies') {
+      const defTabBtn = document.querySelector('.tab[onclick*="' + cfg.default_tab + '"]');
+      if (defTabBtn) showTab(cfg.default_tab, defTabBtn);
+    }
     // Show/hide fingerprint tab
     const fpTab = document.getElementById('tab-fingerprint');
     if (fpTab) fpTab.style.display = cfg.fingerprint_enabled ? '' : 'none';
