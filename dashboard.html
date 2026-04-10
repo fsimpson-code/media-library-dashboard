@@ -3475,6 +3475,43 @@ function saveWeights() {
   setTimeout(() => setBadge('s-weights-badge', true, 'Saved (UI only — backend in next release)'), 400);
 }
 
+
+function saveDisplayPrefs() {
+  const payload = {
+    default_tab: document.getElementById('s-default-tab').value,
+    rows_per_table: document.getElementById('s-rows-per-table').value,
+  };
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('s-display-badge');
+      if (el) el.textContent = d.ok ? '✓ Saved' : '✗ ' + d.error;
+      if (el) el.style.color = d.ok ? '#00ff9f' : '#ff4444';
+    })
+    .catch(err => {
+      const el = document.getElementById('s-display-badge');
+      if (el) { el.textContent = '✗ ' + err.message; el.style.color = '#ff4444'; }
+    });
+}
+
+function runMigration() {
+  const log = document.getElementById('s-migrate-log');
+  if (log) log.textContent = 'Starting migration...\n';
+  fetch('/api/db/migrate', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
+    .then(r => r.json())
+    .then(d => { if (log) log.textContent += d.ok ? 'Migration started.\n' : 'Error: ' + d.error + '\n'; })
+    .catch(err => { if (log) log.textContent += 'Error: ' + err.message + '\n'; });
+
+  // Poll SSE status
+  const es = new EventSource('/api/db/migrate/status');
+  es.onmessage = e => {
+    if (log) log.textContent += e.data + '\n';
+    log.scrollTop = log.scrollHeight;
+    if (e.data.includes('MIGRATION_COMPLETE') || e.data.includes('MIGRATION_FAILED')) es.close();
+  };
+  es.onerror = () => es.close();
+}
+
 function triggerRunFromSettings() {
   const btn = document.getElementById('s-run-now-btn');
   if (btn) btn.disabled = true;
