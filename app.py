@@ -121,6 +121,16 @@ def api_config():
         "seerr_url":            SEERR_URL,
         "version":              __version__,
         "default_tab":          os.getenv("DEFAULT_TAB", "movies"),
+        "theme":                os.getenv("THEME", "neon-noir"),
+        "theme_custom_bg":      os.getenv("THEME_CUSTOM_BG", ""),
+        "theme_custom_surface": os.getenv("THEME_CUSTOM_SURFACE", ""),
+        "theme_custom_accent1": os.getenv("THEME_CUSTOM_ACCENT1", ""),
+        "theme_custom_accent2": os.getenv("THEME_CUSTOM_ACCENT2", ""),
+        "theme_custom_text":    os.getenv("THEME_CUSTOM_TEXT", ""),
+        "theme_custom_muted":   os.getenv("THEME_CUSTOM_MUTED", ""),
+        "theme_custom_positive":os.getenv("THEME_CUSTOM_POSITIVE", ""),
+        "theme_custom_warning": os.getenv("THEME_CUSTOM_WARNING", ""),
+        "theme_custom_danger":  os.getenv("THEME_CUSTOM_DANGER", ""),
     })
 
 def parse_movies():
