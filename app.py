@@ -16,6 +16,9 @@ from sqlalchemy import create_engine, text as sql_text
 load_dotenv()
 
 app = Flask(__name__)
+import logging
+app.logger.setLevel(logging.INFO)
+logging.getLogger("werkzeug").setLevel(logging.INFO)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 try:
