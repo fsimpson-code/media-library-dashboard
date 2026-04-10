@@ -2123,7 +2123,7 @@ function renderFranchises(data) {
 // ── DNA Score Dashboard ────────────────────────────────────────────────────────
 let _dnaData = null;
 
-const RADARR_BASE = 'http://192.168.100.216:30025';
+const RADARR_BASE = 'http://localhost:7878';
 
       function renderDNA(data) {
   _dnaData = data;
@@ -2238,7 +2238,7 @@ const RADARR_BASE = 'http://192.168.100.216:30025';
 
   function worstFilmTable(films) {
     if (!films || !films.length) return '<div class="no-data">No data.</div>';
-    const RADARR = 'http://192.168.100.216:30025';
+    const RADARR = 'http://localhost:7878';
     return `<table class="dna-film-table">
       <thead><tr><th>Title</th><th>Grade</th><th>Score</th><th>Strengths &amp; Weaknesses</th><th></th></tr></thead>
       <tbody>` +

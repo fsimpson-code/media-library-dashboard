@@ -5,15 +5,15 @@ services:
     restart: unless-stopped
     working_dir: /app
     volumes:
-      - /mnt/Speedy/docker/library-dashboard:/app
-      - /mnt/Speedy/scripts/history:/data/history:ro
-      - /mnt/Speedy/scripts/simpson_history.db:/data/simpson_history.db:ro
-      - /mnt/Speedy/scripts/imdb_data:/data/imdb:ro
+      - /opt/library-dashboard:/app
+      - /opt/media-history:/data/history:ro
+      - /opt/media-data/library_history.db:/data/library_history.db:ro
+      - /opt/imdb-data:/data/imdb:ro
     environment:
       - PYTHONUNBUFFERED=1
       - HISTORY_DIR=/data/history
-      - RUNNER_URL=http://192.168.100.216:5757
-      - DB_PATH=/data/simpson_history.db
+      - RUNNER_URL=http://YOUR_RUNNER_HOST:5757
+      - DB_PATH=/data/library_history.db
     ports:
       - "8686:8686"
     command: >
