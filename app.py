@@ -149,6 +149,11 @@ def api_config():
         "theme_custom_badge_bg":        os.getenv("THEME_CUSTOM_BADGE_BG", ""),
         "theme_custom_gradient_start":  os.getenv("THEME_CUSTOM_GRADIENT_START", ""),
         "theme_custom_gradient_end":    os.getenv("THEME_CUSTOM_GRADIENT_END", ""),
+        "theme_custom_btn_primary_bg":  os.getenv("THEME_CUSTOM_BTN_PRIMARY_BG", ""),
+        "theme_custom_btn_primary_text":os.getenv("THEME_CUSTOM_BTN_PRIMARY_TEXT", ""),
+        "theme_custom_text_heading":    os.getenv("THEME_CUSTOM_TEXT_HEADING", ""),
+        "theme_custom_text_label":      os.getenv("THEME_CUSTOM_TEXT_LABEL", ""),
+        "theme_custom_link":            os.getenv("THEME_CUSTOM_LINK", ""),
     })
 
 def parse_movies():
@@ -1610,6 +1615,7 @@ def _mask_val(val, key):
 def api_settings_config():
     env = _read_env_file()
     fields = [
+        "DASHBOARD_NAME",
         "DB_TYPE", "DB_PATH", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASS",
         "RADARR_URL", "RADARR_API_KEY", "RADARR_WEBUI_URL",
         "SONARR_URL", "SONARR_API_KEY", "SONARR_WEBUI_URL",
@@ -1627,6 +1633,9 @@ def api_settings_config():
         "THEME_CUSTOM_TAB_INACTIVE", "THEME_CUSTOM_SCROLLBAR_THUMB",
         "THEME_CUSTOM_SCROLLBAR_TRACK", "THEME_CUSTOM_BADGE_BG",
         "THEME_CUSTOM_GRADIENT_START", "THEME_CUSTOM_GRADIENT_END",
+        "THEME_CUSTOM_BTN_PRIMARY_BG", "THEME_CUSTOM_BTN_PRIMARY_TEXT",
+        "THEME_CUSTOM_TEXT_HEADING", "THEME_CUSTOM_TEXT_LABEL",
+        "THEME_CUSTOM_LINK",
     ]
     out = {f.lower(): _mask_val(env.get(f, ""), f) for f in fields}
     sqlite_src = env.get("DB_PATH", "")
@@ -1648,6 +1657,7 @@ def api_settings_save():
     if not data:
         return jsonify({"ok": False, "error": "No data"}), 400
     KEY_MAP = {
+        "dashboard_name": "DASHBOARD_NAME",
         "db_type": "DB_TYPE", "db_path": "DB_PATH", "db_host": "DB_HOST",
         "db_port": "DB_PORT", "db_name": "DB_NAME", "db_user": "DB_USER",
         "db_pass": "DB_PASS", "radarr_url": "RADARR_URL",
@@ -1678,6 +1688,11 @@ def api_settings_save():
         "theme_custom_badge_bg": "THEME_CUSTOM_BADGE_BG",
         "theme_custom_gradient_start": "THEME_CUSTOM_GRADIENT_START",
         "theme_custom_gradient_end": "THEME_CUSTOM_GRADIENT_END",
+        "theme_custom_btn_primary_bg": "THEME_CUSTOM_BTN_PRIMARY_BG",
+        "theme_custom_btn_primary_text": "THEME_CUSTOM_BTN_PRIMARY_TEXT",
+        "theme_custom_text_heading": "THEME_CUSTOM_TEXT_HEADING",
+        "theme_custom_text_label": "THEME_CUSTOM_TEXT_LABEL",
+        "theme_custom_link": "THEME_CUSTOM_LINK",
     }
     current = _read_env_file()
     for js_key, env_key in KEY_MAP.items():
