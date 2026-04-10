@@ -3907,9 +3907,15 @@ function triggerRunFromSettings() {
   const btn = document.getElementById('s-run-now-btn');
   if (btn) btn.disabled = true;
   fetch('/api/run', {method:'POST'})
-    .then(r => r.json())
-    .then(d => {
-      setBadge('s-run-badge', true, 'Run started');
+    .then(r => r.json().then(d => ({ok: r.ok, status: r.status, data: d})))
+    .then(({ok, status, data}) => {
+      if (status === 409) {
+        setBadge('s-run-badge', false, 'Already running — use Force Reset if stuck');
+      } else if (!ok || data.error) {
+        setBadge('s-run-badge', false, data.error || ('Runner error ' + status));
+      } else {
+        setBadge('s-run-badge', true, 'Run started — see terminal tab for progress');
+      }
       setTimeout(() => { if(btn) btn.disabled = false; }, 3000);
     })
     .catch(err => { setBadge('s-run-badge', false, err.message); if(btn) btn.disabled = false; });
