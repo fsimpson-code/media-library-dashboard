@@ -115,6 +115,7 @@ def api_config():
     colors  = _member_colors(members)
     return jsonify({
         "name":                 DASHBOARD_NAME,
+        "dashboard_name":        DASHBOARD_NAME,
         "fingerprint_enabled":  FINGERPRINT_ENABLED,
         "hated_enabled":        HATED_ENABLED and FINGERPRINT_ENABLED,
         "members":              [{"name": m, "color": colors[m]} for m in members],
