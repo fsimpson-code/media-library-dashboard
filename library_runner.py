@@ -28,7 +28,7 @@ except ImportError:
     RADARR_KEY  = os.environ.get("RADARR_API_KEY", "")
     SONARR_URL  = os.environ.get("SONARR_URL",  "http://localhost:8989")
     SONARR_KEY  = os.environ.get("SONARR_API_KEY", "")
-    DB_PATH     = Path(os.environ.get("DB_PATH", "/scripts/library_history.db"))
+    DB_PATH     = Path(os.environ.get("DB_PATH", "/data/library_history.db"))
     DASHBOARD_NAME     = os.environ.get("DASHBOARD_NAME", "Media Library")
     FINGERPRINT_MEMBERS = [m.strip() for m in os.environ.get("FINGERPRINT_MEMBERS", "").split(",") if m.strip()]
 
