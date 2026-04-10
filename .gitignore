@@ -10,3 +10,4 @@ __pycache__/
 migrate_xlsx.py
 migrate.py
 patch_*.py
+docker-compose.yml
