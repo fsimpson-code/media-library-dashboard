@@ -161,6 +161,19 @@ def api_config():
         "theme_custom_btn_primary_glow":os.getenv("THEME_CUSTOM_BTN_PRIMARY_GLOW", ""),
         "font_display":                 os.getenv("FONT_DISPLAY", ""),
         "font_body":                    os.getenv("FONT_BODY", ""),
+        "dna_weight_scoreauth":         int(os.getenv("DNA_WEIGHT_SCOREAUTH", "20")),
+        "dna_weight_intent":            int(os.getenv("DNA_WEIGHT_INTENT", "20")),
+        "dna_weight_talent":            int(os.getenv("DNA_WEIGHT_TALENT", "10")),
+        "dna_weight_franchise":         int(os.getenv("DNA_WEIGHT_FRANCHISE", "15")),
+        "dna_weight_votedensity":       int(os.getenv("DNA_WEIGHT_VOTEDENSITY", "10")),
+        "dna_weight_genrefit":          int(os.getenv("DNA_WEIGHT_GENREFIT", "10")),
+        "dna_weight_audcritic":         int(os.getenv("DNA_WEIGHT_AUDCRITIC", "15")),
+        "health_weight_encode":         int(os.getenv("HEALTH_WEIGHT_ENCODE", "30")),
+        "health_weight_upgrade":        int(os.getenv("HEALTH_WEIGHT_UPGRADE", "20")),
+        "health_weight_tvcompletion":   int(os.getenv("HEALTH_WEIGHT_TVCOMPLETION", "15")),
+        "health_weight_curation":       int(os.getenv("HEALTH_WEIGHT_CURATION", "15")),
+        "health_weight_efficiency":     int(os.getenv("HEALTH_WEIGHT_EFFICIENCY", "10")),
+        "health_weight_rating":         int(os.getenv("HEALTH_WEIGHT_RATING", "10")),
     })
 
 def parse_movies():
@@ -1647,6 +1660,10 @@ def api_settings_config():
         "THEME_CUSTOM_TEXT_HEADING", "THEME_CUSTOM_TEXT_LABEL",
         "THEME_CUSTOM_LINK",
         "FONT_DISPLAY", "FONT_BODY",
+        "DNA_WEIGHT_SCOREAUTH", "DNA_WEIGHT_INTENT", "DNA_WEIGHT_TALENT",
+        "DNA_WEIGHT_FRANCHISE", "DNA_WEIGHT_VOTEDENSITY", "DNA_WEIGHT_GENREFIT", "DNA_WEIGHT_AUDCRITIC",
+        "HEALTH_WEIGHT_ENCODE", "HEALTH_WEIGHT_UPGRADE", "HEALTH_WEIGHT_TVCOMPLETION",
+        "HEALTH_WEIGHT_CURATION", "HEALTH_WEIGHT_EFFICIENCY", "HEALTH_WEIGHT_RATING",
     ]
     out = {f.lower(): _mask_val(env.get(f, ""), f) for f in fields}
     sqlite_src = env.get("DB_PATH", "")
@@ -1707,6 +1724,19 @@ def api_settings_save():
         "theme_custom_btn_primary_glow": "THEME_CUSTOM_BTN_PRIMARY_GLOW",
         "font_display": "FONT_DISPLAY",
         "font_body": "FONT_BODY",
+        "dna_weight_scoreauth": "DNA_WEIGHT_SCOREAUTH",
+        "dna_weight_intent": "DNA_WEIGHT_INTENT",
+        "dna_weight_talent": "DNA_WEIGHT_TALENT",
+        "dna_weight_franchise": "DNA_WEIGHT_FRANCHISE",
+        "dna_weight_votedensity": "DNA_WEIGHT_VOTEDENSITY",
+        "dna_weight_genrefit": "DNA_WEIGHT_GENREFIT",
+        "dna_weight_audcritic": "DNA_WEIGHT_AUDCRITIC",
+        "health_weight_encode": "HEALTH_WEIGHT_ENCODE",
+        "health_weight_upgrade": "HEALTH_WEIGHT_UPGRADE",
+        "health_weight_tvcompletion": "HEALTH_WEIGHT_TVCOMPLETION",
+        "health_weight_curation": "HEALTH_WEIGHT_CURATION",
+        "health_weight_efficiency": "HEALTH_WEIGHT_EFFICIENCY",
+        "health_weight_rating": "HEALTH_WEIGHT_RATING",
     }
     current = _read_env_file()
     for js_key, env_key in KEY_MAP.items():
