@@ -867,6 +867,89 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
 
 <script>
 
+// ── Theme system ──────────────────────────────────────────────────────────────
+const THEMES = {
+  'neon-noir': {
+    '--bg':       '#0a0a0f',
+    '--surface':  '#12121a',
+    '--accent1':  '#00e5ff',
+    '--accent2':  '#e040fb',
+    '--text':     '#e0e0ff',
+    '--muted':    '#5555aa',
+    '--positive': '#00ff9f',
+    '--warning':  '#ffcc00',
+    '--danger':   '#ff4444',
+  },
+  'arctic': {
+    '--bg':       '#0d1b2a',
+    '--surface':  '#1b2d40',
+    '--accent1':  '#4fc3f7',
+    '--accent2':  '#81d4fa',
+    '--text':     '#e0f7ff',
+    '--muted':    '#4a7fa5',
+    '--positive': '#80cbc4',
+    '--warning':  '#ffca28',
+    '--danger':   '#ef5350',
+  },
+  'amber': {
+    '--bg':       '#0f0c00',
+    '--surface':  '#1a1500',
+    '--accent1':  '#ffb300',
+    '--accent2':  '#ff8f00',
+    '--text':     '#fff8e1',
+    '--muted':    '#7a6200',
+    '--positive': '#69f0ae',
+    '--warning':  '#ffd54f',
+    '--danger':   '#ff6e40',
+  },
+  'synthwave': {
+    '--bg':       '#0d0015',
+    '--surface':  '#1a0030',
+    '--accent1':  '#ff00ff',
+    '--accent2':  '#00ffff',
+    '--text':     '#f0e0ff',
+    '--muted':    '#6600aa',
+    '--positive': '#00ff88',
+    '--warning':  '#ffee00',
+    '--danger':   '#ff2255',
+  },
+  'matrix': {
+    '--bg':       '#000a00',
+    '--surface':  '#001400',
+    '--accent1':  '#00ff41',
+    '--accent2':  '#00cc33',
+    '--text':     '#ccffcc',
+    '--muted':    '#006600',
+    '--positive': '#00ff41',
+    '--warning':  '#ffff00',
+    '--danger':   '#ff0000',
+  },
+};
+
+let _currentTheme = 'neon-noir';
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function applyTheme(name, customVars) {
+  const root = document.documentElement;
+  const vars = (name === 'custom' && customVars) ? customVars : (THEMES[name] || THEMES['neon-noir']);
+  Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+  _currentTheme = name;
+}
+
+function reRenderAll() {
+  renderEntropy();
+  if (document.getElementById('sec-movies').classList.contains('active')) {
+    renderMoviesCanvas && renderMoviesCanvas(_lastMoviesData);
+    renderTVCanvas && renderTVCanvas(_lastTVData);
+  }
+}
+
+let _lastMoviesData = null;
+let _lastTVData = null;
+
 
 // ── Bloat Hit List ────────────────────────────────────────────────────────────
 let _bloatData = null;
