@@ -3400,10 +3400,11 @@ function testService(service) {
   const urls = {radarr:'s-radarr-url',sonarr:'s-sonarr-url',jellyseerr:'s-seerr-url'};
   const keys = {radarr:'s-radarr-key',sonarr:'s-sonarr-key',jellyseerr:'s-seerr-key'};
   const badges = {radarr:'s-radarr-badge',sonarr:'s-sonarr-badge',jellyseerr:'s-seerr-badge'};
+  const rawKey = document.getElementById(keys[service]).value;
   const payload = {
     service,
     url: document.getElementById(urls[service]).value,
-    api_key: document.getElementById(keys[service]).value,
+    api_key: rawKey.startsWith('...') ? '__UNCHANGED__' : rawKey,
   };
   setBadge(badges[service], null, 'Testing...');
   fetch('/api/service/test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
