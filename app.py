@@ -492,6 +492,22 @@ def api_stream():
         },
     )
 
+@app.route("/api/run/reset", methods=["POST"])
+def api_run_reset():
+    try:
+        r = req.post(f"{RUNNER_URL}/reset", timeout=5)
+        return jsonify(r.json()), r.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
+
+@app.route("/api/run/reset", methods=["POST"])
+def api_run_reset():
+    try:
+        r = req.post(f"{RUNNER_URL}/reset", timeout=5)
+        return jsonify(r.json()), r.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503
+
 @app.route("/api/run/status")
 def api_run_status():
     try:
