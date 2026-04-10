@@ -2994,10 +2994,10 @@ function buildThemeCards(currentTheme) {
       '<div class="theme-swatch" style="background:' + vars[k] + '"></div>'
     ).join('');
     const label = name.charAt(0).toUpperCase() + name.slice(1).replace('-',' ');
-    return '<div class="theme-card' + (name === currentTheme ? ' active' : '') + '" onclick="selectThemeCard('' + name + '')" data-theme="' + name + '">'
-      + '<div class="theme-card-name">' + label + '</div>'
-      + '<div class="theme-swatches">' + swatches + '</div>'
-      + '</div>';
+    return `<div class="theme-card${name === currentTheme ? ' active' : ''}" onclick="selectThemeCard('${name}')" data-theme="${name}">`
+      + `<div class="theme-card-name">${label}</div>`
+      + `<div class="theme-swatches">${swatches}</div>`
+      + `</div>`;
   }).join('');
 }
 
