@@ -1677,8 +1677,7 @@ def api_service_test():
     url = (data.get("url") or "").rstrip("/")
     api_key = data.get("api_key", "")
     if api_key == "__UNCHANGED__":
-        env_map = {"radarr": "RADARR_API_KEY", "sonarr": "SONARR_API_KEY", "jellyseerr": "JELLYSEERR_API_KEY"}
-        api_key = os.environ.get(env_map.get(service, ""), "")
+        api_key = os.getenv("{}_API_KEY".format(service.upper()), "")
     try:
         if service in ("radarr", "sonarr"):
             r = req.get("{}/api/v3/system/status".format(url),
@@ -1686,7 +1685,7 @@ def api_service_test():
             r.raise_for_status()
             return jsonify({"ok": True, "name": r.json().get("instanceName", service.title())})
         elif service == "jellyseerr":
-            r = req.get("{}/api/v1/auth/me".format(url),
+            r = req.get("{}/api/v1/settings/main".format(url),
                         headers={"X-Api-Key": api_key}, timeout=8)
             r.raise_for_status()
             return jsonify({"ok": True, "name": r.json().get("displayName", "Jellyseerr")})
