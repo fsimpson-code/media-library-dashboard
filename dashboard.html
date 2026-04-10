@@ -19,8 +19,8 @@
   --warning:  #ffb800;
   --danger:   #ff4444;
   /* Extended theme vars (v1.2) */
-  --glow-primary:    rgba(0,229,255,.35);
-  --glow-secondary:  rgba(224,64,251,.35);
+  --glow-primary:    0 0 8px rgba(0,229,255,.55), 0 0 20px rgba(0,229,255,.25);
+  --glow-secondary:  0 0 8px rgba(224,64,251,.55), 0 0 20px rgba(224,64,251,.25);
   --border:          #1e1e3a;
   --border-accent:   #00e5ff55;
   --surface-raised:  #0a0a1c;
@@ -33,6 +33,12 @@
   --badge-bg:        #0a0a1c;
   --gradient-start:  #0a0a18;
   --gradient-end:    #12082a;
+  /* Button + text tokens */
+  --btn-primary-bg:  #001a2e;
+  --btn-primary-text:#00e5ff;
+  --text-heading:    #e0e0ff;
+  --text-label:      #8888bb;
+  --link:            #00e5ff;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{font-size:17px}
@@ -435,8 +441,8 @@ body{background:var(--bg);color:var(--text)}
 
 /* ── Extended theme CSS (v1.2) ── */
 .topbar{border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--gradient-start),var(--gradient-end))}
-.logo-main{text-shadow:0 0 22px var(--glow-primary),0 0 6px var(--glow-primary) !important}
-.logo-accent{text-shadow:0 0 20px var(--glow-secondary),0 0 6px var(--glow-secondary) !important}
+.logo-main{text-shadow:var(--glow-primary) !important}
+.logo-accent{text-shadow:var(--glow-secondary) !important}
 .tabs{border:1px solid var(--border)}
 .tab{color:var(--tab-inactive)}
 .tab.active{background:var(--tab-active-bg);color:var(--tab-active-text);text-shadow:0 0 10px var(--glow-primary)}
@@ -457,8 +463,8 @@ body{background:var(--bg);color:var(--text)}
 th{border-bottom:1px solid var(--border)}
 td{border-bottom:1px solid var(--surface-inset)}
 tr:hover td{background:var(--surface-inset)}
-.run-btn:hover:not(:disabled){box-shadow:0 0 16px var(--glow-primary)}
-.dl-btn:hover{box-shadow:0 0 16px var(--glow-secondary)}
+.run-btn:hover:not(:disabled){box-shadow:var(--glow-primary)}
+.dl-btn:hover{box-shadow:var(--glow-secondary)}
 ::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb)}
 ::-webkit-scrollbar-track{background:var(--scrollbar-track)}
 .cs-wrap{background:var(--surface-inset);border:1px solid var(--border)}
@@ -472,6 +478,12 @@ tr:hover td{background:var(--surface-inset)}
 .theme-card{background:var(--surface-raised);border:2px solid var(--border)}
 .theme-card:hover{border-color:var(--muted)}
 .theme-card.active{border-color:var(--tab-active-text)}
+.settings-btn.primary{background:var(--btn-primary-bg);color:var(--btn-primary-text);border-color:var(--btn-primary-text)}
+.settings-btn.primary:hover:not(:disabled){background:var(--btn-primary-text);color:var(--bg);box-shadow:var(--glow-primary)}
+.card-title{color:var(--tab-active-text)}
+.setting-label{color:var(--text-label)}
+.kpi-label{color:var(--text-label)}
+.settings-group-title{color:var(--tab-active-text)}
 
 /* ── Theme selector UI ── */
 .theme-cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
@@ -540,7 +552,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
   cursor:pointer;font-family:Space Grotesk,sans-serif;letter-spacing:.04em;
   transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;
   gap:4px;white-space:nowrap;line-height:1}
-.launch-btn:hover{background:var(--accent2);color:var(--bg);box-shadow:0 0 12px var(--glow-secondary);text-decoration:none}
+.launch-btn:hover{background:var(--accent2);color:var(--bg);box-shadow:var(--glow-secondary);text-decoration:none}
 .launch-btn.dim{opacity:.3;cursor:default;pointer-events:none}
 </style>
 </head>
@@ -931,6 +943,25 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
   <div class="section" id="sec-settings">
     <div class="settings-wrap" style="max-width:700px;margin:0 auto;padding:20px 0">
 
+      <!-- Library -->
+      <div class="settings-group">
+        <div class="settings-group-title">Library</div>
+        <div class="setting-row" style="align-items:flex-start">
+          <label class="setting-label" style="padding-top:6px">Library Name</label>
+          <div style="flex:1;min-width:200px">
+            <input id="s-library-name" class="setting-input" type="text" maxlength="50"
+              placeholder="Media Library Dashboard"
+              oninput="document.getElementById('s-name-count').textContent=this.value.length">
+            <div style="font-size:9px;color:var(--muted);text-align:right;margin-top:3px"><span id="s-name-count">0</span>/50</div>
+          </div>
+        </div>
+        <div class="setting-row" style="gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="saveLibraryName()">Save Name</button>
+          <span id="s-name-badge" class="test-badge"></span>
+        </div>
+      </div>
+
       <!-- Database -->
       <div class="settings-group">
         <div class="settings-group-title">Database</div>
@@ -989,6 +1020,7 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
       <!-- API Connections -->
       <div class="settings-group">
         <div class="settings-group-title">API Connections</div>
+        <p class="setting-note" style="margin-bottom:.75rem">Used by the backend for metadata and monitoring.</p>
         <div class="setting-row">
           <label class="setting-label">Radarr URL</label>
           <input id="s-radarr-url" class="setting-input" type="text" placeholder="http://localhost:7878">
@@ -1001,10 +1033,6 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <label class="setting-label"></label>
           <button class="settings-btn primary" onclick="testService('radarr')">Test Radarr</button>
           <span id="s-radarr-badge" class="test-badge"></span>
-        </div>
-        <div class="setting-row">
-          <label class="setting-label">Radarr Web UI URL</label>
-          <input id="s-radarr-webui" class="setting-input" type="text" placeholder="http://localhost:7878">
         </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Sonarr URL</label>
@@ -1019,10 +1047,6 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <button class="settings-btn primary" onclick="testService('sonarr')">Test Sonarr</button>
           <span id="s-sonarr-badge" class="test-badge"></span>
         </div>
-        <div class="setting-row">
-          <label class="setting-label">Sonarr Web UI URL</label>
-          <input id="s-sonarr-webui" class="setting-input" type="text" placeholder="http://localhost:8989">
-        </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Jellyseerr URL</label>
           <input id="s-seerr-url" class="setting-input" type="text" placeholder="http://localhost:5055">
@@ -1036,18 +1060,37 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <button class="settings-btn primary" onclick="testService('jellyseerr')">Test Jellyseerr</button>
           <span id="s-seerr-badge" class="test-badge"></span>
         </div>
+        <div class="setting-row" style="margin-top:12px;gap:8px">
+          <label class="setting-label"></label>
+          <button class="settings-btn primary" onclick="saveApiSettings()">Save API Settings</button>
+          <span id="s-api-save-badge" class="test-badge"></span>
+        </div>
+      </div>
+
+      <!-- Quick Launch URLs -->
+      <div class="settings-group">
+        <div class="settings-group-title">Quick Launch URLs</div>
+        <p class="setting-note" style="margin-bottom:.75rem">Opened in a new tab when you click the shortcut buttons in the header. Can differ from the API URL (e.g. reverse proxy vs internal IP).</p>
+        <div class="setting-row">
+          <label class="setting-label">Radarr Web UI URL</label>
+          <input id="s-radarr-webui" class="setting-input" type="text" placeholder="http://localhost:7878">
+        </div>
+        <div class="setting-row">
+          <label class="setting-label">Sonarr Web UI URL</label>
+          <input id="s-sonarr-webui" class="setting-input" type="text" placeholder="http://localhost:8989">
+        </div>
         <div class="setting-row">
           <label class="setting-label">Jellyseerr Web UI URL</label>
           <input id="s-seerr-webui" class="setting-input" type="text" placeholder="http://localhost:5055">
         </div>
-        <div class="setting-row" style="margin-top:10px">
+        <div class="setting-row">
           <label class="setting-label">qBittorrent Web UI URL</label>
           <input id="s-qbit-webui" class="setting-input" type="text" placeholder="http://localhost:8080">
         </div>
         <div class="setting-row" style="margin-top:12px;gap:8px">
           <label class="setting-label"></label>
-          <button class="settings-btn primary" onclick="saveApiSettings()">Save API Settings</button>
-          <span id="s-api-save-badge" class="test-badge"></span>
+          <button class="settings-btn primary" onclick="saveQuickLaunchUrls()">Save Quick Launch URLs</button>
+          <span id="s-ql-save-badge" class="test-badge"></span>
         </div>
       </div>
 
@@ -1106,6 +1149,12 @@ input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);
           <div class="color-picker-row"><span class="color-picker-label">Scrollbar Track</span><input id="cp-scrollbar-track" type="color" onchange="applyCustomTheme()"></div>
           <div class="color-picker-row"><span class="color-picker-label">Gradient Start</span><input id="cp-gradient-start" type="color" onchange="applyCustomTheme()"></div>
           <div class="color-picker-row"><span class="color-picker-label">Gradient End</span><input id="cp-gradient-end" type="color" onchange="applyCustomTheme()"></div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)">Buttons &amp; Text</div>
+          <div class="color-picker-row"><span class="color-picker-label">Btn Primary BG</span><input id="cp-btn-primary-bg" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Btn Primary Text</span><input id="cp-btn-primary-text" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Heading Text</span><input id="cp-text-heading" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Label Text</span><input id="cp-text-label" type="color" onchange="applyCustomTheme()"></div>
+          <div class="color-picker-row"><span class="color-picker-label">Link Color</span><input id="cp-link" type="color" onchange="applyCustomTheme()"></div>
         </div>
         <div class="setting-row" style="margin-top:10px;gap:8px">
           <label class="setting-label"></label>
@@ -1191,8 +1240,8 @@ const THEMES = {
     '--positive': '#00ff9f',
     '--warning':  '#ffcc00',
     '--danger':   '#ff4444',
-    '--glow-primary':    'rgba(0,229,255,.35)',
-    '--glow-secondary':  'rgba(224,64,251,.35)',
+    '--glow-primary':    '0 0 8px rgba(0,229,255,.55), 0 0 20px rgba(0,229,255,.25)',
+    '--glow-secondary':  '0 0 8px rgba(224,64,251,.55), 0 0 20px rgba(224,64,251,.25)',
     '--border':          '#1e1e3a',
     '--border-accent':   '#00e5ff55',
     '--surface-raised':  '#0a0a1c',
@@ -1205,6 +1254,11 @@ const THEMES = {
     '--badge-bg':        '#0a0a1c',
     '--gradient-start':  '#0a0a18',
     '--gradient-end':    '#12082a',
+    '--btn-primary-bg':  '#001a2e',
+    '--btn-primary-text':'#00e5ff',
+    '--text-heading':    '#e0e0ff',
+    '--text-label':      '#8888bb',
+    '--link':            '#00e5ff',
   },
   'arctic': {
     '--bg':       '#0d1b2a',
@@ -1216,8 +1270,8 @@ const THEMES = {
     '--positive': '#80cbc4',
     '--warning':  '#ffca28',
     '--danger':   '#ef5350',
-    '--glow-primary':    'rgba(79,195,247,.35)',
-    '--glow-secondary':  'rgba(129,212,250,.3)',
+    '--glow-primary':    '0 0 8px rgba(79,195,247,.5), 0 0 18px rgba(79,195,247,.2)',
+    '--glow-secondary':  '0 0 6px rgba(129,212,250,.45), 0 0 16px rgba(129,212,250,.2)',
     '--border':          '#1e3a52',
     '--border-accent':   '#4fc3f755',
     '--surface-raised':  '#182a3a',
@@ -1230,6 +1284,11 @@ const THEMES = {
     '--badge-bg':        '#182a3a',
     '--gradient-start':  '#0d1b2a',
     '--gradient-end':    '#122030',
+    '--btn-primary-bg':  '#0d2035',
+    '--btn-primary-text':'#4fc3f7',
+    '--text-heading':    '#e0f7ff',
+    '--text-label':      '#4a7fa5',
+    '--link':            '#4fc3f7',
   },
   'amber': {
     '--bg':       '#0f0c00',
@@ -1241,8 +1300,8 @@ const THEMES = {
     '--positive': '#69f0ae',
     '--warning':  '#ffd54f',
     '--danger':   '#ff6e40',
-    '--glow-primary':    'rgba(255,179,0,.35)',
-    '--glow-secondary':  'rgba(255,143,0,.3)',
+    '--glow-primary':    '0 0 8px rgba(255,179,0,.55), 0 0 20px rgba(255,179,0,.25)',
+    '--glow-secondary':  '0 0 6px rgba(255,143,0,.45), 0 0 16px rgba(255,143,0,.2)',
     '--border':          '#2a1f00',
     '--border-accent':   '#ffb30055',
     '--surface-raised':  '#1a1500',
@@ -1255,6 +1314,11 @@ const THEMES = {
     '--badge-bg':        '#1a1500',
     '--gradient-start':  '#0f0c00',
     '--gradient-end':    '#1a1200',
+    '--btn-primary-bg':  '#1a1000',
+    '--btn-primary-text':'#ffb300',
+    '--text-heading':    '#fff8e1',
+    '--text-label':      '#7a6200',
+    '--link':            '#ffb300',
   },
   'synthwave': {
     '--bg':       '#0d0015',
@@ -1266,8 +1330,8 @@ const THEMES = {
     '--positive': '#00ff88',
     '--warning':  '#ffee00',
     '--danger':   '#ff2255',
-    '--glow-primary':    'rgba(255,0,255,.4)',
-    '--glow-secondary':  'rgba(0,255,255,.35)',
+    '--glow-primary':    '0 0 10px rgba(255,0,255,.6), 0 0 24px rgba(255,0,255,.3)',
+    '--glow-secondary':  '0 0 10px rgba(0,255,255,.5), 0 0 22px rgba(0,255,255,.25)',
     '--border':          '#2a0040',
     '--border-accent':   '#ff00ff55',
     '--surface-raised':  '#1a0030',
@@ -1280,6 +1344,11 @@ const THEMES = {
     '--badge-bg':        '#1a0030',
     '--gradient-start':  '#0d0015',
     '--gradient-end':    '#12001e',
+    '--btn-primary-bg':  '#1a0035',
+    '--btn-primary-text':'#ff00ff',
+    '--text-heading':    '#f0e0ff',
+    '--text-label':      '#6600aa',
+    '--link':            '#00ffff',
   },
   'matrix': {
     '--bg':       '#000a00',
@@ -1291,8 +1360,8 @@ const THEMES = {
     '--positive': '#00ff41',
     '--warning':  '#ffff00',
     '--danger':   '#ff0000',
-    '--glow-primary':    'rgba(0,255,65,.4)',
-    '--glow-secondary':  'rgba(0,204,51,.3)',
+    '--glow-primary':    '0 0 8px rgba(0,255,65,.65), 0 0 20px rgba(0,255,65,.3)',
+    '--glow-secondary':  '0 0 6px rgba(0,204,51,.5), 0 0 16px rgba(0,204,51,.25)',
     '--border':          '#002800',
     '--border-accent':   '#00ff4155',
     '--surface-raised':  '#001400',
@@ -1305,6 +1374,11 @@ const THEMES = {
     '--badge-bg':        '#001400',
     '--gradient-start':  '#000a00',
     '--gradient-end':    '#001000',
+    '--btn-primary-bg':  '#001800',
+    '--btn-primary-text':'#00ff41',
+    '--text-heading':    '#ccffcc',
+    '--text-label':      '#006600',
+    '--link':            '#00ff41',
   },
 };
 
@@ -3115,7 +3189,8 @@ fetch('/api/config')
        '--glow-primary','--glow-secondary','--border','--border-accent',
        '--surface-raised','--surface-inset','--tab-active-bg','--tab-active-text',
        '--tab-inactive','--scrollbar-thumb','--scrollbar-track','--badge-bg',
-       '--gradient-start','--gradient-end'].forEach(k => { cv[k] = _tcv(k); });
+       '--gradient-start','--gradient-end',
+       '--btn-primary-bg','--btn-primary-text','--text-heading','--text-label','--link'].forEach(k => { cv[k] = _tcv(k); });
         applyTheme('custom', cv);
       } else {
         applyTheme(t);
@@ -3434,6 +3509,11 @@ function applyCustomTheme() {
     '--badge-bg':        _cpv('cp-badge-bg'),
     '--gradient-start':  _cpv('cp-gradient-start'),
     '--gradient-end':    _cpv('cp-gradient-end'),
+    '--btn-primary-bg':  _cpv('cp-btn-primary-bg'),
+    '--btn-primary-text':_cpv('cp-btn-primary-text'),
+    '--text-heading':    _cpv('cp-text-heading'),
+    '--text-label':      _cpv('cp-text-label'),
+    '--link':            _cpv('cp-link'),
   };
   applyTheme('custom', cv);
   reRenderAll();
@@ -3465,6 +3545,11 @@ function populateCustomPickers(cfg) {
     'cp-badge-bg':        cfg.theme_custom_badge_bg       || defaults['--badge-bg'],
     'cp-gradient-start':  cfg.theme_custom_gradient_start || defaults['--gradient-start'],
     'cp-gradient-end':    cfg.theme_custom_gradient_end   || defaults['--gradient-end'],
+    'cp-btn-primary-bg':  cfg.theme_custom_btn_primary_bg  || defaults['--btn-primary-bg'],
+    'cp-btn-primary-text':cfg.theme_custom_btn_primary_text|| defaults['--btn-primary-text'],
+    'cp-text-heading':    cfg.theme_custom_text_heading    || defaults['--text-heading'],
+    'cp-text-label':      cfg.theme_custom_text_label      || defaults['--text-label'],
+    'cp-link':            cfg.theme_custom_link            || defaults['--link'],
   };
   Object.entries(map).forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -3500,12 +3585,18 @@ function saveThemeSettings() {
     payload.theme_custom_badge_bg       = _sv('cp-badge-bg');
     payload.theme_custom_gradient_start = _sv('cp-gradient-start');
     payload.theme_custom_gradient_end   = _sv('cp-gradient-end');
+    payload.theme_custom_btn_primary_bg  = _sv('cp-btn-primary-bg');
+    payload.theme_custom_btn_primary_text= _sv('cp-btn-primary-text');
+    payload.theme_custom_text_heading    = _sv('cp-text-heading');
+    payload.theme_custom_text_label      = _sv('cp-text-label');
+    payload.theme_custom_link            = _sv('cp-link');
   } else {
     // Clear custom values when not using custom
     ['bg','surface','accent1','accent2','text','muted','positive','warning','danger',
      'glow_primary','glow_secondary','border','border_accent','surface_raised','surface_inset',
      'tab_active_bg','tab_active_text','tab_inactive','scrollbar_thumb','scrollbar_track',
-     'badge_bg','gradient_start','gradient_end'].forEach(k => {
+     'badge_bg','gradient_start','gradient_end',
+     'btn_primary_bg','btn_primary_text','text_heading','text_label','link'].forEach(k => {
       payload['theme_custom_' + k] = '';
     });
   }
@@ -3524,6 +3615,12 @@ function loadSettings() {
   fetch('/api/settings/config')
     .then(r => r.json())
     .then(cfg => {
+      // Library name
+      const libEl = document.getElementById('s-library-name');
+      if (libEl) {
+        libEl.value = cfg.dashboard_name || '';
+        document.getElementById('s-name-count').textContent = (cfg.dashboard_name || '').length;
+      }
       // DB fields
       const dbType = cfg.db_type || 'sqlite';
       document.getElementById('s-db-type').value = dbType;
@@ -3673,6 +3770,15 @@ function saveApiSettings() {
     sonarr_api_key: document.getElementById('s-sonarr-key').value,
     jellyseerr_url: document.getElementById('s-seerr-url').value,
     jellyseerr_api_key: document.getElementById('s-seerr-key').value,
+  };
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r => r.json())
+    .then(d => setBadge('s-api-save-badge', d.ok, d.ok ? 'Saved' : d.error))
+    .catch(err => setBadge('s-api-save-badge', false, err.message));
+}
+
+function saveQuickLaunchUrls() {
+  const payload = {
     radarr_webui_url:     (document.getElementById('s-radarr-webui') || {}).value || '',
     sonarr_webui_url:     (document.getElementById('s-sonarr-webui') || {}).value || '',
     jellyseerr_webui_url: (document.getElementById('s-seerr-webui')  || {}).value || '',
@@ -3680,8 +3786,11 @@ function saveApiSettings() {
   };
   fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(r => r.json())
-    .then(d => setBadge('s-api-save-badge', d.ok, d.ok ? 'Saved' : d.error))
-    .catch(err => setBadge('s-api-save-badge', false, err.message));
+    .then(d => {
+      setBadge('s-ql-save-badge', d.ok, d.ok ? 'Saved' : d.error);
+      if (d.ok) initLaunchButtons(Object.assign({}, _appConfig, payload));
+    })
+    .catch(err => setBadge('s-ql-save-badge', false, err.message));
 }
 
 function saveImdbSettings() {
@@ -3726,6 +3835,31 @@ function saveWeights() {
   setTimeout(() => setBadge('s-weights-badge', true, 'Saved (UI only — backend in next release)'), 400);
 }
 
+
+function saveLibraryName() {
+  const el = document.getElementById('s-library-name');
+  const name = el ? el.value.trim() : '';
+  if (!name) { setBadge('s-name-badge', false, 'Name cannot be empty'); return; }
+  fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({dashboard_name: name})})
+    .then(r => r.json())
+    .then(d => {
+      setBadge('s-name-badge', d.ok, d.ok ? 'Saved' : d.error);
+      if (d.ok) {
+        // Apply immediately
+        document.title = name;
+        const parts = name.split(' ');
+        const lm = document.getElementById('logo-main');
+        const la = document.getElementById('logo-accent');
+        if (lm && la) {
+          lm.textContent = parts.slice(0,-1).join(' ') || name;
+          la.textContent = parts.length > 1 ? parts[parts.length-1] : '';
+        }
+        if (_appConfig) _appConfig.name = name;
+      }
+    })
+    .catch(err => setBadge('s-name-badge', false, err.message));
+}
 
 function saveDisplayPrefs() {
   const payload = {
