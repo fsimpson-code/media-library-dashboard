@@ -120,6 +120,7 @@ def api_config():
         "members":              [{"name": m, "color": colors[m]} for m in members],
         "seerr_url":            SEERR_URL,
         "version":              __version__,
+        "default_tab":          os.getenv("DEFAULT_TAB", "movies"),
     })
 
 def parse_movies():
