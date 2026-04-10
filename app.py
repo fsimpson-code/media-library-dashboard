@@ -1578,6 +1578,9 @@ def api_settings_config():
         "JELLYSEERR_URL", "JELLYSEERR_API_KEY",
         "IMDB_BASICS_PATH", "IMDB_RATINGS_PATH",
         "DEFAULT_TAB", "ROWS_PER_TABLE",
+        "THEME", "THEME_CUSTOM_BG", "THEME_CUSTOM_SURFACE", "THEME_CUSTOM_ACCENT1",
+        "THEME_CUSTOM_ACCENT2", "THEME_CUSTOM_TEXT", "THEME_CUSTOM_MUTED",
+        "THEME_CUSTOM_POSITIVE", "THEME_CUSTOM_WARNING", "THEME_CUSTOM_DANGER",
     ]
     out = {f.lower(): _mask_val(env.get(f, ""), f) for f in fields}
     sqlite_src = env.get("DB_PATH", "")
