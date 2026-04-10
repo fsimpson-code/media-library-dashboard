@@ -26,7 +26,7 @@ try:
     from config import DB_PATH as _CFG_DB
     DB_PATH = Path(_CFG_DB)
 except ImportError:
-    DB_PATH = Path(os.environ.get("DB_PATH", "/scripts/library_history.db"))
+    DB_PATH = Path(os.environ.get("DB_PATH", "/data/library_history.db"))
 
 # ── Run state ─────────────────────────────────────────────────────────────────
 _lock        = threading.Lock()
