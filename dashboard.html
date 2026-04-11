@@ -479,9 +479,6 @@ tr:hover td{background:var(--surface-inset)}
 .filter-input{background:var(--surface-inset);border:1px solid var(--border)}
 .filter-input:focus{border-color:var(--border-accent)}
 .terminal{background:var(--surface-inset);border:1px solid var(--border)}
-.theme-card{background:var(--surface-raised);border:2px solid var(--border)}
-.theme-card:hover{border-color:var(--muted)}
-.theme-card.active{border-color:var(--tab-active-text)}
 .settings-btn.primary{background:var(--btn-primary-bg);color:var(--btn-primary-text);border-color:var(--btn-primary-text)}
 .settings-btn.primary:hover:not(:disabled){background:var(--btn-primary-text);color:var(--bg);box-shadow:var(--glow-primary)}
 .card-title{color:var(--tab-active-text)}
@@ -491,9 +488,9 @@ tr:hover td{background:var(--surface-inset)}
 
 /* ── Theme selector UI ── */
 .theme-cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
-.theme-card{cursor:pointer;border:2px solid transparent;border-radius:6px;padding:.5rem .75rem;background:var(--bg);transition:all .2s;min-width:90px;text-align:center}
+.theme-card{cursor:pointer;border:2px solid var(--border);border-radius:6px;padding:.5rem .75rem;background:var(--surface-raised);transition:all .2s;min-width:90px;text-align:center}
 .theme-card:hover{border-color:var(--muted)}
-.theme-card.active{border-color:var(--accent2)}
+.theme-card.active{border-color:var(--tab-active-text)}
 .theme-card-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text);margin-bottom:.4rem}
 .theme-swatches{display:flex;justify-content:center;gap:4px}
 .theme-swatch{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.1)}
@@ -3892,10 +3889,13 @@ function loadSettings() {
       if (_sEl('s-seerr-webui'))  _sEl('s-seerr-webui').value  = cfg.jellyseerr_webui_url || '';
       if (_sEl('s-qbit-webui'))   _sEl('s-qbit-webui').value   = cfg.qbit_webui_url || '';
       // IMDb
-      document.getElementById('s-imdb-basics').value = cfg.imdb_basics_path || '';
-      document.getElementById('s-imdb-ratings').value = cfg.imdb_ratings_path || '';
+      const _iBasics = document.getElementById('s-imdb-basics');
+      const _iRatings = document.getElementById('s-imdb-ratings');
+      const _iLast = document.getElementById('s-imdb-last');
+      if (_iBasics) _iBasics.value = cfg.imdb_basics_path || '';
+      if (_iRatings) _iRatings.value = cfg.imdb_ratings_path || '';
       const lb = cfg.imdb_last_built;
-      document.getElementById('s-imdb-last').textContent = lb ? lb : 'Never built';
+      if (_iLast) _iLast.textContent = lb ? lb : 'Never built';
       // Theme
       buildThemeCards(cfg.theme || 'neon-noir');
       populateCustomPickers(cfg);
@@ -4054,8 +4054,8 @@ function saveQuickLaunchUrls() {
 
 function saveImdbSettings() {
   const payload = {
-    imdb_basics_path: document.getElementById('s-imdb-basics').value,
-    imdb_ratings_path: document.getElementById('s-imdb-ratings').value,
+    imdb_basics_path: (document.getElementById('s-imdb-basics') || {}).value || '',
+    imdb_ratings_path: (document.getElementById('s-imdb-ratings') || {}).value || '',
   };
   fetch('/api/settings/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(r => r.json())
