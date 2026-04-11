@@ -3634,14 +3634,14 @@ function buildThemeCards(currentTheme) {
       + `</div>`;
   }).join('');
   const customPanel = document.getElementById('s-custom-colors');
-  if (customPanel) customPanel.style.display = currentTheme === 'custom' ? '' : 'none';
+  if (customPanel) customPanel.style.display = currentTheme === 'custom' ? 'block' : 'none';
 }
 
 function selectThemeCard(name) {
   document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === name));
   _currentTheme = name;
   const customPanel = document.getElementById('s-custom-colors');
-  if (customPanel) customPanel.style.display = name === 'custom' ? '' : 'none';
+  if (customPanel) customPanel.style.display = name === 'custom' ? 'block' : 'none';
   if (name === 'custom') {
     applyCustomTheme();
   } else {
@@ -3915,10 +3915,8 @@ function loadSettings() {
         if (el) { el.value = cfg['health_weight_' + k] || healthDefaults[k]; }
       });
       healthWeightUpdate();
-      if (cfg.theme === 'custom') {
-        const customPanel = document.getElementById('s-custom-colors');
-        if (customPanel) customPanel.style.display = '';
-      }
+      const customPanel = document.getElementById('s-custom-colors');
+      if (customPanel) customPanel.style.display = cfg.theme === 'custom' ? 'block' : 'none';
       // Display prefs
       if (cfg.default_tab) document.getElementById('s-default-tab').value = cfg.default_tab;
       if (cfg.rows_per_table) document.getElementById('s-rows-per-table').value = cfg.rows_per_table;
