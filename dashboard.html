@@ -479,7 +479,6 @@ tr:hover td{background:var(--surface-inset)}
 .filter-input{background:var(--surface-inset);border:1px solid var(--border)}
 .filter-input:focus{border-color:var(--border-accent)}
 .terminal{background:var(--surface-inset);border:1px solid var(--border)}
-.custom-colors{background:var(--surface-inset);border:1px solid var(--border)}
 .theme-card{background:var(--surface-raised);border:2px solid var(--border)}
 .theme-card:hover{border-color:var(--muted)}
 .theme-card.active{border-color:var(--tab-active-text)}
@@ -498,7 +497,7 @@ tr:hover td{background:var(--surface-inset)}
 .theme-card-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text);margin-bottom:.4rem}
 .theme-swatches{display:flex;justify-content:center;gap:4px}
 .theme-swatch{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.1)}
-.custom-colors{display:none;margin-top:.75rem;padding:1rem;background:var(--bg);border:1px solid rgba(255,255,255,.08);border-radius:4px}
+.custom-colors{display:none;margin-top:.75rem;padding:1rem;background:var(--surface-inset);border:1px solid var(--border);border-radius:4px}
 .color-picker-row{display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap}
 .color-picker-label{font-size:11px;color:var(--muted);min-width:140px}
 input[type=color]{width:36px;height:28px;border:1px solid rgba(255,255,255,.15);border-radius:3px;cursor:pointer;background:none;padding:1px}
@@ -3637,18 +3636,19 @@ function buildThemeCards(currentTheme) {
       + `<div class="theme-swatches">${swatches}</div>`
       + `</div>`;
   }).join('');
+  const customPanel = document.getElementById('s-custom-colors');
+  if (customPanel) customPanel.style.display = currentTheme === 'custom' ? '' : 'none';
 }
 
 function selectThemeCard(name) {
   document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === name));
   _currentTheme = name;
   const customPanel = document.getElementById('s-custom-colors');
-  if (customPanel) customPanel.style.display = name === 'custom' ? 'block' : 'none';
+  if (customPanel) customPanel.style.display = name === 'custom' ? '' : 'none';
   if (name === 'custom') {
     applyCustomTheme();
   } else {
     applyTheme(name);
-    reRenderAll();
   }
 }
 
