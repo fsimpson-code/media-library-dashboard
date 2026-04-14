@@ -1749,6 +1749,10 @@ def api_settings_save():
         ENV_PATH.write_text("\n".join("{}={}".format(k, v) for k, v in current.items()) + "\n")
         for k, v in current.items():
             os.environ[k] = v
+        # Update module-level globals that are read directly (not via os.getenv)
+        global DASHBOARD_NAME
+        if "DASHBOARD_NAME" in current:
+            DASHBOARD_NAME = current["DASHBOARD_NAME"]
         with _engine_lock:
             _engine = None
         return jsonify({"ok": True})
