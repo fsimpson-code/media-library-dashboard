@@ -446,6 +446,9 @@ body{background:var(--bg);color:var(--text)}
 
 /* ── Extended theme CSS (v1.2) ── */
 .topbar{border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--gradient-start),var(--gradient-end))}
+@keyframes kitt-scan{0%{left:-10%}50%{left:110%}100%{left:-10%}}
+[data-theme="knight-rider"] .topbar{position:relative;overflow:hidden}
+[data-theme="knight-rider"] .topbar::after{content:'';position:absolute;top:0;left:-10%;width:10%;height:100%;background:linear-gradient(90deg,transparent,rgba(204,0,0,.15),rgba(204,0,0,.6),rgba(255,60,0,.8),rgba(204,0,0,.6),rgba(204,0,0,.15),transparent);box-shadow:0 0 18px 6px rgba(204,0,0,.5),0 0 40px 10px rgba(204,0,0,.2);animation:kitt-scan 3s ease-in-out infinite;pointer-events:none;z-index:10}
 .logo-main{text-shadow:var(--glow-primary) !important}
 .logo-accent{text-shadow:var(--glow-secondary) !important}
 .tabs{border:1px solid var(--border)}
@@ -1575,6 +1578,7 @@ function applyTheme(name, customVars) {
   const vars = (name === 'custom' && customVars) ? customVars : (THEMES[name] || THEMES['neon-noir']);
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
   _currentTheme = name;
+  document.body.setAttribute('data-theme', name);
 }
 
 let _lastRuns = null;
