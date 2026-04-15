@@ -409,20 +409,41 @@ def compute_dna_scores(movies, talent_data, run_id, con):
     except Exception as _e:
         print(f"  D2 WARNING: Jellyseer DB unavailable ({_e}) — request bonus skipped")
 
-    # C. Plex: (title_lower, year) → {family_viewers, any_rewatch, has_any_play}
+    # C. Plex: title_lower → {family_viewers, any_rewatch, has_any_play}
+    #    Primary join: metadata_item_views → metadata_items via guid
+    #    Fallback: unmatched guids use miv.title directly (recovers films only
+    #              on other Plex servers like Predator, Dances with Wolves, Taken)
     plex_plays = {}
     try:
         _pc = _ro(_PLEX_DB)
-        _raw = {}   # (title_lower, year) → {account_id: view_count}
-        for title, year, acct_id, view_count in _pc.execute("""
-            SELECT mi.title, mi.year, miv.account_id, COUNT(*) as vc
+        _raw = {}   # title_lower → {account_id: view_count}
+
+        # Primary: guid join gives authoritative titles
+        for title, acct_id, view_count in _pc.execute("""
+            SELECT mi.title, miv.account_id, COUNT(*) as vc
             FROM metadata_item_views miv
             JOIN metadata_items mi ON mi.guid = miv.guid
             WHERE miv.metadata_type = 1
-            GROUP BY mi.title, mi.year, miv.account_id
+            GROUP BY mi.title, miv.account_id
         """).fetchall():
-            key = ((title or "").lower().strip(), year or 0)
+            key = (title or "").lower().strip()
             _raw.setdefault(key, {})[acct_id] = view_count
+
+        # Fallback: guids not present in local metadata_items — use miv.title
+        for title, acct_id, view_count in _pc.execute("""
+            SELECT miv.title, miv.account_id, COUNT(*) as vc
+            FROM metadata_item_views miv
+            WHERE miv.metadata_type = 1
+              AND miv.title IS NOT NULL AND miv.title != ''
+              AND NOT EXISTS (
+                  SELECT 1 FROM metadata_items mi WHERE mi.guid = miv.guid
+              )
+            GROUP BY miv.title, miv.account_id
+        """).fetchall():
+            key = (title or "").lower().strip()
+            if key:
+                _raw.setdefault(key, {})[acct_id] = view_count
+
         _pc.close()
         for key, acct_counts in _raw.items():
             plex_plays[key] = {
@@ -458,7 +479,7 @@ def compute_dna_scores(movies, talent_data, run_id, con):
 
         # Base: was this grabbed intentionally?
         _src = radarr_source.get(imdb_id)
-        d2 = 40.0 if _src in ("UserInvokedSearch", "InteractiveSearch") else 10.0
+        d2 = 60.0 if _src in ("UserInvokedSearch", "InteractiveSearch") else 10.0
 
         # Jellyseer request bonus (someone explicitly asked for it)
         _tmdb = m.get("tmdb_id") or tmdb_map.get(imdb_id)
@@ -470,7 +491,7 @@ def compute_dna_scores(movies, talent_data, run_id, con):
                 d2 += 30.0
 
         # Plex play bonus (family actually watched it)
-        _pkey = ((m.get("title") or "").lower().strip(), m.get("year") or 0)
+        _pkey = (m.get("title") or "").lower().strip()
         _plays = plex_plays.get(_pkey, {})
         _fv = _plays.get("family_viewers", 0)
         if   _fv >= 3: d2 += 35.0
