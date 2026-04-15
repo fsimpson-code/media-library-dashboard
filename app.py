@@ -1110,7 +1110,7 @@ def parse_dna():
     # Best films (top 20)
     cur = con.execute("""
         SELECT title, imdb_id, final_score, grade, teacher_note,
-               d1_score, d2_score, d3_score, d4_score, d5_score, d6_score, d7_score
+               d1_score, d2_score, d3_score, d4_score, d5_score, d6_score
         FROM dna_scores WHERE run_id = ?
         ORDER BY final_score DESC LIMIT 20
     """, (run_id,))
@@ -1119,7 +1119,7 @@ def parse_dna():
     # Worst films (bottom 20)
     cur = con.execute("""
         SELECT title, imdb_id, final_score, grade, teacher_note,
-               d1_score, d2_score, d3_score, d4_score, d5_score, d6_score, d7_score
+               d1_score, d2_score, d3_score, d4_score, d5_score, d6_score
         FROM dna_scores WHERE run_id = ?
         ORDER BY final_score ASC LIMIT 20
     """, (run_id,))
@@ -1172,19 +1172,17 @@ def parse_dna():
     # Library-wide dimension averages
     cur = con.execute("""
         SELECT AVG(d1_score) as d1, AVG(d2_score) as d2, AVG(d3_score) as d3,
-               AVG(d4_score) as d4, AVG(d5_score) as d5, AVG(d6_score) as d6,
-               AVG(d7_score) as d7
+               AVG(d4_score) as d4, AVG(d5_score) as d5, AVG(d6_score) as d6
         FROM dna_scores WHERE run_id = ?
     """, (run_id,))
     dim_row = cur.fetchone()
     dimensions = [
-        {"key": "d1", "label": "Score Authenticity",   "weight": 20, "score": round(dim_row["d1"] or 0, 1)},
-        {"key": "d2", "label": "Intentionality",        "weight": 20, "score": round(dim_row["d2"] or 0, 1)},
+        {"key": "d1", "label": "Score Authenticity",   "weight": 25, "score": round(dim_row["d1"] or 0, 1)},
+        {"key": "d2", "label": "Intentionality",        "weight": 25, "score": round(dim_row["d2"] or 0, 1)},
         {"key": "d3", "label": "Talent Crossover",      "weight": 10, "score": round(dim_row["d3"] or 0, 1)},
-        {"key": "d4", "label": "Franchise Context",     "weight": 15, "score": round(dim_row["d4"] or 0, 1)},
+        {"key": "d4", "label": "Franchise Context",     "weight": 20, "score": round(dim_row["d4"] or 0, 1)},
         {"key": "d5", "label": "Vote Density by Era",   "weight": 10, "score": round(dim_row["d5"] or 0, 1)},
         {"key": "d6", "label": "Genre Coherence",       "weight": 10, "score": round(dim_row["d6"] or 0, 1)},
-        {"key": "d7", "label": "Audience vs Critics",   "weight": 15, "score": round(dim_row["d7"] or 0, 1)},
     ]
 
     # Expulsion list — D/F films that carry at least one *-hate tag

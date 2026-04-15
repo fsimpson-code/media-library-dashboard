@@ -1244,13 +1244,13 @@ a{color:var(--link)}
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Weights must total exactly 100. Each slider adjusts one component of the DNA score calculation.</div>
         <div class="setting-row" style="align-items:center">
           <label class="setting-label" style="min-width:140px">D1 Score Authority</label>
-          <input type="range" id="dna-w-scoreauth" min="0" max="100" value="20" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-scoreauth" style="min-width:32px;text-align:right;font-size:12px">20</span>
+          <input type="range" id="dna-w-scoreauth" min="0" max="100" value="25" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-scoreauth" style="min-width:32px;text-align:right;font-size:12px">25</span>
         </div>
         <div class="setting-row" style="align-items:center">
           <label class="setting-label" style="min-width:140px">D2 Intent</label>
-          <input type="range" id="dna-w-intent" min="0" max="100" value="20" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-intent" style="min-width:32px;text-align:right;font-size:12px">20</span>
+          <input type="range" id="dna-w-intent" min="0" max="100" value="25" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-intent" style="min-width:32px;text-align:right;font-size:12px">25</span>
         </div>
         <div class="setting-row" style="align-items:center">
           <label class="setting-label" style="min-width:140px">D3 Talent</label>
@@ -1259,8 +1259,8 @@ a{color:var(--link)}
         </div>
         <div class="setting-row" style="align-items:center">
           <label class="setting-label" style="min-width:140px">D4 Franchise</label>
-          <input type="range" id="dna-w-franchise" min="0" max="100" value="15" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-franchise" style="min-width:32px;text-align:right;font-size:12px">15</span>
+          <input type="range" id="dna-w-franchise" min="0" max="100" value="20" style="flex:1" oninput="dnaWeightUpdate()">
+          <span id="dna-v-franchise" style="min-width:32px;text-align:right;font-size:12px">20</span>
         </div>
         <div class="setting-row" style="align-items:center">
           <label class="setting-label" style="min-width:140px">D5 Vote Density</label>
@@ -1271,11 +1271,6 @@ a{color:var(--link)}
           <label class="setting-label" style="min-width:140px">D6 Genre Fit</label>
           <input type="range" id="dna-w-genrefit" min="0" max="100" value="10" style="flex:1" oninput="dnaWeightUpdate()">
           <span id="dna-v-genrefit" style="min-width:32px;text-align:right;font-size:12px">10</span>
-        </div>
-        <div class="setting-row" style="align-items:center">
-          <label class="setting-label" style="min-width:140px">D7 Aud / Critic</label>
-          <input type="range" id="dna-w-audcritic" min="0" max="100" value="15" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-audcritic" style="min-width:32px;text-align:right;font-size:12px">15</span>
         </div>
         <div class="setting-row" style="gap:8px;margin-top:8px">
           <label class="setting-label"></label>
@@ -2888,7 +2883,7 @@ const RADARR_BASE = 'http://localhost:7878';
   if (dimWrap && data.dimensions) {
     const dimColors = {
       d1:'#00e5ff', d2:'#e040fb', d3:'#00ff9f',
-      d4:'#ffcc00', d5:'#b060ff', d6:'#ff9f40', d7:'#ff6b6b'
+      d4:'#ffcc00', d5:'#b060ff', d6:'#ff9f40'
     };
     const dimDesc = {
       d1: "IMDb rating weighted by vote count — high score needs both quality and consensus",
@@ -2897,7 +2892,6 @@ const RADARR_BASE = 'http://localhost:7878';
       d4: "Franchise completeness — standalone films score neutral, orphaned sequels score low",
       d5: "How well-known each film is relative to its era — older films have lower baselines",
       d6: "How well each film fits the library's dominant genres — genre outliers score lower",
-      d7: "Agreement between audiences and critics — consensus hits score highest",
     };
     dimWrap.innerHTML = data.dimensions.map(d => {
       const col = dimColors[d.key] || '#8888cc';
@@ -2939,10 +2933,10 @@ const RADARR_BASE = 'http://localhost:7878';
 
   const DIM_LABELS = {
     d1_score:'Score Auth', d2_score:'Intent', d3_score:'Talent',
-    d4_score:'Franchise', d5_score:'Vote Density', d6_score:'Genre Fit', d7_score:'Aud/Critic'
+    d4_score:'Franchise', d5_score:'Vote Density', d6_score:'Genre Fit'
   };
   function dimBadges(f) {
-    const dims = ['d1_score','d2_score','d3_score','d4_score','d5_score','d6_score','d7_score'];
+    const dims = ['d1_score','d2_score','d3_score','d4_score','d5_score','d6_score'];
     const vals = dims.map(k => ({key:k, val: f[k] || 0}));
     const worst = vals.reduce((a,b) => b.val < a.val ? b : a);
     const best  = vals.reduce((a,b) => b.val > a.val ? b : a);
@@ -3935,8 +3929,8 @@ function loadSettings() {
       buildThemeCards(cfg.theme || 'neon-noir');
       populateCustomPickers(cfg);
       // Populate DNA weight sliders
-      const dnaKeys = ['scoreauth','intent','talent','franchise','votedensity','genrefit','audcritic'];
-      const dnaDefaults = {scoreauth:20,intent:20,talent:10,franchise:15,votedensity:10,genrefit:10,audcritic:15};
+      const dnaKeys = ['scoreauth','intent','talent','franchise','votedensity','genrefit'];
+      const dnaDefaults = {scoreauth:25,intent:25,talent:10,franchise:20,votedensity:10,genrefit:10};
       dnaKeys.forEach(k => {
         const el = document.getElementById('dna-w-' + k);
         if (el) { el.value = cfg['dna_weight_' + k] || dnaDefaults[k]; }
@@ -4105,7 +4099,7 @@ function rebuildImdb() {
 }
 
 function updateWeightTotal() {
-  const ids = ['sw-d1','sw-d2','sw-d3','sw-d4','sw-d5','sw-d6','sw-d7'];
+  const ids = ['sw-d1','sw-d2','sw-d3','sw-d4','sw-d5','sw-d6'];
   let total = 0;
   ids.forEach(id => {
     const el = document.getElementById(id);
@@ -4190,7 +4184,7 @@ function runMigration() {
 }
 
 function dnaWeightUpdate() {
-  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit','audcritic'];
+  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit'];
   let total = 0;
   ids.forEach(k => {
     const el = document.getElementById('dna-w-' + k);
@@ -4203,7 +4197,7 @@ function dnaWeightUpdate() {
   if (btn) btn.disabled = total !== 100;
 }
 function saveDnaWeights() {
-  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit','audcritic'];
+  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit'];
   const payload = {};
   ids.forEach(k => {
     const el = document.getElementById('dna-w-' + k);
