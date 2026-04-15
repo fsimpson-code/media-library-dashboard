@@ -1,0 +1,26 @@
+services:
+  library-dashboard:
+    image: python:3.11-slim
+    container_name: library-dashboard
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - /mnt/Speedy/docker/library-dashboard:/app
+      - /mnt/Speedy/scripts/history:/data/history:ro
+      - /mnt/Speedy/scripts/simpson_history.db:/data/simpson_history.db
+      - /mnt/Speedy/scripts/imdb_data:/data/imdb:ro
+      - /mnt/.ix-apps/app_mounts/radarr/config/radarr.db:/mnt/.ix-apps/app_mounts/radarr/config/radarr.db:ro
+      - /mnt/Speedy/Plex-Config/jellyseerr/db/db.sqlite3:/mnt/Speedy/Plex-Config/jellyseerr/db/db.sqlite3:ro
+      - /mnt/Speedy/Plex-Config/Library:/mnt/Speedy/Plex-Config/Library:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - HISTORY_DIR=/data/history
+      - RUNNER_URL=http://192.168.100.216:5757
+      - DB_PATH=/data/simpson_history.db
+    ports:
+      - "8686:8686"
+    command: >
+      bash -c "
+        pip install -r /app/requirements.txt --quiet &&
+        python3 /app/app.py
+      "

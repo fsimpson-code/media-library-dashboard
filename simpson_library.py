@@ -334,6 +334,107 @@ def compute_dna_scores(movies, talent_data, run_id, con):
 
         return " ".join(note)
 
+    # ── External DB lookups for D2 (built once before per-film loop) ─────────
+    import urllib.parse
+
+    _RADARR_DB   = "/mnt/.ix-apps/app_mounts/radarr/config/radarr.db"
+    _JELLYSEER_DB = "/mnt/Speedy/Plex-Config/jellyseerr/db/db.sqlite3"
+    _PLEX_DB     = ("/mnt/Speedy/Plex-Config/Library/Application Support/"
+                    "Plex Media Server/Plug-in Support/Databases/"
+                    "com.plexapp.plugins.library.db")
+    _PLEX_FAMILY   = {1, 29089754, 29091010, 77898712}
+    _SEER_FAMILY   = {1, 2, 3, 5}
+
+    def _ro(path):
+        """Open a SQLite DB read-only, handling spaces in path."""
+        uri = "file:" + urllib.parse.quote(path, safe="/:") + "?mode=ro"
+        return sqlite3.connect(uri, uri=True)
+
+    # A. Radarr: imdb_id → releaseSource (most recent grab) + added date + tmdb bridge
+    radarr_source = {}
+    radarr_added  = {}
+    tmdb_map      = {}
+    try:
+        _rc = _ro(_RADARR_DB)
+        for imdb_id, src in _rc.execute("""
+            SELECT mm.ImdbId, json_extract(h.Data, '$.releaseSource')
+            FROM History h
+            JOIN Movies mov ON mov.Id = h.MovieId
+            JOIN MovieMetadata mm ON mm.Id = mov.MovieMetadataId
+            WHERE h.EventType = 1
+              AND mm.ImdbId IS NOT NULL AND mm.ImdbId != ''
+            ORDER BY h.Date ASC
+        """).fetchall():
+            if imdb_id:
+                radarr_source[imdb_id] = src   # ASC order → last row = most recent
+        for imdb_id, added_str in _rc.execute("""
+            SELECT mm.ImdbId, mov.Added
+            FROM Movies mov
+            JOIN MovieMetadata mm ON mm.Id = mov.MovieMetadataId
+            WHERE mm.ImdbId IS NOT NULL AND mm.ImdbId != ''
+        """).fetchall():
+            if imdb_id and added_str:
+                try:
+                    radarr_added[imdb_id] = datetime.fromisoformat(added_str[:19])
+                except ValueError:
+                    pass
+        for imdb_id, tmdb_id in _rc.execute("""
+            SELECT ImdbId, TmdbId FROM MovieMetadata
+            WHERE ImdbId IS NOT NULL AND ImdbId != '' AND TmdbId IS NOT NULL
+        """).fetchall():
+            if imdb_id and tmdb_id:
+                tmdb_map[imdb_id] = int(tmdb_id)
+        _rc.close()
+        print(f"  D2: Radarr — {len(radarr_source)} grab sources, {len(tmdb_map)} tmdb bridges")
+    except Exception as _e:
+        print(f"  D2 WARNING: Radarr DB unavailable ({_e}) — base score defaults to 10")
+
+    # B. Jellyseer: tmdb_id (int) → "family" | "other"
+    jellyseer_requests = {}
+    try:
+        _jc = _ro(_JELLYSEER_DB)
+        for tmdb_id, req_by in _jc.execute("""
+            SELECT m.tmdbId, r.requestedById
+            FROM media_request r
+            JOIN media m ON m.id = r.mediaId
+            WHERE r.type = 'movie' AND r.status = 5
+        """).fetchall():
+            if tmdb_id is None:
+                continue
+            label = "family" if req_by in _SEER_FAMILY else "other"
+            if jellyseer_requests.get(int(tmdb_id)) != "family":
+                jellyseer_requests[int(tmdb_id)] = label
+        _jc.close()
+        print(f"  D2: Jellyseer — {len(jellyseer_requests)} movie requests indexed")
+    except Exception as _e:
+        print(f"  D2 WARNING: Jellyseer DB unavailable ({_e}) — request bonus skipped")
+
+    # C. Plex: (title_lower, year) → {family_viewers, any_rewatch, has_any_play}
+    plex_plays = {}
+    try:
+        _pc = _ro(_PLEX_DB)
+        _raw = {}   # (title_lower, year) → {account_id: view_count}
+        for title, year, acct_id, view_count in _pc.execute("""
+            SELECT mi.title, mi.year, miv.account_id, COUNT(*) as vc
+            FROM metadata_item_views miv
+            JOIN metadata_items mi ON mi.guid = miv.guid
+            WHERE miv.metadata_type = 1
+            GROUP BY mi.title, mi.year, miv.account_id
+        """).fetchall():
+            key = ((title or "").lower().strip(), year or 0)
+            _raw.setdefault(key, {})[acct_id] = view_count
+        _pc.close()
+        for key, acct_counts in _raw.items():
+            plex_plays[key] = {
+                "family_viewers": sum(1 for a in acct_counts if a in _PLEX_FAMILY),
+                "any_rewatch":    any(v > 1 for a, v in acct_counts.items()
+                                      if a in _PLEX_FAMILY),
+                "has_any_play":   True,
+            }
+        print(f"  D2: Plex — {len(plex_plays)} films with play history")
+    except Exception as _e:
+        print(f"  D2 WARNING: Plex DB unavailable ({_e}) — play bonus and neglect penalty skipped")
+
     # ── Score each film ───────────────────────────────────────────────────────
     rows = []
     for m in has_file:
@@ -350,11 +451,45 @@ def compute_dna_scores(movies, talent_data, run_id, con):
         else:
             d1 = 20.0
 
-        # ── D2: Intentionality Signal (20%) ───────────────────────────────────
+        # ── D2: Intentionality Signal (25%) ───────────────────────────────────
         tags_raw = str(m.get("tags") or "").strip()
         tag_list = [t.strip() for t in tags_raw.split(",")
                     if t.strip() and t.strip().lower() != "nan"]
-        d2 = {0: 20.0, 1: 60.0, 2: 80.0}.get(len(tag_list), 100.0)
+
+        # Base: was this grabbed intentionally?
+        _src = radarr_source.get(imdb_id)
+        d2 = 40.0 if _src in ("UserInvokedSearch", "InteractiveSearch") else 10.0
+
+        # Jellyseer request bonus (someone explicitly asked for it)
+        _tmdb = m.get("tmdb_id") or tmdb_map.get(imdb_id)
+        if _tmdb:
+            _req = jellyseer_requests.get(int(_tmdb))
+            if _req == "family":
+                d2 += 40.0
+            elif _req == "other":
+                d2 += 30.0
+
+        # Plex play bonus (family actually watched it)
+        _pkey = ((m.get("title") or "").lower().strip(), m.get("year") or 0)
+        _plays = plex_plays.get(_pkey, {})
+        _fv = _plays.get("family_viewers", 0)
+        if   _fv >= 3: d2 += 35.0
+        elif _fv == 2: d2 += 25.0
+        elif _fv == 1: d2 += 15.0
+        if _plays.get("any_rewatch"):
+            d2 += 5.0
+
+        # Tags minor signal
+        if tag_list:
+            d2 += 5.0
+
+        # Neglect penalty: 365+ days in library, never played by anyone
+        _added = radarr_added.get(imdb_id)
+        if _added and not _plays.get("has_any_play", False):
+            if (datetime.now() - _added).days >= 365:
+                d2 -= 10.0
+
+        d2 = max(0.0, min(100.0, d2))
 
         # ── D3: Talent Crossover (10%) ────────────────────────────────────────
         people = talent_data.get(imdb_id, [])
