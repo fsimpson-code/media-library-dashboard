@@ -839,12 +839,48 @@ a{color:var(--link)}
         <button class="bloat-tab" onclick="showBloatTab('efficient',this)">Most Efficient</button>
         <button class="bloat-tab" onclick="showBloatTab('x264',this)">x264 Hit List</button>
         <button class="bloat-tab" onclick="showBloatTab('container',this)">&#128230; Container</button>
+        <button class="bloat-tab" onclick="showBloatTab('requests',this)">&#127903;&#65039; Requests</button>
       </div>
       <div class="tbl-wrap">
         <table class="bloat-table" id="bl-table">
           <thead id="bl-thead"></thead>
           <tbody id="bl-tbody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- REQUEST AUDIT PANEL -->
+  <div id="req-audit-panel" style="display:none">
+    <div style="margin-bottom:12px">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+        <h2 style="font-size:15px;font-weight:800;font-family:Space Grotesk,sans-serif;color:var(--text-heading);margin:0">&#127903;&#65039; Friend Request Audit</h2>
+        <span style="font-size:10px;color:var(--muted)">All requested titles with limited or no watch activity</span>
+      </div>
+      <div id="req-stat-pills" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="req-filter-group" class="setting-select" style="font-size:10px;padding:4px 8px" onchange="renderRequestAudit(window._requestAuditData)">
+          <option value="">All Groups</option>
+          <option value="family">Family</option>
+          <option value="extended">Extended</option>
+          <option value="friend">Friends</option>
+        </select>
+        <select id="req-filter-watch" class="setting-select" style="font-size:10px;padding:4px 8px" onchange="renderRequestAudit(window._requestAuditData)">
+          <option value="">All Watch States</option>
+          <option value="unwatched">Unwatched</option>
+          <option value="requester">Requester Only</option>
+        </select>
+        <select id="req-filter-type" class="setting-select" style="font-size:10px;padding:4px 8px" onchange="renderRequestAudit(window._requestAuditData)">
+          <option value="">All Types</option>
+          <option value="movie">Movies</option>
+          <option value="tv">TV</option>
+        </select>
+      </div>
+    </div>
+    <div id="req-audit-content">
+      <div id="req-loading" style="padding:40px;text-align:center;color:var(--muted)">
+        <div style="font-size:24px;margin-bottom:8px">&#9203;</div>
+        <div>Fetching request data...</div>
       </div>
     </div>
   </div>
@@ -1653,12 +1689,18 @@ function showBloatTab(name, el) {
   document.querySelectorAll('.bloat-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   _bloatTab = name;
+  if (name !== 'requests') _reqPanel(false);
   if (name === 'container') {
     if (window._containerData) { renderBloatTable(null, 'container'); return; }
     fetch('/api/container-hitlist')
       .then(r => r.json())
       .then(data => { window._containerData = data; renderBloatTable(null, 'container'); })
       .catch(err => { document.getElementById('bl-tbody').innerHTML = `<tr><td colspan="7" style="color:#ff6b6b">Failed: ${err.message}</td></tr>`; });
+    return;
+  }
+  if (name === 'requests') {
+    if (window._requestAuditData) { renderRequestAudit(window._requestAuditData); return; }
+    loadRequestAudit();
     return;
   }
   if (_bloatData) renderBloatTable(_bloatData, name);
@@ -1736,7 +1778,183 @@ function renderBloatTable(data, tab) {
 }
 
 
-// ── Radarr one-click replace ──────────────────────────────────────────────
+// ── Request Audit ────────────────────────────────────────────────────────────
+let _requestAuditData = null;
+
+function _reqPanel(show) {
+  const p = document.getElementById('req-audit-panel');
+  const t = document.querySelector('.tbl-wrap');
+  const k = document.getElementById('bl-kpis');
+  if (p) p.style.display = show ? 'block' : 'none';
+  if (t) t.style.display = show ? 'none' : '';
+  if (k) k.style.display = show ? 'none' : '';
+}
+
+function loadRequestAudit() {
+  _reqPanel(true);
+  document.getElementById('req-loading').style.display = 'block';
+  document.getElementById('req-audit-content').innerHTML =
+    '<div id="req-loading" style="padding:40px;text-align:center;color:var(--muted)"><div style="font-size:24px;margin-bottom:8px">&#9203;</div><div>Fetching request data...</div></div>';
+  fetch('/api/requests/audit')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => {
+      window._requestAuditData = data;
+      _requestAuditData = data;
+      renderRequestAudit(data);
+    })
+    .catch(err => {
+      document.getElementById('req-audit-content').innerHTML =
+        '<div style="padding:30px;color:#ff6b6b;text-align:center">Could not load request data — check Jellyseerr connection at localhost:5055<br><small>' + err.message + '</small></div>';
+    });
+}
+
+function renderRequestAudit(data) {
+  if (!data) return;
+  _reqPanel(true);
+  const gf = document.getElementById('req-filter-group').value;
+  const wf = document.getElementById('req-filter-watch').value;
+  const tf = document.getElementById('req-filter-type').value;
+
+  let rows = data.filter(r => {
+    if (gf && r.requester_group !== gf) return false;
+    if (tf && r.media_type !== tf) return false;
+    if (wf === 'unwatched' && r.watch_count > 0) return false;
+    if (wf === 'requester' && !(r.watch_count > 0 && r.watchers.length === 1 && r.watchers[0] === r.requested_by)) return false;
+    return true;
+  });
+
+  // Stat pills
+  const totalGb = rows.reduce((a,r) => a + (r.size_gb||0), 0);
+  const unwatched = rows.filter(r => r.watch_count === 0).length;
+  const friendExt = rows.filter(r => r.requester_group === 'friend' || r.requester_group === 'extended').length;
+  const pills = [
+    {label: 'Total Requests', val: rows.length},
+    {label: 'Unwatched', val: unwatched, accent: '#ff6b6b'},
+    {label: 'Friend/Extended', val: friendExt, accent: '#ffcc00'},
+    {label: 'Total GB', val: totalGb.toFixed(1) + ' GB', accent: '#e040fb'},
+  ];
+  document.getElementById('req-stat-pills').innerHTML = pills.map(p =>
+    `<span style="background:var(--surface-raised);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:10px;font-family:JetBrains Mono,monospace;color:${p.accent||'var(--text)'}">
+      <span style="color:var(--muted);margin-right:4px">${p.label}</span>${p.val}
+    </span>`
+  ).join('');
+
+  if (rows.length === 0) {
+    document.getElementById('req-audit-content').innerHTML =
+      '<div style="padding:30px;text-align:center;color:var(--muted)">' +
+      (data.length === 0 ? 'No Jellyseerr requests found.' : 'No requests match this filter.') + '</div>';
+    return;
+  }
+
+  const groupBadgeColor = {family:'#00ff9f', extended:'#ffcc00', friend:'#ff6b6b', unknown:'#7777aa'};
+
+  const tableRows = rows.map((r, idx) => {
+    let rowBg = '';
+    if (r.days_since_request > 365) rowBg = 'background:rgba(255,45,85,.08)';
+    else if (r.days_since_request > 180) rowBg = 'background:rgba(255,204,0,.06)';
+
+    const typeBadge = r.media_type === 'movie' ? '&#127916;' : '&#128250;';
+    const gc = groupBadgeColor[r.requester_group] || '#7777aa';
+    const requesterCell = `${r.requested_by} <span style="font-size:8px;padding:1px 5px;border-radius:2px;background:${gc}22;color:${gc};border:1px solid ${gc}44;margin-left:3px">${r.requester_group}</span>`;
+
+    let watchersCell;
+    if (r.watch_count === 0) {
+      watchersCell = '<span style="color:var(--muted)">—</span>';
+    } else {
+      const names = r.watchers.join(', ');
+      const reqOnly = r.watchers.length === 1 && r.watchers[0] === r.requested_by;
+      watchersCell = names + (reqOnly ? ' <span style="color:var(--muted);font-size:9px">(requester only)</span>' : '');
+    }
+
+    let actions;
+    const jLink = `<a href="${r.jellyseerr_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:3px;background:var(--surface-inset);border:1px solid var(--border);color:var(--accent2);font-size:9px;font-weight:700;font-family:Space Grotesk,sans-serif;text-decoration:none;letter-spacing:.5px" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">&#128279; Jellyseerr</a>`;
+    if (r.media_type === 'movie') {
+      actions = jLink + ` <button onclick="raDeleteConfirm(${r.id},'${r.title.replace(/'/g,"\'")} (${r.year})',this)" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:3px;background:#1a0505;border:1px solid #ff444466;color:#ff6b6b;font-size:9px;font-weight:700;font-family:Space Grotesk,sans-serif;cursor:pointer;letter-spacing:.5px;margin-left:4px" onmouseover="this.style.background='#2a0808'" onmouseout="this.style.background='#1a0505'">&#128465;&#65039; Remove</button>`;
+    } else {
+      const sLink = r.sonarr_url ? `<a href="${r.sonarr_url}" target="_blank" style="display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:3px;background:var(--surface-inset);border:1px solid var(--border);color:var(--accent1);font-size:9px;font-weight:700;font-family:Space Grotesk,sans-serif;text-decoration:none;letter-spacing:.5px;margin-left:4px" onmouseover="this.style.borderColor='var(--accent1)'" onmouseout="this.style.borderColor='var(--border)'">&#8599; Sonarr</a>` : '';
+      actions = jLink + sLink;
+    }
+
+    return `<tr id="req-row-${r.id}" style="${rowBg}">
+      <td class="title" style="max-width:220px">${r.title} <span style="color:var(--muted);font-weight:400">(${r.year||'?'})</span></td>
+      <td style="text-align:center;font-size:14px">${typeBadge}</td>
+      <td>${requesterCell}</td>
+      <td style="color:${r.days_since_request>365?'#ff6b6b':r.days_since_request>180?'#ffcc00':'var(--muted)'};font-weight:${r.days_since_request>180?700:400}">${r.days_since_request}d</td>
+      <td style="font-size:10px">${watchersCell}</td>
+      <td style="color:#e040fb;font-weight:700">${r.size_gb} GB</td>
+      <td style="white-space:nowrap">${actions}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('req-audit-content').innerHTML = `
+    <div class="tbl-wrap">
+      <table class="bloat-table" style="width:100%">
+        <thead><tr>
+          <th>Title</th><th>Type</th><th>Requested By</th>
+          <th>Days Waiting</th><th>Watchers</th><th>Size</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+
+  // Inline confirm modal (hidden by default, appended to body once)
+  if (!document.getElementById('ra-modal')) {
+    const m = document.createElement('div');
+    m.id = 'ra-modal';
+    m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center';
+    m.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;max-width:400px;width:90%;text-align:center">
+      <div id="ra-modal-title" style="font-size:14px;font-weight:700;color:var(--text-heading);margin-bottom:8px"></div>
+      <div style="font-size:11px;color:#ff6b6b;margin-bottom:20px">This will permanently delete all files.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button onclick="document.getElementById('ra-modal').style.display='none'" style="padding:6px 18px;border-radius:4px;background:var(--surface-raised);border:1px solid var(--border);color:var(--text);font-family:Space Grotesk,sans-serif;font-weight:600;font-size:11px;cursor:pointer">Cancel</button>
+        <button id="ra-modal-confirm" style="padding:6px 18px;border-radius:4px;background:#2a0808;border:1px solid #ff4444;color:#ff6b6b;font-family:Space Grotesk,sans-serif;font-weight:700;font-size:11px;cursor:pointer">Confirm Delete</button>
+      </div>
+      <div id="ra-modal-err" style="margin-top:10px;font-size:10px;color:#ff6b6b;display:none"></div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+}
+
+function raDeleteConfirm(radarrId, titleYear, btn) {
+  const modal = document.getElementById('ra-modal');
+  document.getElementById('ra-modal-title').textContent = 'Remove ' + titleYear + ' from library?';
+  document.getElementById('ra-modal-err').style.display = 'none';
+  modal.style.display = 'flex';
+  const confirmBtn = document.getElementById('ra-modal-confirm');
+  confirmBtn.onclick = () => {
+    confirmBtn.textContent = 'Deleting...';
+    confirmBtn.disabled = true;
+    fetch('/api/radarr/delete/' + radarrId, {method: 'DELETE'})
+      .then(r => r.json())
+      .then(d => {
+        modal.style.display = 'none';
+        if (d.success) {
+          const row = document.getElementById('req-row-' + radarrId);
+          if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .4s'; setTimeout(() => row.remove(), 400); }
+          window._requestAuditData = (window._requestAuditData||[]).filter(x => x.id !== radarrId);
+          renderRequestAudit(window._requestAuditData);
+        } else {
+          const errEl = document.getElementById('ra-modal-err');
+          errEl.textContent = d.error || 'Delete failed';
+          errEl.style.display = 'block';
+          confirmBtn.textContent = 'Confirm Delete';
+          confirmBtn.disabled = false;
+          modal.style.display = 'flex';
+        }
+      })
+      .catch(err => {
+        const errEl = document.getElementById('ra-modal-err');
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        confirmBtn.textContent = 'Confirm Delete';
+        confirmBtn.disabled = false;
+        modal.style.display = 'flex';
+      });
+  };
+}
+
+
+// ── Radarr one-click replace ──────────────────────────────────────────────────
 function radarrReplace(btn) {
   const radarrId = btn.dataset.rid;
   const title = btn.dataset.title;
