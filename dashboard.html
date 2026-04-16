@@ -640,6 +640,7 @@ a{color:var(--link)}
   </div>
 
   <div class="topbar-right">
+    <span id="version-badge" style="font-size:9px;color:#33335a;font-family:JetBrains Mono,monospace;letter-spacing:.05em;align-self:flex-start;padding-top:2px"></span>
     <div class="launch-btns" id="launch-btns"></div>
     <button class="run-btn" id="run-btn" onclick="triggerRun()">
       <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg>
@@ -3457,6 +3458,8 @@ fetch('/api/config')
       logoMain.textContent   = parts.slice(0, -1).join(' ') || cfg.name;
       logoAccent.textContent = parts.length > 1 ? parts[parts.length - 1] : '';
     }
+    const vBadge = document.getElementById('version-badge');
+    if (vBadge && cfg.version) vBadge.textContent = 'v' + cfg.version;
     const loadEl = document.getElementById('loading');
     if (loadEl) loadEl.textContent = '[ Loading ' + cfg.name + '... ]';
     // Show/hide fingerprint tab
