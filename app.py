@@ -497,6 +497,50 @@ def parse_bloat():
         "x264":     x264,
     }
 
+
+@app.route("/api/container-hitlist")
+def api_container_hitlist():
+    import urllib.parse
+    def _ro(path):
+        uri = "file:" + urllib.parse.quote(path, safe="/:") + "?mode=ro"
+        import sqlite3 as _sq
+        con = _sq.connect(uri, uri=True)
+        con.row_factory = _sq.Row
+        return con
+    try:
+        rc = _ro("/mnt/.ix-apps/app_mounts/radarr/config/radarr.db")
+        rows = rc.execute("""
+            SELECT m.Id          AS radarr_id,
+                   mm.Title      AS title,
+                   mm.Year       AS year,
+                   mf.RelativePath AS rel_path,
+                   mf.Size       AS size_bytes,
+                   mf.ReleaseGroup AS release_group
+            FROM Movies m
+            JOIN MovieMetadata mm ON mm.Id = m.MovieMetadataId
+            JOIN MovieFiles    mf ON mf.MovieId = m.Id
+            WHERE mf.RelativePath NOT LIKE '%.mkv'
+            ORDER BY mm.Title COLLATE NOCASE
+        """).fetchall()
+        rc.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    result = []
+    for r in rows:
+        path = r["rel_path"] or ""
+        ext  = path.rsplit(".", 1)[-1].lower() if "." in path else "unknown"
+        result.append({
+            "radarr_id":    r["radarr_id"],
+            "title":        r["title"],
+            "year":         r["year"],
+            "ext":          ext,
+            "file_size_gb": round((r["size_bytes"] or 0) / 1_073_741_824, 2),
+            "release_group": r["release_group"] or "—",
+        })
+    return jsonify(result)
+
+
 @app.route("/api/bloat")
 def api_bloat():
     if not _has_data():
