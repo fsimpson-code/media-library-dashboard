@@ -837,6 +837,7 @@ a{color:var(--link)}
         <button class="bloat-tab active" onclick="showBloatTab('worst',this)">Worst GB/hr</button>
         <button class="bloat-tab" onclick="showBloatTab('efficient',this)">Most Efficient</button>
         <button class="bloat-tab" onclick="showBloatTab('x264',this)">x264 Hit List</button>
+        <button class="bloat-tab" onclick="showBloatTab('container',this)">&#128230; Container</button>
       </div>
       <div class="tbl-wrap">
         <table class="bloat-table" id="bl-table">
@@ -1651,6 +1652,14 @@ function showBloatTab(name, el) {
   document.querySelectorAll('.bloat-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   _bloatTab = name;
+  if (name === 'container') {
+    if (window._containerData) { renderBloatTable(null, 'container'); return; }
+    fetch('/api/container-hitlist')
+      .then(r => r.json())
+      .then(data => { window._containerData = data; renderBloatTable(null, 'container'); })
+      .catch(err => { document.getElementById('bl-tbody').innerHTML = `<tr><td colspan="7" style="color:#ff6b6b">Failed: ${err.message}</td></tr>`; });
+    return;
+  }
   if (_bloatData) renderBloatTable(_bloatData, name);
 }
 
@@ -1679,6 +1688,24 @@ function renderBloatTable(data, tab) {
         <td style="color:#44446a">${runtime}</td>
         <td style="color:#44446a;font-size:10px">${m.group || '\u2014'}</td>
         <td style="white-space:nowrap;padding:6px 8px">${m.radarr_id ? `<button data-rid="${m.radarr_id}" data-title="${m.title.replace(/"/g, '&quot;')}" onclick="radarrReplace(this)" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:3px;background:#0a2a1a;border:1px solid #00ff9f88;color:#00ff9f;font-size:9px;font-weight:700;letter-spacing:.5px;font-family:Space Grotesk,sans-serif;cursor:pointer;" onmouseover="this.style.background='#0d3520'" onmouseout="this.style.background='#0a2a1a'">&#8635; REPLACE</button>` : ''}</td>
+      </tr>`;
+    }).join('');
+  } else if (tab === 'container') {
+    thead.innerHTML = `<tr>
+      <th>#</th><th>Title</th><th>Year</th>
+      <th>Ext</th><th>Size (GB)</th><th>Release Group</th><th></th>
+    </tr>`;
+    const items = window._containerData || [];
+    tbody.innerHTML = items.map((m, i) => {
+      const extColor = {'mp4':'#ffcc00','avi':'#ff6b6b','wmv':'#ff6b6b','mov':'#ffb74d'}[m.ext] || '#aaaacc';
+      return `<tr>
+        <td style="color:#33335a">${i+1}</td>
+        <td class="title">${m.title}</td>
+        <td style="color:#44446a">${m.year || '—'}</td>
+        <td><span style="color:${extColor};font-weight:700;font-family:JetBrains Mono,monospace">${m.ext.toUpperCase()}</span></td>
+        <td style="color:#e040fb;font-weight:700">${m.file_size_gb} GB</td>
+        <td style="color:#44446a;font-size:10px">${m.release_group || '—'}</td>
+        <td style="white-space:nowrap;padding:6px 8px">${m.radarr_id ? \`<button data-rid="\${m.radarr_id}" data-title="\${m.title.replace(/"/g, '&quot;')}" onclick="radarrReplace(this)" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:3px;background:#0a2a1a;border:1px solid #00ff9f88;color:#00ff9f;font-size:9px;font-weight:700;letter-spacing:.5px;font-family:Space Grotesk,sans-serif;cursor:pointer;" onmouseover="this.style.background='#0d3520'" onmouseout="this.style.background='#0a2a1a'">&#8635; REPLACE</button>\` : ''}</td>
       </tr>`;
     }).join('');
   } else {
