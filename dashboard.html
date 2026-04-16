@@ -1705,7 +1705,7 @@ function renderBloatTable(data, tab) {
         <td><span style="color:${extColor};font-weight:700;font-family:JetBrains Mono,monospace">${m.ext.toUpperCase()}</span></td>
         <td style="color:#e040fb;font-weight:700">${m.file_size_gb} GB</td>
         <td style="color:#44446a;font-size:10px">${m.release_group || '—'}</td>
-        <td style="white-space:nowrap;padding:6px 8px">${m.radarr_id ? \`<button data-rid="\${m.radarr_id}" data-title="\${m.title.replace(/"/g, '&quot;')}" onclick="radarrReplace(this)" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:3px;background:#0a2a1a;border:1px solid #00ff9f88;color:#00ff9f;font-size:9px;font-weight:700;letter-spacing:.5px;font-family:Space Grotesk,sans-serif;cursor:pointer;" onmouseover="this.style.background='#0d3520'" onmouseout="this.style.background='#0a2a1a'">&#8635; REPLACE</button>\` : ''}</td>
+        <td style="white-space:nowrap;padding:6px 8px">${m.radarr_id ? `<button data-rid="${m.radarr_id}" data-title="${m.title.replace(/"/g, '&quot;')}" onclick="radarrReplace(this)" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:3px;background:#0a2a1a;border:1px solid #00ff9f88;color:#00ff9f;font-size:9px;font-weight:700;letter-spacing:.5px;font-family:Space Grotesk,sans-serif;cursor:pointer;" onmouseover="this.style.background='#0d3520'" onmouseout="this.style.background='#0a2a1a'">&#8635; REPLACE</button>` : ''}</td>
       </tr>`;
     }).join('');
   } else {
