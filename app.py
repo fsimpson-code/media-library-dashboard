@@ -541,6 +541,274 @@ def api_container_hitlist():
     return jsonify(result)
 
 
+
+
+# ── Request Audit helpers ─────────────────────────────────────────────────────
+_JELLY_URL  = "http://localhost:5055"
+_JELLY_KEY  = "MTc3NDAzODEzMzk2Mjg3M2Q3NjI1LWQ4M2YtNDRmMC1hNGM3LTI5MTcwYTk3ZDVkNw=="
+_PLEX_DB_RA = ("/your/nas/path/Plex-Config/Library/Application Support/"
+               "Plex Media Server/Plug-in Support/Databases/"
+               "com.plexapp.plugins.library.db")
+_HIST_DB_RA = "/data/library_history.db"
+
+_RA_USER_ROSTER = {
+    "Floyd.Simpson":    ("Floyd",   "family"),
+    "trentsimpson508":  ("Trent",   "family"),
+    "Bluesiphon":       ("Trevor",  "family"),
+    "adragon8u":        ("Mike",    "extended"),
+    "jlo150":           ("Josh",    "friend"),
+    "sguzm6":           ("Sergio",  "friend"),
+    "pinedae78":        ("Eric",    "friend"),
+}
+_RA_ACCT_DISPLAY = {
+    1:         "Floyd",
+    29089754:  "Lauren",
+    29091010:  "Trevor",
+    77898712:  "Hunter",
+    222944852: "Trent",
+    3670375:   "Mike",
+}
+_RA_SONARR_IDS = set()  # populated per-request to block delete calls
+
+
+def _ra_plex_ro():
+    import urllib.parse as _up
+    uri = "file:" + _up.quote(_PLEX_DB_RA, safe="/:") + "?mode=ro"
+    con = sqlite3.connect(uri, uri=True)
+    con.row_factory = sqlite3.Row
+    return con
+
+
+def _ra_hist_ro():
+    con = sqlite3.connect(_HIST_DB_RA)
+    con.row_factory = sqlite3.Row
+    return con
+
+
+def _ra_fetch_jelly():
+    """Fetch all Jellyseerr requests (status=5, not auto). Return list."""
+    import requests as _r
+    headers = {"X-Api-Key": _JELLY_KEY}
+    results, skip, take = [], 0, 100
+    while True:
+        try:
+            resp = _r.get(f"{_JELLY_URL}/api/v1/request",
+                          params={"take": take, "skip": skip, "sort": "added", "filter": "all"},
+                          headers=headers, timeout=15)
+            resp.raise_for_status()
+        except Exception as e:
+            raise RuntimeError(f"Jellyseerr unreachable: {e}")
+        batch = resp.json().get("results", [])
+        for item in batch:
+            if item.get("isAutoRequest"):
+                continue
+            if item.get("media", {}).get("status") != 5:
+                continue
+            results.append(item)
+        if len(batch) < take:
+            break
+        skip += take
+    return results
+
+
+def _ra_build_watch_index():
+    """Return {guid: {account_id: watch_type}} from watch_resolved."""
+    idx = defaultdict(dict)
+    try:
+        hc = _ra_hist_ro()
+        for row in hc.execute("SELECT account_id, guid, watch_type FROM watch_resolved"):
+            idx[row["guid"]][row["account_id"]] = row["watch_type"]
+        hc.close()
+    except Exception:
+        pass
+    return idx
+
+
+def _ra_build_plex_tmdb_map():
+    """Return (movie_map, show_map): tmdb_id(int) → plex guid."""
+    movie_map, show_map = {}, {}
+    try:
+        pc = _ra_plex_ro()
+        for row in pc.execute("""
+            SELECT mi.guid, mi.metadata_type, t.tag
+            FROM metadata_items mi
+            JOIN taggings tg ON tg.metadata_item_id = mi.id
+            JOIN tags t ON t.id = tg.tag_id
+            WHERE t.tag LIKE 'tmdb://%' AND mi.metadata_type IN (1, 2)
+        """):
+            try:
+                tid = int(row["tag"].split("://")[1])
+            except (IndexError, ValueError):
+                continue
+            if row["metadata_type"] == 1:
+                movie_map[tid] = row["guid"]
+            else:
+                show_map[tid]  = row["guid"]
+        pc.close()
+    except Exception:
+        pass
+    return movie_map, show_map
+
+
+def _ra_watch_for_guid(guid, watch_idx):
+    """Return (watch_count, [display_names], last_watched_ts) for a guid."""
+    entries = watch_idx.get(guid, {})
+    names = [_RA_ACCT_DISPLAY.get(aid, f"#{aid}") for aid in entries]
+    return len(entries), names, None  # updated_at not stored per-view
+
+
+def _ra_days_since(iso_str):
+    from datetime import datetime, timezone
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        return (datetime.now(timezone.utc) - dt).days
+    except Exception:
+        return 0
+
+
+@app.route("/api/requests/audit")
+def api_requests_audit():
+    import requests as _r
+    from datetime import datetime, timezone
+
+    RADARR  = RADARR_URL.rstrip("/")
+    RKEY    = RADARR_API_KEY
+    SONARR  = os.getenv("SONARR_URL", "http://localhost:8989").rstrip("/")
+    SKEY    = os.getenv("SONARR_API_KEY", "")
+    SEERR_PUBLIC = os.getenv("SEERR_URL", "http://localhost:5055").rstrip("/")
+
+    try:
+        jelly_items = _ra_fetch_jelly()
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 503
+
+    watch_idx         = _ra_build_watch_index()
+    movie_tmdb_map, show_tmdb_map = _ra_build_plex_tmdb_map()
+
+    results = []
+    sonarr_ids_seen = set()
+
+    for item in jelly_items:
+        media      = item.get("media", {})
+        tmdb_id    = media.get("tmdbId")
+        media_type = media.get("mediaType")  # "movie" | "tv"
+        req_by_raw = item.get("requestedBy", {}).get("plexUsername", "unknown")
+        created_at = item.get("createdAt", "")
+        days_wait  = _ra_days_since(created_at)
+        req_name, req_group = _RA_USER_ROSTER.get(req_by_raw, (req_by_raw, "unknown"))
+        jelly_type = "movie" if media_type == "movie" else "tv"
+        jelly_url  = f"{SEERR_PUBLIC}/{jelly_type}/{tmdb_id}"
+
+        if media_type == "movie":
+            try:
+                rr = _r.get(f"{RADARR}/api/v3/movie",
+                            params={"tmdbId": tmdb_id},
+                            headers={"X-Api-Key": RKEY}, timeout=15)
+                rr.raise_for_status()
+                arr = rr.json()
+            except Exception:
+                continue
+            if not arr:
+                continue
+            mv = arr[0]
+            rid   = mv.get("id")
+            title = mv.get("title", "Unknown")
+            year  = mv.get("year")
+            size_b = mv.get("sizeOnDisk", 0)
+
+            guid = movie_tmdb_map.get(tmdb_id)
+            wc, watchers, _ = _ra_watch_for_guid(guid, watch_idx) if guid else (0, [], None)
+
+            results.append({
+                "id":               rid,
+                "tmdb_id":          tmdb_id,
+                "title":            title,
+                "year":             year,
+                "media_type":       "movie",
+                "requested_by":     req_name,
+                "requester_group":  req_group,
+                "requested_at":     created_at[:10],
+                "days_since_request": days_wait,
+                "watch_count":      wc,
+                "watchers":         watchers,
+                "last_watched":     None,
+                "size_gb":          round(size_b / 1_073_741_824, 2) if size_b else 0,
+                "jellyseerr_url":   jelly_url,
+                "sonarr_url":       None,
+            })
+
+        elif media_type == "tv":
+            try:
+                sr = _r.get(f"{SONARR}/api/v3/series/lookup",
+                            params={"term": f"tmdb:{tmdb_id}"},
+                            headers={"X-Api-Key": SKEY}, timeout=15)
+                sr.raise_for_status()
+                arr = sr.json()
+            except Exception:
+                continue
+            if not arr:
+                continue
+            sv = arr[0]
+            sid      = sv.get("id")
+            slug     = sv.get("titleSlug", "")
+            title    = sv.get("title", "Unknown")
+            year     = sv.get("year")
+            size_b   = sv.get("statistics", {}).get("sizeOnDisk", 0)
+            sonarr_url = f"{SONARR}/series/{slug}" if slug else None
+            if sid:
+                sonarr_ids_seen.add(sid)
+
+            guid = show_tmdb_map.get(tmdb_id)
+            wc, watchers, _ = _ra_watch_for_guid(guid, watch_idx) if guid else (0, [], None)
+
+            results.append({
+                "id":               sid,
+                "tmdb_id":          tmdb_id,
+                "title":            title,
+                "year":             year,
+                "media_type":       "tv",
+                "requested_by":     req_name,
+                "requester_group":  req_group,
+                "requested_at":     created_at[:10],
+                "days_since_request": days_wait,
+                "watch_count":      wc,
+                "watchers":         watchers,
+                "last_watched":     None,
+                "size_gb":          round(size_b / 1_073_741_824, 2) if size_b else 0,
+                "jellyseerr_url":   jelly_url,
+                "sonarr_url":       sonarr_url,
+            })
+
+    # Store sonarr IDs so delete endpoint can reject them
+    app.config["_ra_sonarr_ids"] = sonarr_ids_seen
+    results.sort(key=lambda x: x["days_since_request"], reverse=True)
+    return jsonify(results)
+
+
+@app.route("/api/radarr/delete/<int:radarr_id>", methods=["DELETE"])
+def api_radarr_delete(radarr_id):
+    import requests as _r
+    sonarr_ids = app.config.get("_ra_sonarr_ids", set())
+    if radarr_id in sonarr_ids:
+        return jsonify({"success": False, "error": "Cannot delete TV via this endpoint"}), 400
+    RADARR = RADARR_URL.rstrip("/")
+    RKEY   = RADARR_API_KEY
+    try:
+        # Get title first
+        gr = _r.get(f"{RADARR}/api/v3/movie/{radarr_id}",
+                    headers={"X-Api-Key": RKEY}, timeout=15)
+        gr.raise_for_status()
+        title = gr.json().get("title", "Unknown")
+        # Delete with files
+        dr = _r.delete(f"{RADARR}/api/v3/movie/{radarr_id}",
+                       params={"deleteFiles": "true", "addImportExclusion": "false"},
+                       headers={"X-Api-Key": RKEY}, timeout=30)
+        if dr.status_code in (200, 204):
+            return jsonify({"success": True, "title": title})
+        return jsonify({"success": False, "error": f"Radarr returned {dr.status_code}"}), 502
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/api/bloat")
 def api_bloat():
     if not _has_data():
