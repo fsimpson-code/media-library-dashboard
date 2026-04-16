@@ -41,6 +41,8 @@ except ImportError:
     HATED_ENABLED       = os.environ.get("HATED_ENABLED", "false").lower() == "true"
     DASHBOARD_PORT      = int(os.environ.get("DASHBOARD_PORT", 8686))
 
+# .env takes precedence over config.py for user-configurable settings
+DASHBOARD_NAME = os.environ.get("DASHBOARD_NAME") or DASHBOARD_NAME
 RUNNER_URL = os.environ.get("RUNNER_URL", _CFG_RUNNER)
 DB_PATH    = Path(os.environ.get("DB_PATH", str(_CFG_DB)))
 
