@@ -776,6 +776,18 @@ def init_db():
     """)
     con.commit()
 
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS watch_resolved (
+            account_id      INTEGER NOT NULL,
+            guid            TEXT NOT NULL,
+            watch_type      TEXT NOT NULL,
+            corroborated_by TEXT,
+            updated_at      INTEGER,
+            PRIMARY KEY (account_id, guid)
+        )
+    """)
+    con.commit()
+
     # Migrations for cached tables
     try:
         con.execute("ALTER TABLE actor_career ADD COLUMN btwf_pre_fame TEXT")
@@ -1299,6 +1311,96 @@ def compute_top_talent_snapshot(movies, talent_data, run_id, con):
     print(f"  Top talent snapshot written — {len(rows)} entries.")
 
 
+
+def resolve_watch_history(con):
+    """Classify every (account_id, guid) into real_stream / corroborated_mark / unverified_mark."""
+    import urllib.parse, time
+
+    PLEX_DB = (
+        "/mnt/Speedy/Plex-Config/Library/Application Support/"
+        "Plex Media Server/Plug-in Support/Databases/"
+        "com.plexapp.plugins.library.db"
+    )
+    FAMILY   = {1, 29089754, 29091010, 77898712, 222944852}
+    EXTENDED = {3670375}
+    FRIENDS  = {137417867, 210861484, 615117225}
+    SCOPED   = FAMILY | EXTENDED
+
+    print("\nResolving watch history...")
+
+    def _ro(path):
+        uri = "file:" + urllib.parse.quote(path, safe="/:") + "?mode=ro"
+        return sqlite3.connect(uri, uri=True)
+
+    try:
+        pc = _ro(PLEX_DB)
+    except Exception as e:
+        print(f"  watch_resolved: Plex DB unavailable ({e}) — skipping")
+        return
+
+    ph     = ",".join("?" * len(SCOPED))
+    params = list(SCOPED)
+
+    real_streams = set(pc.execute(
+        f"SELECT DISTINCT account_id, guid FROM metadata_item_views WHERE account_id IN ({ph})",
+        params
+    ).fetchall())
+
+    all_watched = pc.execute(
+        f"SELECT DISTINCT account_id, guid FROM metadata_item_settings "
+        f"WHERE view_count > 0 AND account_id IN ({ph})",
+        params
+    ).fetchall()
+    pc.close()
+
+    # Build family real-stream index for corroboration lookups
+    family_streams_by_guid = defaultdict(set)
+    for acct_id, guid in real_streams:
+        if acct_id in FAMILY:
+            family_streams_by_guid[guid].add(acct_id)
+
+    now  = int(time.time())
+    rows = []
+
+    # Classify settings records
+    watched_pairs = set()
+    for acct_id, guid in all_watched:
+        if acct_id in FRIENDS:
+            continue
+        watched_pairs.add((acct_id, guid))
+        if (acct_id, guid) in real_streams:
+            rows.append((acct_id, guid, "real_stream", None, now))
+        elif acct_id in FAMILY:
+            corroborators = family_streams_by_guid[guid] - {acct_id}
+            if corroborators:
+                rows.append((acct_id, guid, "corroborated_mark",
+                              ",".join(str(a) for a in sorted(corroborators)), now))
+            else:
+                rows.append((acct_id, guid, "unverified_mark", None, now))
+        # Extended (3670375): marks-only → skip
+
+    # Add real_stream records that exist in views but not in settings
+    for acct_id, guid in real_streams:
+        if acct_id in FRIENDS:
+            continue
+        if (acct_id, guid) not in watched_pairs:
+            rows.append((acct_id, guid, "real_stream", None, now))
+
+    con.executemany(
+        "INSERT OR REPLACE INTO watch_resolved "
+        "(account_id, guid, watch_type, corroborated_by, updated_at) VALUES (?,?,?,?,?)",
+        rows
+    )
+    con.commit()
+
+    counts = {}
+    for r in rows:
+        counts[r[2]] = counts.get(r[2], 0) + 1
+    print(f"  watch_resolved: {len(rows)} records written.")
+    for wt, cnt in sorted(counts.items()):
+        print(f"    {wt}: {cnt}")
+
+
 def main():
     print("=" * 60)
     print(f"{DASHBOARD_NAME} Pipeline")
@@ -1336,6 +1438,7 @@ def main():
     compute_franchise_snapshot(movies, run_id, con)
     compute_top_talent_snapshot(movies, talent_data, run_id, con)
     compute_dna_scores(movies, talent_data, run_id, con)
+    resolve_watch_history(con)
     con.close()
 
     print(f"\n  Finished: {datetime.now():%Y-%m-%d %H:%M:%S}")
