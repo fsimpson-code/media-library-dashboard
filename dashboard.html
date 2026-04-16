@@ -448,7 +448,7 @@ body{background:var(--bg);color:var(--text)}
 .topbar{border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--gradient-start),var(--gradient-end))}
 @keyframes kitt-scan{0%{left:-10%}50%{left:110%}100%{left:-10%}}
 [data-theme="knight-rider"] .topbar{position:relative;overflow:hidden}
-[data-theme="knight-rider"] .topbar::after{content:'';position:absolute;top:0;left:-10%;width:10%;height:100%;background:linear-gradient(90deg,transparent,rgba(204,0,0,.15),rgba(204,0,0,.6),rgba(255,60,0,.8),rgba(204,0,0,.6),rgba(204,0,0,.15),transparent);box-shadow:0 0 18px 6px rgba(204,0,0,.5),0 0 40px 10px rgba(204,0,0,.2);animation:kitt-scan 3s ease-in-out infinite;pointer-events:none;z-index:10}
+[data-theme="knight-rider"] .topbar::after{content:'';position:absolute;top:0;left:-10%;width:10%;height:100%;background:linear-gradient(90deg,transparent,rgba(204,0,0,.15),rgba(204,0,0,.6),rgba(255,60,0,.8),rgba(204,0,0,.6),rgba(204,0,0,.15),transparent);box-shadow:0 0 18px 6px rgba(204,0,0,.5),0 0 40px 10px rgba(204,0,0,.2);animation:kitt-scan 3s ease-in-out infinite;pointer-events:none;z-index:10}@keyframes lisa-frank-scan{0%{left:-10%;background:linear-gradient(90deg,transparent,hsla(300,100%,70%,.15),hsla(300,100%,70%,.6),hsla(300,100%,70%,.15),transparent)}25%{background:linear-gradient(90deg,transparent,hsla(180,100%,70%,.15),hsla(180,100%,70%,.6),hsla(180,100%,70%,.15),transparent)}50%{left:110%;background:linear-gradient(90deg,transparent,hsla(60,100%,70%,.15),hsla(60,100%,70%,.6),hsla(60,100%,70%,.15),transparent)}100%{left:-10%;background:linear-gradient(90deg,transparent,hsla(300,100%,70%,.15),hsla(300,100%,70%,.6),hsla(300,100%,70%,.15),transparent)}}[data-theme="lisa-frank"] .topbar{position:relative;overflow:hidden}[data-theme="lisa-frank"] .topbar::after{content:'';position:absolute;top:0;left:-10%;width:10%;height:100%;background:linear-gradient(90deg,transparent,hsla(300,100%,70%,.15),hsla(300,100%,70%,.6),hsla(300,100%,70%,.15),transparent);box-shadow:0 0 18px 6px hsla(300,100%,70%,.3),0 0 40px 10px hsla(180,100%,70%,.2);animation:lisa-frank-scan 3s ease-in-out infinite;pointer-events:none;z-index:10}
 .logo-main{text-shadow:var(--glow-primary) !important}
 .logo-accent{text-shadow:var(--glow-secondary) !important}
 .tabs{border:1px solid var(--border)}
@@ -1559,6 +1559,37 @@ const THEMES = {
     '--text-label':      '#666666',
     '--link':            '#cc0000',
     '--btn-primary-glow':'0 0 10px rgba(204,0,0,.8), 0 0 30px rgba(204,0,0,.4)',
+  },
+  'lisa-frank': {
+    '--bg':               '#1a0028',
+    '--surface':          '#2d0045',
+    '--accent1':          '#ff2d9b',
+    '--accent2':          '#00f0ff',
+    '--text':             '#ffffff',
+    '--muted':            '#cc88dd',
+    '--positive':         '#39ff14',
+    '--warning':          '#ffee00',
+    '--danger':           '#ff2d9b',
+    '--glow-primary':     '0 0 10px rgba(255,45,155,.6), 0 0 30px rgba(255,45,155,.4), 0 0 60px rgba(0,240,255,.15)',
+    '--glow-secondary':   '0 0 8px rgba(0,240,255,.5), 0 0 24px rgba(0,240,255,.3)',
+    '--border':           '#ff2d9b',
+    '--border-accent':    '#00f0ff',
+    '--surface-raised':   '#3d0060',
+    '--surface-inset':    '#150020',
+    '--tab-active-bg':    '#ff2d9b',
+    '--tab-active-text':  '#ffffff',
+    '--tab-inactive':     '#cc88dd',
+    '--scrollbar-thumb':  '#ff2d9b',
+    '--scrollbar-track':  '#2d0045',
+    '--badge-bg':         '#39ff14',
+    '--gradient-start':   '#ff2d9b',
+    '--gradient-end':     '#00f0ff',
+    '--btn-primary-bg':   '#ff2d9b',
+    '--btn-primary-text': '#ffffff',
+    '--text-heading':     '#00f0ff',
+    '--link':             '#ffee00',
+    '--minimal':          '#cc88dd',
+    '--btn-primary-glow': '0 0 10px rgba(255,45,155,.6), 0 0 30px rgba(255,45,155,.4)',
   },
 };
 
@@ -3656,7 +3687,12 @@ function buildThemeCards(currentTheme) {
     const swatches = ['--bg','--surface','--accent1','--accent2'].map(k =>
       '<div class="theme-swatch" style="background:' + vars[k] + '"></div>'
     ).join('');
-    const label = name.charAt(0).toUpperCase() + name.slice(1).replace('-',' ');
+    const THEME_LABELS = {
+      'neon-noir':    'Neon Noir',
+      'knight-rider': 'Knight Rider',
+      'lisa-frank':   '🦄 Lisa Frank',
+    };
+    const label = THEME_LABELS[name] || name.charAt(0).toUpperCase() + name.slice(1).replace('-',' ');
     return `<div class="theme-card${name === currentTheme ? ' active' : ''}" onclick="selectThemeCard('${name}')" data-theme="${name}">`
       + `<div class="theme-card-name">${label}</div>`
       + `<div class="theme-swatches">${swatches}</div>`
