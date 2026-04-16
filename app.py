@@ -551,15 +551,8 @@ _PLEX_DB_RA = ("/mnt/Speedy/Plex-Config/Library/Application Support/"
                "com.plexapp.plugins.library.db")
 _HIST_DB_RA = "/data/simpson_history.db"
 
-_RA_USER_ROSTER = {
-    "Floyd.Simpson":    ("Floyd",   "family"),
-    "trentsimpson508":  ("Trent",   "family"),
-    "Bluesiphon":       ("Trevor",  "family"),
-    "adragon8u":        ("Mike",    "extended"),
-    "jlo150":           ("Josh",    "friend"),
-    "sguzm6":           ("Sergio",  "friend"),
-    "pinedae78":        ("Eric",    "friend"),
-}
+# User roster is DB-backed — see _ensure_roster_tables() + get_user_roster()
+
 _RA_ACCT_DISPLAY = {
     1:         "Floyd",
     29089754:  "Lauren",
@@ -569,6 +562,81 @@ _RA_ACCT_DISPLAY = {
     3670375:   "Mike",
 }
 _RA_SONARR_IDS = set()  # populated per-request to block delete calls
+
+
+# ── User Roster — DB-backed ───────────────────────────────────────────────────
+
+def _ensure_roster_tables():
+    """Create and seed users + user_groups tables if they don't exist."""
+    con = _db()
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS user_groups (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          name        TEXT NOT NULL UNIQUE,
+          is_default  INTEGER NOT NULL DEFAULT 0,
+          sort_order  INTEGER NOT NULL DEFAULT 99
+        )
+    """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          plex_username  TEXT NOT NULL UNIQUE,
+          display_name   TEXT NOT NULL,
+          group_name     TEXT NOT NULL DEFAULT 'Friend',
+          active         INTEGER NOT NULL DEFAULT 1,
+          created_at     TEXT DEFAULT (datetime('now')),
+          updated_at     TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    # Seed default groups (is_default=1 groups cannot be deleted by user)
+    for name, sort in [('Admin', 1), ('Family', 2), ('Extended', 3), ('Friend', 4)]:
+        con.execute(
+            "INSERT OR IGNORE INTO user_groups (name, is_default, sort_order) VALUES (?, 1, ?)",
+            (name, sort)
+        )
+    # Seed example users — replace with your own
+    _seed = [
+        ('Floyd.Simpson',   'Floyd',  'Family'),
+        ('trentsimpson508', 'Trent',  'Family'),
+        ('Bluesiphon',      'Trevor', 'Family'),
+        ('adragon8u',       'Mike',   'Extended'),
+        ('jlo150',          'Josh',   'Friend'),
+        ('sguzm6',          'Sergio', 'Friend'),
+        ('pinedae78',       'Eric',   'Friend'),
+    ]
+    for username, display, group in _seed:
+        con.execute(
+            "INSERT OR IGNORE INTO users (plex_username, display_name, group_name) VALUES (?, ?, ?)",
+            (username, display, group)
+        )
+    con.commit()
+    con.close()
+
+
+def get_user_roster():
+    """Return {plex_username: {display_name, group_name}} for all active users."""
+    roster = {}
+    try:
+        con = _db()
+        for row in con.execute(
+            "SELECT plex_username, display_name, group_name FROM users WHERE active=1"
+        ):
+            roster[row['plex_username']] = {
+                'display_name': row['display_name'],
+                'group_name':   row['group_name'],
+            }
+        con.close()
+    except Exception:
+        pass
+    return roster
+
+
+# Initialize at startup (safe to call multiple times — CREATE IF NOT EXISTS)
+try:
+    _ensure_roster_tables()
+except Exception as _re:
+    import logging as _log
+    _log.getLogger(__name__).warning("Could not init roster tables: %s", _re)
 
 
 def _ra_plex_ro():
@@ -684,6 +752,7 @@ def api_requests_audit():
 
     watch_idx         = _ra_build_watch_index()
     movie_tmdb_map, show_tmdb_map = _ra_build_plex_tmdb_map()
+    roster = get_user_roster()
 
     results = []
     sonarr_ids_seen = set()
@@ -695,7 +764,9 @@ def api_requests_audit():
         req_by_raw = item.get("requestedBy", {}).get("plexUsername", "unknown")
         created_at = item.get("createdAt", "")
         days_wait  = _ra_days_since(created_at)
-        req_name, req_group = _RA_USER_ROSTER.get(req_by_raw, (req_by_raw, "unknown"))
+        _u        = roster.get(req_by_raw, {})
+        req_name  = _u.get("display_name", req_by_raw)
+        req_group = _u.get("group_name", "unknown").lower()
         jelly_type = "movie" if media_type == "movie" else "tv"
         jelly_url  = f"{SEERR_PUBLIC}/{jelly_type}/{tmdb_id}"
 
@@ -808,6 +879,142 @@ def api_radarr_delete(radarr_id):
         return jsonify({"success": False, "error": f"Radarr returned {dr.status_code}"}), 502
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+# ── User Roster CRUD endpoints ────────────────────────────────────────────────
+
+@app.route("/api/settings/users")
+def api_users_list():
+    con = _db()
+    users = [dict(r) for r in con.execute("""
+        SELECT id, plex_username, display_name, group_name, active, created_at, updated_at
+        FROM users
+        ORDER BY
+            CASE group_name
+                WHEN 'Admin'    THEN 1
+                WHEN 'Family'   THEN 2
+                WHEN 'Extended' THEN 3
+                WHEN 'Friend'   THEN 4
+                ELSE 99
+            END,
+            display_name COLLATE NOCASE
+    """)]
+    groups = [dict(r) for r in con.execute(
+        "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
+    )]
+    con.close()
+    return jsonify({"users": users, "groups": groups})
+
+
+@app.route("/api/settings/users", methods=["POST"])
+def api_users_create():
+    data = request.get_json() or {}
+    username = (data.get("plex_username") or "").strip()
+    display  = (data.get("display_name")  or "").strip()
+    group    = (data.get("group_name")    or "Friend").strip()
+    if not username or not display:
+        return jsonify({"error": "plex_username and display_name are required"}), 400
+    con = _db()
+    # Validate group exists
+    if not con.execute("SELECT 1 FROM user_groups WHERE name=?", (group,)).fetchone():
+        con.close()
+        return jsonify({"error": f"Group '{group}' does not exist"}), 400
+    try:
+        cur = con.execute(
+            "INSERT INTO users (plex_username, display_name, group_name) VALUES (?, ?, ?)",
+            (username, display, group)
+        )
+        con.commit()
+        row = dict(con.execute("SELECT * FROM users WHERE id=?", (cur.lastrowid,)).fetchone())
+        con.close()
+        return jsonify(row), 201
+    except sqlite3.IntegrityError:
+        con.close()
+        return jsonify({"error": "Username already exists"}), 409
+
+
+@app.route("/api/settings/users/<int:user_id>", methods=["PUT"])
+def api_users_update(user_id):
+    data = request.get_json() or {}
+    display = (data.get("display_name") or "").strip()
+    group   = (data.get("group_name")   or "").strip()
+    active  = int(bool(data.get("active", 1)))
+    if not display or not group:
+        return jsonify({"error": "display_name and group_name are required"}), 400
+    con = _db()
+    if not con.execute("SELECT 1 FROM user_groups WHERE name=?", (group,)).fetchone():
+        con.close()
+        return jsonify({"error": f"Group '{group}' does not exist"}), 400
+    con.execute(
+        "UPDATE users SET display_name=?, group_name=?, active=?, updated_at=datetime('now') WHERE id=?",
+        (display, group, active, user_id)
+    )
+    con.commit()
+    row = con.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    con.close()
+    if not row:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify(dict(row))
+
+
+@app.route("/api/settings/users/<int:user_id>", methods=["DELETE"])
+def api_users_delete(user_id):
+    con = _db()
+    con.execute("DELETE FROM users WHERE id=?", (user_id,))
+    con.commit()
+    con.close()
+    return jsonify({"success": True})
+
+
+@app.route("/api/settings/groups")
+def api_groups_list():
+    con = _db()
+    groups = [dict(r) for r in con.execute(
+        "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
+    )]
+    con.close()
+    return jsonify(groups)
+
+
+@app.route("/api/settings/groups", methods=["POST"])
+def api_groups_create():
+    data = request.get_json() or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Group name is required"}), 400
+    con = _db()
+    try:
+        cur = con.execute(
+            "INSERT INTO user_groups (name, is_default, sort_order) VALUES (?, 0, 99)",
+            (name,)
+        )
+        con.commit()
+        row = dict(con.execute("SELECT * FROM user_groups WHERE id=?", (cur.lastrowid,)).fetchone())
+        con.close()
+        return jsonify(row), 201
+    except sqlite3.IntegrityError:
+        con.close()
+        return jsonify({"error": f"Group '{name}' already exists"}), 409
+
+
+@app.route("/api/settings/groups/<int:group_id>", methods=["DELETE"])
+def api_groups_delete(group_id):
+    con = _db()
+    row = con.execute("SELECT name, is_default FROM user_groups WHERE id=?", (group_id,)).fetchone()
+    if not row:
+        con.close()
+        return jsonify({"success": False, "reason": "Group not found"}), 404
+    if row["is_default"]:
+        con.close()
+        return jsonify({"success": False, "reason": "Default groups cannot be deleted"}), 400
+    assigned = con.execute("SELECT COUNT(*) FROM users WHERE group_name=?", (row["name"],)).fetchone()[0]
+    if assigned > 0:
+        con.close()
+        return jsonify({"success": False, "reason": f"{assigned} user(s) are still assigned to this group"}), 400
+    con.execute("DELETE FROM user_groups WHERE id=?", (group_id,))
+    con.commit()
+    con.close()
+    return jsonify({"success": True})
+
 
 @app.route("/api/bloat")
 def api_bloat():

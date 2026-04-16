@@ -861,9 +861,6 @@ a{color:var(--link)}
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <select id="req-filter-group" class="setting-select" style="font-size:10px;padding:4px 8px" onchange="renderRequestAudit(window._requestAuditData)">
           <option value="">All Groups</option>
-          <option value="family">Family</option>
-          <option value="extended">Extended</option>
-          <option value="friend">Friends</option>
         </select>
         <select id="req-filter-watch" class="setting-select" style="font-size:10px;padding:4px 8px" onchange="renderRequestAudit(window._requestAuditData)">
           <option value="">All Watch States</option>
@@ -1385,6 +1382,56 @@ a{color:var(--link)}
       </div>
 
 
+      <!-- User Roster -->
+      <div class="settings-group">
+        <div class="settings-group-title">&#x1F465; Plex User Roster</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:14px">
+          Map Plex usernames to display names and groups.
+          Used by Request Audit and future features.
+          Replace example data with your own users.
+        </div>
+
+        <!-- Groups sub-section -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:9px;font-weight:700;color:var(--text-label);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px">Groups</div>
+          <div id="roster-groups-row" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+            <span style="color:var(--muted);font-size:10px">Loading...</span>
+          </div>
+          <div id="roster-add-group-row" style="display:none;align-items:center;gap:6px;margin-bottom:6px">
+            <input id="roster-new-group-input" class="setting-input" type="text" maxlength="30" placeholder="Group name" style="max-width:150px;font-size:11px">
+            <button class="settings-btn primary" onclick="submitAddRosterGroup()" style="font-size:9px;padding:4px 12px">Add</button>
+            <button class="settings-btn" onclick="toggleAddGroupRow(false)" style="font-size:9px;padding:4px 12px;color:var(--muted);border-color:var(--border)">Cancel</button>
+            <span id="roster-group-err" style="font-size:10px;color:#ff6b6b;display:none"></span>
+          </div>
+          <button id="roster-add-group-btn" class="settings-btn" onclick="toggleAddGroupRow(true)" style="font-size:9px;color:var(--accent2);border-color:var(--accent2)55">+ Add Group</button>
+        </div>
+
+        <!-- User table -->
+        <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:5px 8px;font-size:9px;color:var(--text-label);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-body)">Plex Username</th>
+              <th style="text-align:left;padding:5px 8px;font-size:9px;color:var(--text-label);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-body)">Display Name</th>
+              <th style="text-align:left;padding:5px 8px;font-size:9px;color:var(--text-label);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-body)">Group</th>
+              <th style="text-align:center;padding:5px 8px;font-size:9px;color:var(--text-label);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-body)">Active</th>
+              <th style="text-align:right;padding:5px 8px;font-size:9px;color:var(--text-label);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-body)">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="roster-tbody">
+            <tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted);font-size:10px">Loading...</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Add user row -->
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border)">
+          <input id="roster-new-username" class="setting-input" type="text" placeholder="Plex Username" style="max-width:160px;font-size:11px">
+          <input id="roster-new-display" class="setting-input" type="text" placeholder="Display Name" style="max-width:130px;font-size:11px">
+          <select id="roster-new-group-select" class="setting-select" style="font-size:11px"></select>
+          <button class="settings-btn primary" onclick="submitAddRosterUser()" style="font-size:9px">+ Add User</button>
+          <span id="roster-add-err" style="font-size:10px;color:#ff6b6b;display:none"></span>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1792,9 +1839,26 @@ function _reqPanel(show) {
 
 function loadRequestAudit() {
   _reqPanel(true);
-  document.getElementById('req-loading').style.display = 'block';
   document.getElementById('req-audit-content').innerHTML =
     '<div id="req-loading" style="padding:40px;text-align:center;color:var(--muted)"><div style="font-size:24px;margin-bottom:8px">&#9203;</div><div>Fetching request data...</div></div>';
+
+  // Populate group filter from roster groups
+  fetch('/api/settings/groups')
+    .then(r => r.json())
+    .then(groups => {
+      const sel = document.getElementById('req-filter-group');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">All Groups</option>';
+      groups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.name.toLowerCase();
+        opt.textContent = g.name;
+        sel.appendChild(opt);
+      });
+      sel.value = cur;
+    })
+    .catch(() => {});
+
   fetch('/api/requests/audit')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(data => {
@@ -1951,6 +2015,175 @@ function raDeleteConfirm(radarrId, titleYear, btn) {
         modal.style.display = 'flex';
       });
   };
+}
+
+
+// ── User Roster ───────────────────────────────────────────────────────────────
+let _rosterData = null; // {users: [], groups: []}
+
+function loadUserRoster() {
+  fetch('/api/settings/users')
+    .then(r => r.json())
+    .then(data => {
+      _rosterData = data;
+      renderRosterGroups(data.groups);
+      renderRosterTable(data.users, data.groups);
+      // Populate add-user group select
+      const sel = document.getElementById('roster-new-group-select');
+      if (sel) {
+        sel.innerHTML = data.groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+      }
+    })
+    .catch(err => {
+      const tb = document.getElementById('roster-tbody');
+      if (tb) tb.innerHTML = `<tr><td colspan="5" style="padding:12px;color:#ff6b6b;font-size:10px">Failed to load roster: ${err.message}</td></tr>`;
+    });
+}
+
+function renderRosterGroups(groups) {
+  const row = document.getElementById('roster-groups-row');
+  if (!row) return;
+  row.innerHTML = groups.map(g => {
+    const lockIcon = g.is_default ? ' &#x1F512;' : '';
+    const delBtn = g.is_default ? '' :
+      ` <span onclick="deleteRosterGroup(${g.id},'${g.name.replace(/'/g,"\\'")}',this)" title="Delete group" style="cursor:pointer;opacity:.7;margin-left:2px;font-size:10px">&#x00D7;</span>`;
+    return `<span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:12px;background:var(--surface-raised);border:1px solid var(--border);font-size:10px;font-family:Space Grotesk,sans-serif;color:var(--text)">
+      ${g.name}${lockIcon}${delBtn}
+    </span>`;
+  }).join('');
+}
+
+function renderRosterTable(users, groups) {
+  const tbody = document.getElementById('roster-tbody');
+  if (!tbody) return;
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted);font-size:10px">No users yet. Add one below.</td></tr>';
+    return;
+  }
+  const groupOpts = groups.map(g => `<option value="${g.name}">${g.name}</option>`).join('');
+  tbody.innerHTML = users.map(u => {
+    const mutedStyle = u.active ? '' : 'opacity:.45;';
+    return `<tr id="roster-row-${u.id}" style="${mutedStyle}border-bottom:1px solid var(--border)">
+      <td style="padding:6px 8px;font-family:JetBrains Mono,monospace;font-size:10px;color:var(--muted)">${u.plex_username}</td>
+      <td style="padding:6px 8px"><input class="setting-input" id="roster-dn-${u.id}" type="text" value="${u.display_name.replace(/"/g,'&quot;')}" style="max-width:130px;font-size:11px;padding:3px 7px"></td>
+      <td style="padding:6px 8px">
+        <select class="setting-select" id="roster-grp-${u.id}" style="font-size:11px">
+          ${groups.map(g => `<option value="${g.name}"${g.name===u.group_name?' selected':''}>${g.name}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:6px 8px;text-align:center">
+        <label class="settings-toggle" style="margin:0 auto">
+          <input type="checkbox" id="roster-act-${u.id}" ${u.active?'checked':''}>
+          <span class="settings-toggle-slider"></span>
+        </label>
+      </td>
+      <td style="padding:6px 8px;text-align:right;white-space:nowrap">
+        <button class="settings-btn primary" onclick="saveRosterUser(${u.id},'${u.display_name.replace(/'/g,"\\'")}'" style="font-size:9px;padding:3px 10px;margin-right:4px">Save</button>
+        <button class="settings-btn danger" onclick="deleteRosterUser(${u.id},'${u.display_name.replace(/'/g,"\\'")}'" style="font-size:9px;padding:3px 10px">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function saveRosterUser(userId) {
+  const display = document.getElementById('roster-dn-' + userId).value.trim();
+  const group   = document.getElementById('roster-grp-' + userId).value;
+  const active  = document.getElementById('roster-act-' + userId).checked ? 1 : 0;
+  if (!display) return;
+  fetch('/api/settings/users/' + userId, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({display_name: display, group_name: group, active})
+  })
+    .then(r => r.json())
+    .then(u => {
+      // Flash save button green
+      const btn = document.querySelector(`#roster-row-${userId} .settings-btn.primary`);
+      if (btn) { const orig = btn.textContent; btn.textContent = '✓'; setTimeout(() => btn.textContent = orig, 1200); }
+      // Reload full roster to reflect group changes
+      loadUserRoster();
+    })
+    .catch(err => alert('Save failed: ' + err.message));
+}
+
+function deleteRosterUser(userId, displayName) {
+  if (!confirm('Remove ' + displayName + ' from roster?')) return;
+  fetch('/api/settings/users/' + userId, {method: 'DELETE'})
+    .then(r => r.json())
+    .then(() => loadUserRoster())
+    .catch(err => alert('Delete failed: ' + err.message));
+}
+
+function submitAddRosterUser() {
+  const username = document.getElementById('roster-new-username').value.trim();
+  const display  = document.getElementById('roster-new-display').value.trim();
+  const group    = document.getElementById('roster-new-group-select').value;
+  const errEl    = document.getElementById('roster-add-err');
+  errEl.style.display = 'none';
+  if (!username || !display) { errEl.textContent = 'Username and display name are required.'; errEl.style.display = 'inline'; return; }
+  fetch('/api/settings/users', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({plex_username: username, display_name: display, group_name: group})
+  })
+    .then(r => r.json().then(d => ({ok: r.ok, d})))
+    .then(({ok, d}) => {
+      if (!ok) { errEl.textContent = d.error || 'Failed to add user.'; errEl.style.display = 'inline'; return; }
+      document.getElementById('roster-new-username').value = '';
+      document.getElementById('roster-new-display').value = '';
+      loadUserRoster();
+    })
+    .catch(err => { errEl.textContent = err.message; errEl.style.display = 'inline'; });
+}
+
+function toggleAddGroupRow(show) {
+  const row = document.getElementById('roster-add-group-row');
+  const btn = document.getElementById('roster-add-group-btn');
+  if (!row) return;
+  row.style.display = show ? 'flex' : 'none';
+  if (btn) btn.style.display = show ? 'none' : '';
+  if (show) document.getElementById('roster-new-group-input').focus();
+  const errEl = document.getElementById('roster-group-err');
+  if (errEl) errEl.style.display = 'none';
+}
+
+function submitAddRosterGroup() {
+  const input = document.getElementById('roster-new-group-input');
+  const name  = (input.value || '').trim();
+  const errEl = document.getElementById('roster-group-err');
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent = 'Group name required.'; errEl.style.display = 'inline'; return; }
+  fetch('/api/settings/groups', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name})
+  })
+    .then(r => r.json().then(d => ({ok: r.ok, d})))
+    .then(({ok, d}) => {
+      if (!ok) { errEl.textContent = d.error || 'Failed.'; errEl.style.display = 'inline'; return; }
+      input.value = '';
+      toggleAddGroupRow(false);
+      loadUserRoster();
+    })
+    .catch(err => { errEl.textContent = err.message; errEl.style.display = 'inline'; });
+}
+
+function deleteRosterGroup(groupId, groupName, el) {
+  fetch('/api/settings/groups/' + groupId, {method: 'DELETE'})
+    .then(r => r.json())
+    .then(d => {
+      if (!d.success) {
+        // Show tooltip-style error near the × button
+        const tip = document.createElement('span');
+        tip.textContent = d.reason || 'Cannot delete';
+        tip.style.cssText = 'font-size:9px;color:#ff6b6b;margin-left:4px;white-space:nowrap';
+        el.parentElement.appendChild(tip);
+        setTimeout(() => tip.remove(), 3000);
+        return;
+      }
+      loadUserRoster();
+    })
+    .catch(err => alert('Delete failed: ' + err.message));
 }
 
 
@@ -4237,6 +4470,9 @@ function loadSettings() {
       loadRunStatus();
     })
     .catch(err => console.error('Settings load error:', err));
+
+  // Load user roster
+  loadUserRoster();
 }
 
 function loadRunStatus() {
