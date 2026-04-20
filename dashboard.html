@@ -355,7 +355,7 @@ tr:hover td{background:#0d0d1e}
 .dna-scroll::-webkit-scrollbar{width:3px}
 .dna-scroll::-webkit-scrollbar-track{background:#03030a}
 .dna-scroll::-webkit-scrollbar-thumb{background:#1a1a32}
-@media(max-width:900px){
+@media(max-width:1400px){.topbar{padding:.75rem 1rem;gap:.5rem}.tab{padding:5px 9px;font-size:10px;letter-spacing:.04em}.run-btn{padding:5px 10px;font-size:10px}}@media(max-width:900px){
   .topbar{grid-template-columns:1fr;justify-items:center;gap:.5rem}
   .grid2,.grid3,.grid4{grid-template-columns:1fr}
   .kpi-value{font-size:1.7rem}
@@ -1074,7 +1074,7 @@ a{color:var(--link)}
         <div id="s-sql-fields" style="display:none">
           <div class="setting-row">
             <label class="setting-label">Host</label>
-            <input id="s-db-host" class="setting-input" type="text" placeholder="localhost">
+            <input id="s-db-host" class="setting-input" type="text" placeholder="truenas.local">
           </div>
           <div class="setting-row">
             <label class="setting-label">Port</label>
@@ -1115,7 +1115,7 @@ a{color:var(--link)}
         <p class="setting-note" style="margin-bottom:.75rem">Used by the backend for metadata and monitoring.</p>
         <div class="setting-row">
           <label class="setting-label">Radarr URL</label>
-          <input id="s-radarr-url" class="setting-input" type="text" placeholder="http://localhost:7878">
+          <input id="s-radarr-url" class="setting-input" type="text" placeholder="http://truenas.local:7878">
         </div>
         <div class="setting-row">
           <label class="setting-label">Radarr API Key</label>
@@ -1128,7 +1128,7 @@ a{color:var(--link)}
         </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Sonarr URL</label>
-          <input id="s-sonarr-url" class="setting-input" type="text" placeholder="http://localhost:8989">
+          <input id="s-sonarr-url" class="setting-input" type="text" placeholder="http://truenas.local:8989">
         </div>
         <div class="setting-row">
           <label class="setting-label">Sonarr API Key</label>
@@ -1141,7 +1141,7 @@ a{color:var(--link)}
         </div>
         <div class="setting-row" style="margin-top:10px">
           <label class="setting-label">Jellyseerr URL</label>
-          <input id="s-seerr-url" class="setting-input" type="text" placeholder="http://localhost:5055">
+          <input id="s-seerr-url" class="setting-input" type="text" placeholder="http://your-host:5055">
         </div>
         <div class="setting-row">
           <label class="setting-label">Jellyseerr API Key</label>
@@ -1165,19 +1165,19 @@ a{color:var(--link)}
         <p class="setting-note" style="margin-bottom:.75rem">Opened in a new tab when you click the shortcut buttons in the header. Can differ from the API URL (e.g. reverse proxy vs internal IP).</p>
         <div class="setting-row">
           <label class="setting-label">Radarr Web UI URL</label>
-          <input id="s-radarr-webui" class="setting-input" type="text" placeholder="http://localhost:7878">
+          <input id="s-radarr-webui" class="setting-input" type="text" placeholder="http://truenas.local:7878">
         </div>
         <div class="setting-row">
           <label class="setting-label">Sonarr Web UI URL</label>
-          <input id="s-sonarr-webui" class="setting-input" type="text" placeholder="http://localhost:8989">
+          <input id="s-sonarr-webui" class="setting-input" type="text" placeholder="http://truenas.local:8989">
         </div>
         <div class="setting-row">
           <label class="setting-label">Jellyseerr Web UI URL</label>
-          <input id="s-seerr-webui" class="setting-input" type="text" placeholder="http://localhost:5055">
+          <input id="s-seerr-webui" class="setting-input" type="text" placeholder="http://your-host:5055">
         </div>
         <div class="setting-row">
           <label class="setting-label">qBittorrent Web UI URL</label>
-          <input id="s-qbit-webui" class="setting-input" type="text" placeholder="http://localhost:8080">
+          <input id="s-qbit-webui" class="setting-input" type="text" placeholder="http://truenas.local:8080">
         </div>
         <div class="setting-row" style="margin-top:12px;gap:8px">
           <label class="setting-label"></label>
@@ -1868,7 +1868,7 @@ function loadRequestAudit() {
     })
     .catch(err => {
       document.getElementById('req-audit-content').innerHTML =
-        '<div style="padding:30px;color:#ff6b6b;text-align:center">Could not load request data — check Jellyseerr connection at localhost:5055<br><small>' + err.message + '</small></div>';
+        '<div style="padding:30px;color:#ff6b6b;text-align:center">Could not load request data — check Jellyseerr connection at truenas.local:5055<br><small>' + err.message + '</small></div>';
     });
 }
 
@@ -3357,7 +3357,7 @@ function renderFranchises(data) {
 // ── DNA Score Dashboard ────────────────────────────────────────────────────────
 let _dnaData = null;
 
-const RADARR_BASE = 'http://localhost:7878';
+const RADARR_BASE = 'http://truenas.local:7878';
 
       function renderDNA(data) {
   _dnaData = data;
@@ -3471,7 +3471,7 @@ const RADARR_BASE = 'http://localhost:7878';
 
   function worstFilmTable(films) {
     if (!films || !films.length) return '<div class="no-data">No data.</div>';
-    const RADARR = 'http://localhost:7878';
+    const RADARR = 'http://truenas.local:7878';
     return `<table class="dna-film-table">
       <thead><tr><th>Title</th><th>Grade</th><th>Score</th><th>Strengths &amp; Weaknesses</th><th></th></tr></thead>
       <tbody>` +
