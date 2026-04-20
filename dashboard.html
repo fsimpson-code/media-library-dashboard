@@ -636,16 +636,16 @@ a{color:var(--link)}
         <option value="">⟳ Live Data</option>
       </select>
       <span id="gen-date"></span>
+      <div class="launch-btns" id="launch-btns"></div>
+      <button class="run-btn" id="run-btn" onclick="triggerRun()">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg>
+        Run Update
+      </button>
     </div>
   </div>
 
   <div class="topbar-right">
-    <span id="version-badge" style="font-size:9px;color:#33335a;font-family:JetBrains Mono,monospace;letter-spacing:.05em;align-self:flex-start;padding-top:2px"></span>
-    <div class="launch-btns" id="launch-btns"></div>
-    <button class="run-btn" id="run-btn" onclick="triggerRun()">
-      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6V2z"/></svg>
-      Run Update
-    </button>
+    <span id="version-badge" style="font-size:9px;color:#33335a;font-family:JetBrains Mono,monospace;letter-spacing:.05em"></span>
   </div>
 </div>
 
