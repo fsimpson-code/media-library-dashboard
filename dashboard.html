@@ -841,7 +841,7 @@ a{color:var(--link)}
         <button class="bloat-tab" onclick="showBloatTab('container',this)">&#128230; Container</button>
         <button class="bloat-tab" onclick="showBloatTab('requests',this)">&#127903;&#65039; Requests</button>
       </div>
-      <div class="tbl-wrap">
+      <div class="tbl-wrap" id="bl-tbl-wrap">
         <table class="bloat-table" id="bl-table">
           <thead id="bl-thead"></thead>
           <tbody id="bl-tbody"></tbody>
@@ -1830,7 +1830,7 @@ let _requestAuditData = null;
 
 function _reqPanel(show) {
   const p = document.getElementById('req-audit-panel');
-  const t = document.querySelector('.tbl-wrap');
+  const t = document.getElementById('bl-tbl-wrap');
   const k = document.getElementById('bl-kpis');
   if (p) p.style.display = show ? 'block' : 'none';
   if (t) t.style.display = show ? 'none' : '';
