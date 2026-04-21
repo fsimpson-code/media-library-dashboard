@@ -5,6 +5,7 @@ All data served from SQLite. No xlsx dependency.
 """
 
 import os, re, json, sqlite3
+from datetime import datetime
 from pathlib import Path
 from collections import Counter, defaultdict
 from flask import Flask, jsonify, send_file, abort, Response, stream_with_context, request
@@ -12,7 +13,7 @@ import requests as req
 import subprocess
 import threading
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text as sql_text
+from sqlalchemy import create_engine, text as sql_text, MetaData, Table, Column, Integer, String, func as sa_func
 load_dotenv()
 
 app = Flask(__name__)
@@ -570,35 +571,36 @@ _RA_SONARR_IDS = set()  # populated per-request to block delete calls
 # ── User Roster — DB-backed ───────────────────────────────────────────────────
 
 def _ensure_roster_tables():
-    """Create and seed users + user_groups tables if they don't exist."""
-    with get_engine().begin() as conn:
-        conn.execute(sql_text("""
-            CREATE TABLE IF NOT EXISTS user_groups (
-              id          INTEGER PRIMARY KEY AUTOINCREMENT,
-              name        TEXT NOT NULL UNIQUE,
-              is_default  INTEGER NOT NULL DEFAULT 0,
-              sort_order  INTEGER NOT NULL DEFAULT 99
-            )
-        """))
-        conn.execute(sql_text("""
-            CREATE TABLE IF NOT EXISTS users (
-              id             INTEGER PRIMARY KEY AUTOINCREMENT,
-              plex_username  TEXT NOT NULL UNIQUE,
-              display_name   TEXT NOT NULL,
-              group_name     TEXT NOT NULL DEFAULT 'Friend',
-              active         INTEGER NOT NULL DEFAULT 1,
-              created_at     TEXT DEFAULT (datetime('now')),
-              updated_at     TEXT DEFAULT (datetime('now'))
-            )
-        """))
-        # Seed default groups (is_default=1 groups cannot be deleted by user)
-        # NOTE: INSERT OR IGNORE is SQLite-specific; for postgres/mysql use
-        # INSERT ... ON CONFLICT DO NOTHING / INSERT IGNORE when migrating.
+    """Create users + user_groups tables if they don't exist. Dialect-safe via SQLAlchemy MetaData."""
+    engine = get_engine()
+    meta = MetaData()
+    Table("user_groups", meta,
+        Column("id",         Integer, primary_key=True, autoincrement=True),
+        Column("name",       String(255), nullable=False, unique=True),
+        Column("is_default", Integer, nullable=False, default=0),
+        Column("sort_order", Integer, nullable=False, default=99),
+    )
+    Table("users", meta,
+        Column("id",            Integer, primary_key=True, autoincrement=True),
+        Column("plex_username", String(255), nullable=False, unique=True),
+        Column("display_name",  String(255), nullable=False),
+        Column("group_name",    String(255), nullable=False, default="Friend"),
+        Column("active",        Integer, nullable=False, default=1),
+        Column("created_at",    String(50),  server_default=sa_func.now()),
+        Column("updated_at",    String(50),  server_default=sa_func.now()),
+    )
+    meta.create_all(engine, checkfirst=True)
+    # Seed default groups — SELECT then INSERT avoids dialect-specific upsert syntax
+    with engine.begin() as conn:
         for grp_name, sort in [('Admin', 1), ('Family', 2), ('Extended', 3), ('Friend', 4)]:
-            conn.execute(
-                sql_text("INSERT OR IGNORE INTO user_groups (name, is_default, sort_order) VALUES (:name, 1, :sort)"),
-                {"name": grp_name, "sort": sort}
-            )
+            exists = conn.execute(
+                sql_text("SELECT 1 FROM user_groups WHERE name=:name"), {"name": grp_name}
+            ).fetchone()
+            if not exists:
+                conn.execute(
+                    sql_text("INSERT INTO user_groups (name, is_default, sort_order) VALUES (:name, 1, :sort)"),
+                    {"name": grp_name, "sort": sort}
+                )
         # No default users — added via setup.py or UI
 
 
@@ -886,10 +888,10 @@ def api_users_list():
                     WHEN 'Friend'   THEN 4
                     ELSE 99
                 END,
-                display_name COLLATE NOCASE
+                LOWER(display_name)
         """))]
         groups = [dict(r._mapping) for r in conn.execute(sql_text(
-            "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
+            "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, LOWER(name)"
         ))]
     return jsonify({"users": users, "groups": groups})
 
@@ -931,10 +933,11 @@ def api_users_update(user_id):
     with get_engine().connect() as conn:
         if not conn.execute(sql_text("SELECT 1 FROM user_groups WHERE name=:name"), {"name": group}).fetchone():
             return jsonify({"error": f"Group '{group}' does not exist"}), 400
+    now_ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     with get_engine().begin() as conn:
         conn.execute(
-            sql_text("UPDATE users SET display_name=:display, group_name=:group, active=:active, updated_at=datetime('now') WHERE id=:id"),
-            {"display": display, "group": group, "active": active, "id": user_id}
+            sql_text("UPDATE users SET display_name=:display, group_name=:group, active=:active, updated_at=:now WHERE id=:id"),
+            {"display": display, "group": group, "active": active, "id": user_id, "now": now_ts}
         )
         row = conn.execute(sql_text("SELECT * FROM users WHERE id=:id"), {"id": user_id}).fetchone()
     if not row:
@@ -953,7 +956,7 @@ def api_users_delete(user_id):
 def api_groups_list():
     with get_engine().connect() as conn:
         groups = [dict(r._mapping) for r in conn.execute(sql_text(
-            "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
+            "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, LOWER(name)"
         ))]
     return jsonify(groups)
 
