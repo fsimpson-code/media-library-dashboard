@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.4] - 2026-04-21
+
+### Bug Fixes
+- Fixed MariaDB/MySQL and Postgres compatibility in user/group management:
+  - Replaced SQLite-specific `AUTOINCREMENT` DDL with SQLAlchemy `MetaData`/`Table` schema definitions — generates correct DDL for SQLite, MySQL, and Postgres
+  - Replaced `DEFAULT (datetime('now'))` column defaults with `server_default=func.now()` (dialect-aware)
+  - Replaced `INSERT OR IGNORE` group seeding with SELECT-then-INSERT (works on all backends)
+  - Replaced `COLLATE NOCASE` in `ORDER BY` clauses with `LOWER()` (cross-dialect compatible)
+  - Replaced `datetime('now')` SQL literal in UPDATE with a Python `utcnow()` parameter
+
+### Dependencies
+- Added `psycopg2-binary>=2.9` to `requirements.txt` for Postgres support
+
+---
+
 ## [1.3.3] - 2026-04-21
 
 ### Security
