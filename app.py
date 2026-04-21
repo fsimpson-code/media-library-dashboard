@@ -554,7 +554,7 @@ def api_container_hitlist():
 
 
 # ── Request Audit helpers ─────────────────────────────────────────────────────
-_JELLY_URL  = os.getenv("JELLYSEERR_INTERNAL_URL", os.getenv("SEERR_URL", "http://localhost:5055"))
+_JELLY_URL  = os.getenv("JELLYSEERR_INTERNAL_URL", os.getenv("JELLYSEERR_URL", os.getenv("SEERR_URL", "http://localhost:5055")))
 _JELLY_KEY  = os.getenv("JELLYSEERR_API_KEY", "")
 _PLEX_DB_RA = os.getenv("PLEX_DB_PATH", "")
 _HIST_DB_RA = os.getenv("HISTORY_DB_PATH", str(Path(DB_PATH).parent / "library_history_watch.db"))
