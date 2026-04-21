@@ -507,8 +507,11 @@ def api_container_hitlist():
         con = _sq.connect(uri, uri=True)
         con.row_factory = _sq.Row
         return con
+    radarr_db = os.getenv("RADARR_DB_PATH", "")
+    if not radarr_db:
+        return jsonify({"error": "RADARR_DB_PATH not configured — set this in .env for Container Hitlist feature"}), 501
     try:
-        rc = _ro("/mnt/.ix-apps/app_mounts/radarr/config/radarr.db")
+        rc = _ro(radarr_db)
         rows = rc.execute("""
             SELECT m.Id          AS radarr_id,
                    mm.Title      AS title,
@@ -544,23 +547,16 @@ def api_container_hitlist():
 
 
 # ── Request Audit helpers ─────────────────────────────────────────────────────
-_JELLY_URL  = "http://localhost:5055"
-_JELLY_KEY  = "MTc3NDAzODEzMzk2Mjg3M2Q3NjI1LWQ4M2YtNDRmMC1hNGM3LTI5MTcwYTk3ZDVkNw=="
-_PLEX_DB_RA = ("/mnt/Speedy/Plex-Config/Library/Application Support/"
-               "Plex Media Server/Plug-in Support/Databases/"
-               "com.plexapp.plugins.library.db")
-_HIST_DB_RA = "/data/simpson_history.db"
+_JELLY_URL  = os.getenv("JELLYSEERR_INTERNAL_URL", os.getenv("SEERR_URL", "http://localhost:5055"))
+_JELLY_KEY  = os.getenv("JELLYSEERR_API_KEY", "")
+_PLEX_DB_RA = os.getenv("PLEX_DB_PATH", "")
+_HIST_DB_RA = os.getenv("HISTORY_DB_PATH", str(Path(DB_PATH).parent / "library_history_watch.db"))
 
 # User roster is DB-backed — see _ensure_roster_tables() + get_user_roster()
 
-_RA_ACCT_DISPLAY = {
-    1:         "Floyd",
-    29089754:  "Lauren",
-    29091010:  "Trevor",
-    77898712:  "Hunter",
-    222944852: "Trent",
-    3670375:   "Mike",
-}
+# Display name lookup populated from the users table via get_user_roster()
+# — do not hardcode Plex account IDs here.
+_RA_ACCT_DISPLAY = {}
 _RA_SONARR_IDS = set()  # populated per-request to block delete calls
 
 
@@ -594,21 +590,7 @@ def _ensure_roster_tables():
             "INSERT OR IGNORE INTO user_groups (name, is_default, sort_order) VALUES (?, 1, ?)",
             (name, sort)
         )
-    # Seed example users — replace with your own
-    _seed = [
-        ('Floyd.Simpson',   'Floyd',  'Family'),
-        ('trentsimpson508', 'Trent',  'Family'),
-        ('Bluesiphon',      'Trevor', 'Family'),
-        ('adragon8u',       'Mike',   'Extended'),
-        ('jlo150',          'Josh',   'Friend'),
-        ('sguzm6',          'Sergio', 'Friend'),
-        ('pinedae78',       'Eric',   'Friend'),
-    ]
-    for username, display, group in _seed:
-        con.execute(
-            "INSERT OR IGNORE INTO users (plex_username, display_name, group_name) VALUES (?, ?, ?)",
-            (username, display, group)
-        )
+    # No default users — added via setup.py or UI
     con.commit()
     con.close()
 
@@ -640,6 +622,8 @@ except Exception as _re:
 
 
 def _ra_plex_ro():
+    if not _PLEX_DB_RA:
+        raise RuntimeError("PLEX_DB_PATH not configured — set this in .env to enable Plex watch data")
     import urllib.parse as _up
     uri = "file:" + _up.quote(_PLEX_DB_RA, safe="/:") + "?mode=ro"
     con = sqlite3.connect(uri, uri=True)
