@@ -88,7 +88,14 @@ def get_engine():
                 _engine = create_engine("sqlite:///{}".format(db_path))
     return _engine
 
+# SQLite-only path — used by parse_* functions and _has_data().
+# For multi-backend support, migrate those callers to get_engine() too.
 def _db():
+    db_type = os.getenv("DB_TYPE", "sqlite")
+    if db_type != "sqlite":
+        raise NotImplementedError(
+            "Use get_engine() for non-SQLite backends — raw _db() is SQLite only"
+        )
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     return con
@@ -564,50 +571,49 @@ _RA_SONARR_IDS = set()  # populated per-request to block delete calls
 
 def _ensure_roster_tables():
     """Create and seed users + user_groups tables if they don't exist."""
-    con = _db()
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS user_groups (
-          id          INTEGER PRIMARY KEY AUTOINCREMENT,
-          name        TEXT NOT NULL UNIQUE,
-          is_default  INTEGER NOT NULL DEFAULT 0,
-          sort_order  INTEGER NOT NULL DEFAULT 99
-        )
-    """)
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-          id             INTEGER PRIMARY KEY AUTOINCREMENT,
-          plex_username  TEXT NOT NULL UNIQUE,
-          display_name   TEXT NOT NULL,
-          group_name     TEXT NOT NULL DEFAULT 'Friend',
-          active         INTEGER NOT NULL DEFAULT 1,
-          created_at     TEXT DEFAULT (datetime('now')),
-          updated_at     TEXT DEFAULT (datetime('now'))
-        )
-    """)
-    # Seed default groups (is_default=1 groups cannot be deleted by user)
-    for name, sort in [('Admin', 1), ('Family', 2), ('Extended', 3), ('Friend', 4)]:
-        con.execute(
-            "INSERT OR IGNORE INTO user_groups (name, is_default, sort_order) VALUES (?, 1, ?)",
-            (name, sort)
-        )
-    # No default users — added via setup.py or UI
-    con.commit()
-    con.close()
+    with get_engine().begin() as conn:
+        conn.execute(sql_text("""
+            CREATE TABLE IF NOT EXISTS user_groups (
+              id          INTEGER PRIMARY KEY AUTOINCREMENT,
+              name        TEXT NOT NULL UNIQUE,
+              is_default  INTEGER NOT NULL DEFAULT 0,
+              sort_order  INTEGER NOT NULL DEFAULT 99
+            )
+        """))
+        conn.execute(sql_text("""
+            CREATE TABLE IF NOT EXISTS users (
+              id             INTEGER PRIMARY KEY AUTOINCREMENT,
+              plex_username  TEXT NOT NULL UNIQUE,
+              display_name   TEXT NOT NULL,
+              group_name     TEXT NOT NULL DEFAULT 'Friend',
+              active         INTEGER NOT NULL DEFAULT 1,
+              created_at     TEXT DEFAULT (datetime('now')),
+              updated_at     TEXT DEFAULT (datetime('now'))
+            )
+        """))
+        # Seed default groups (is_default=1 groups cannot be deleted by user)
+        # NOTE: INSERT OR IGNORE is SQLite-specific; for postgres/mysql use
+        # INSERT ... ON CONFLICT DO NOTHING / INSERT IGNORE when migrating.
+        for grp_name, sort in [('Admin', 1), ('Family', 2), ('Extended', 3), ('Friend', 4)]:
+            conn.execute(
+                sql_text("INSERT OR IGNORE INTO user_groups (name, is_default, sort_order) VALUES (:name, 1, :sort)"),
+                {"name": grp_name, "sort": sort}
+            )
+        # No default users — added via setup.py or UI
 
 
 def get_user_roster():
     """Return {plex_username: {display_name, group_name}} for all active users."""
     roster = {}
     try:
-        con = _db()
-        for row in con.execute(
-            "SELECT plex_username, display_name, group_name FROM users WHERE active=1"
-        ):
-            roster[row['plex_username']] = {
-                'display_name': row['display_name'],
-                'group_name':   row['group_name'],
-            }
-        con.close()
+        with get_engine().connect() as conn:
+            for row in conn.execute(sql_text(
+                "SELECT plex_username, display_name, group_name FROM users WHERE active=1"
+            )):
+                roster[row.plex_username] = {
+                    'display_name': row.display_name,
+                    'group_name':   row.group_name,
+                }
     except Exception:
         pass
     return roster
@@ -868,51 +874,49 @@ def api_radarr_delete(radarr_id):
 
 @app.route("/api/settings/users")
 def api_users_list():
-    con = _db()
-    users = [dict(r) for r in con.execute("""
-        SELECT id, plex_username, display_name, group_name, active, created_at, updated_at
-        FROM users
-        ORDER BY
-            CASE group_name
-                WHEN 'Admin'    THEN 1
-                WHEN 'Family'   THEN 2
-                WHEN 'Extended' THEN 3
-                WHEN 'Friend'   THEN 4
-                ELSE 99
-            END,
-            display_name COLLATE NOCASE
-    """)]
-    groups = [dict(r) for r in con.execute(
-        "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
-    )]
-    con.close()
+    with get_engine().connect() as conn:
+        users = [dict(r._mapping) for r in conn.execute(sql_text("""
+            SELECT id, plex_username, display_name, group_name, active, created_at, updated_at
+            FROM users
+            ORDER BY
+                CASE group_name
+                    WHEN 'Admin'    THEN 1
+                    WHEN 'Family'   THEN 2
+                    WHEN 'Extended' THEN 3
+                    WHEN 'Friend'   THEN 4
+                    ELSE 99
+                END,
+                display_name COLLATE NOCASE
+        """))]
+        groups = [dict(r._mapping) for r in conn.execute(sql_text(
+            "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
+        ))]
     return jsonify({"users": users, "groups": groups})
 
 
 @app.route("/api/settings/users", methods=["POST"])
 def api_users_create():
+    from sqlalchemy.exc import IntegrityError as SAIntegrityError
     data = request.get_json() or {}
     username = (data.get("plex_username") or "").strip()
     display  = (data.get("display_name")  or "").strip()
     group    = (data.get("group_name")    or "Friend").strip()
     if not username or not display:
         return jsonify({"error": "plex_username and display_name are required"}), 400
-    con = _db()
     # Validate group exists
-    if not con.execute("SELECT 1 FROM user_groups WHERE name=?", (group,)).fetchone():
-        con.close()
-        return jsonify({"error": f"Group '{group}' does not exist"}), 400
+    with get_engine().connect() as conn:
+        if not conn.execute(sql_text("SELECT 1 FROM user_groups WHERE name=:name"), {"name": group}).fetchone():
+            return jsonify({"error": f"Group '{group}' does not exist"}), 400
     try:
-        cur = con.execute(
-            "INSERT INTO users (plex_username, display_name, group_name) VALUES (?, ?, ?)",
-            (username, display, group)
-        )
-        con.commit()
-        row = dict(con.execute("SELECT * FROM users WHERE id=?", (cur.lastrowid,)).fetchone())
-        con.close()
+        with get_engine().begin() as conn:
+            result = conn.execute(
+                sql_text("INSERT INTO users (plex_username, display_name, group_name) VALUES (:username, :display, :group)"),
+                {"username": username, "display": display, "group": group}
+            )
+            new_id = result.lastrowid
+            row = dict(conn.execute(sql_text("SELECT * FROM users WHERE id=:id"), {"id": new_id}).fetchone()._mapping)
         return jsonify(row), 201
-    except sqlite3.IntegrityError:
-        con.close()
+    except SAIntegrityError:
         return jsonify({"error": "Username already exists"}), 409
 
 
@@ -924,79 +928,68 @@ def api_users_update(user_id):
     active  = int(bool(data.get("active", 1)))
     if not display or not group:
         return jsonify({"error": "display_name and group_name are required"}), 400
-    con = _db()
-    if not con.execute("SELECT 1 FROM user_groups WHERE name=?", (group,)).fetchone():
-        con.close()
-        return jsonify({"error": f"Group '{group}' does not exist"}), 400
-    con.execute(
-        "UPDATE users SET display_name=?, group_name=?, active=?, updated_at=datetime('now') WHERE id=?",
-        (display, group, active, user_id)
-    )
-    con.commit()
-    row = con.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
-    con.close()
+    with get_engine().connect() as conn:
+        if not conn.execute(sql_text("SELECT 1 FROM user_groups WHERE name=:name"), {"name": group}).fetchone():
+            return jsonify({"error": f"Group '{group}' does not exist"}), 400
+    with get_engine().begin() as conn:
+        conn.execute(
+            sql_text("UPDATE users SET display_name=:display, group_name=:group, active=:active, updated_at=datetime('now') WHERE id=:id"),
+            {"display": display, "group": group, "active": active, "id": user_id}
+        )
+        row = conn.execute(sql_text("SELECT * FROM users WHERE id=:id"), {"id": user_id}).fetchone()
     if not row:
         return jsonify({"error": "User not found"}), 404
-    return jsonify(dict(row))
+    return jsonify(dict(row._mapping))
 
 
 @app.route("/api/settings/users/<int:user_id>", methods=["DELETE"])
 def api_users_delete(user_id):
-    con = _db()
-    con.execute("DELETE FROM users WHERE id=?", (user_id,))
-    con.commit()
-    con.close()
+    with get_engine().begin() as conn:
+        conn.execute(sql_text("DELETE FROM users WHERE id=:id"), {"id": user_id})
     return jsonify({"success": True})
 
 
 @app.route("/api/settings/groups")
 def api_groups_list():
-    con = _db()
-    groups = [dict(r) for r in con.execute(
-        "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
-    )]
-    con.close()
+    with get_engine().connect() as conn:
+        groups = [dict(r._mapping) for r in conn.execute(sql_text(
+            "SELECT id, name, is_default, sort_order FROM user_groups ORDER BY sort_order, name COLLATE NOCASE"
+        ))]
     return jsonify(groups)
 
 
 @app.route("/api/settings/groups", methods=["POST"])
 def api_groups_create():
+    from sqlalchemy.exc import IntegrityError as SAIntegrityError
     data = request.get_json() or {}
     name = (data.get("name") or "").strip()
     if not name:
         return jsonify({"error": "Group name is required"}), 400
-    con = _db()
     try:
-        cur = con.execute(
-            "INSERT INTO user_groups (name, is_default, sort_order) VALUES (?, 0, 99)",
-            (name,)
-        )
-        con.commit()
-        row = dict(con.execute("SELECT * FROM user_groups WHERE id=?", (cur.lastrowid,)).fetchone())
-        con.close()
+        with get_engine().begin() as conn:
+            result = conn.execute(
+                sql_text("INSERT INTO user_groups (name, is_default, sort_order) VALUES (:name, 0, 99)"),
+                {"name": name}
+            )
+            new_id = result.lastrowid
+            row = dict(conn.execute(sql_text("SELECT * FROM user_groups WHERE id=:id"), {"id": new_id}).fetchone()._mapping)
         return jsonify(row), 201
-    except sqlite3.IntegrityError:
-        con.close()
+    except SAIntegrityError:
         return jsonify({"error": f"Group '{name}' already exists"}), 409
 
 
 @app.route("/api/settings/groups/<int:group_id>", methods=["DELETE"])
 def api_groups_delete(group_id):
-    con = _db()
-    row = con.execute("SELECT name, is_default FROM user_groups WHERE id=?", (group_id,)).fetchone()
-    if not row:
-        con.close()
-        return jsonify({"success": False, "reason": "Group not found"}), 404
-    if row["is_default"]:
-        con.close()
-        return jsonify({"success": False, "reason": "Default groups cannot be deleted"}), 400
-    assigned = con.execute("SELECT COUNT(*) FROM users WHERE group_name=?", (row["name"],)).fetchone()[0]
-    if assigned > 0:
-        con.close()
-        return jsonify({"success": False, "reason": f"{assigned} user(s) are still assigned to this group"}), 400
-    con.execute("DELETE FROM user_groups WHERE id=?", (group_id,))
-    con.commit()
-    con.close()
+    with get_engine().begin() as conn:
+        row = conn.execute(sql_text("SELECT name, is_default FROM user_groups WHERE id=:id"), {"id": group_id}).fetchone()
+        if not row:
+            return jsonify({"success": False, "reason": "Group not found"}), 404
+        if row.is_default:
+            return jsonify({"success": False, "reason": "Default groups cannot be deleted"}), 400
+        assigned = conn.execute(sql_text("SELECT COUNT(*) FROM users WHERE group_name=:name"), {"name": row.name}).fetchone()[0]
+        if assigned > 0:
+            return jsonify({"success": False, "reason": f"{assigned} user(s) are still assigned to this group"}), 400
+        conn.execute(sql_text("DELETE FROM user_groups WHERE id=:id"), {"id": group_id})
     return jsonify({"success": True})
 
 

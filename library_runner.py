@@ -42,6 +42,15 @@ IMDB_URLS = {
     "name_basics":      "https://datasets.imdbws.com/name.basics.tsv.gz",
 }
 
+# ── DB_TYPE guard ─────────────────────────────────────────────────────────────
+_db_type = os.environ.get("DB_TYPE", "sqlite")
+if _db_type != "sqlite":
+    print(
+        f"WARNING: library_runner.py only supports SQLite. "
+        f"For MariaDB/Postgres, a future migration tool is needed."
+    )
+    exit(1)
+
 # ── API helpers ────────────────────────────────────────────────────────────────
 def radarr(endpoint):
     r = requests.get(f"{RADARR_URL}/api/v3/{endpoint}",

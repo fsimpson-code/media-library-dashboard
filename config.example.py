@@ -24,3 +24,25 @@ DASHBOARD_PORT  = 8686
 FINGERPRINT_ENABLED = False
 FINGERPRINT_MEMBERS = []   # e.g. ["alice", "bob", "carol"]
 HATED_ENABLED       = False
+
+# Plex integration (optional — required for Request Audit watch history)
+PLEX_DB_PATH = ""  # e.g. "/path/to/com.plexapp.plugins.library.db"
+
+# Jellyseerr internal URL (used server-side for Request Audit API calls)
+JELLYSEERR_INTERNAL_URL = "http://localhost:5055"
+JELLYSEERR_API_KEY      = ""
+
+# Radarr internal DB path (optional — only needed for Container Hitlist feature)
+RADARR_DB_PATH = ""  # e.g. "/path/to/radarr/config/radarr.db" (TrueNAS: /mnt/.ix-apps/app_mounts/radarr/config/radarr.db)
+
+# Watch history DB (optional — for Request Audit cross-reference)
+HISTORY_DB_PATH = ""  # defaults to data/library_history_watch.db if blank
+
+# Database backend (sqlite is default; postgres and mysql also supported)
+DB_TYPE = "sqlite"
+# For postgres or mysql, also set:
+# DB_HOST = ""
+# DB_PORT = ""   # postgres default: 5432, mysql default: 3306
+# DB_NAME = ""
+# DB_USER = ""
+# DB_PASS = ""
