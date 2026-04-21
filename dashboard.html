@@ -1860,7 +1860,10 @@ function loadRequestAudit() {
     .catch(() => {});
 
   fetch('/api/requests/audit')
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(r => {
+      if (!r.ok) return r.json().then(j => { throw new Error(j.error || ('HTTP ' + r.status)); }).catch(e => { throw new Error(e.message || ('HTTP ' + r.status)); });
+      return r.json();
+    })
     .then(data => {
       window._requestAuditData = data;
       _requestAuditData = data;
@@ -1868,7 +1871,7 @@ function loadRequestAudit() {
     })
     .catch(err => {
       document.getElementById('req-audit-content').innerHTML =
-        '<div style="padding:30px;color:#ff6b6b;text-align:center">Could not load request data — check Jellyseerr connection at truenas.local:5055<br><small>' + err.message + '</small></div>';
+        '<div style="padding:30px;color:#ff6b6b;text-align:center">Could not load request data<br><small>' + err.message + '</small></div>';
     });
 }
 
