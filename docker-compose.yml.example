@@ -30,6 +30,25 @@ services:
       - PYTHONUNBUFFERED=1
       - DB_PATH=/data/library_history.db
       - RUNNER_URL=http://python-utils:5757
+      # DB_TYPE: sqlite (default), postgres, mysql
+      # For postgres/mysql also set: DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
+      - DB_TYPE=sqlite
+      # Radarr/Sonarr API credentials
+      - RADARR_URL=http://your-radarr-url:7878
+      - RADARR_API_KEY=
+      - SONARR_URL=http://your-sonarr-url:8989
+      - SONARR_API_KEY=
+      # Jellyseerr public URL (used for links in the dashboard)
+      - SEERR_URL=http://your-seerr-url:5055
+      # Jellyseerr internal URL and API key (used server-side for Request Audit)
+      - JELLYSEERR_INTERNAL_URL=http://localhost:5055
+      - JELLYSEERR_API_KEY=
+      # Plex DB path (optional — required for Request Audit watch history)
+      - PLEX_DB_PATH=
+      # Radarr internal DB path (optional — required for Container Hitlist feature)
+      - RADARR_DB_PATH=
+      # Watch history DB path (optional — for Request Audit cross-reference)
+      - HISTORY_DB_PATH=
     ports:
       - "${DASHBOARD_PORT:-8686}:8686"
     command: >
