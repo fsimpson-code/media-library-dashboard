@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Media Library Dashboard — Flask backend
-All data served from SQLite. No xlsx dependency.
+Supports SQLite (default), PostgreSQL, and MySQL/MariaDB via DB_TYPE env var.
 """
 
 import os, re, json, sqlite3
@@ -89,31 +89,23 @@ def get_engine():
                 _engine = create_engine("sqlite:///{}".format(db_path))
     return _engine
 
-# SQLite-only path — used by parse_* functions and _has_data().
-# For multi-backend support, migrate those callers to get_engine() too.
-def _db():
-    db_type = os.getenv("DB_TYPE", "sqlite")
-    if db_type != "sqlite":
-        raise NotImplementedError(
-            "Use get_engine() for non-SQLite backends — raw _db() is SQLite only"
-        )
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    return con
+def _db_path_exists():
+    """Returns False only for sqlite when the file is missing; always True for remote backends."""
+    if os.getenv("DB_TYPE", "sqlite") == "sqlite":
+        return DB_PATH.exists()
+    return True
 
-def _latest_run_id(con):
-    cur = con.execute("SELECT id FROM runs ORDER BY id DESC LIMIT 1")
-    row = cur.fetchone()
+def _latest_run_id(conn):
+    """Return the most recent run id from a SQLAlchemy connection."""
+    row = conn.execute(sql_text("SELECT id FROM runs ORDER BY id DESC LIMIT 1")).fetchone()
     return row[0] if row else None
 
 def _has_data():
-    if not DB_PATH.exists():
+    if not _db_path_exists():
         return False
     try:
-        con = _db()
-        run_id = _latest_run_id(con)
-        con.close()
-        return run_id is not None
+        with get_engine().connect() as conn:
+            return _latest_run_id(conn) is not None
     except Exception:
         return False
 
@@ -187,20 +179,17 @@ def api_config():
     })
 
 def parse_movies():
-    con = _db()
-    run_id = _latest_run_id(con)
-    if run_id is None:
-        con.close()
-        raise FileNotFoundError("No runs found — run an update first.")
-
-    rows = [dict(r) for r in con.execute("""
-        SELECT title, year, has_file, monitored, video_codec, resolution, hdr_type,
-               file_size_gb, release_group, cutoff_not_met, imdb_rating, quality_name,
-               source, bit_depth, certification, genres, studio, runtime, tags,
-               imdb_votes, metacritic, rotten_tomatoes
-        FROM movie_snapshots WHERE run_id = ?
-    """, (run_id,)).fetchall()]
-    con.close()
+    with get_engine().connect() as conn:
+        run_id = _latest_run_id(conn)
+        if run_id is None:
+            raise FileNotFoundError("No runs found — run an update first.")
+        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
+            SELECT title, year, has_file, monitored, video_codec, resolution, hdr_type,
+                   file_size_gb, release_group, cutoff_not_met, imdb_rating, quality_name,
+                   source, bit_depth, certification, genres, studio, runtime, tags,
+                   imdb_votes, metacritic, rotten_tomatoes
+            FROM movie_snapshots WHERE run_id = :run_id
+        """), {"run_id": run_id}).fetchall()]
 
     has_file = [m for m in rows if m["has_file"]]
     total       = len(rows)
@@ -286,19 +275,16 @@ def parse_movies():
     }
 
 def parse_tv():
-    con = _db()
-    run_id = _latest_run_id(con)
-    if run_id is None:
-        con.close()
-        raise FileNotFoundError("No runs found — run an update first.")
-
-    rows = [dict(r) for r in con.execute("""
-        SELECT title, year, status, ended, network, certification, genres, tags,
-               season_count, episodes_have, episodes_total, completion_pct,
-               specials_have, specials_total, has_specials, size_gb, rating
-        FROM tv_snapshots WHERE run_id = ?
-    """, (run_id,)).fetchall()]
-    con.close()
+    with get_engine().connect() as conn:
+        run_id = _latest_run_id(conn)
+        if run_id is None:
+            raise FileNotFoundError("No runs found — run an update first.")
+        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
+            SELECT title, year, status, ended, network, certification, genres, tags,
+                   season_count, episodes_have, episodes_total, completion_pct,
+                   specials_have, specials_total, has_specials, size_gb, rating
+            FROM tv_snapshots WHERE run_id = :run_id
+        """), {"run_id": run_id}).fetchall()]
 
     total        = len(rows)
     complete     = sum(1 for s in rows if (s["completion_pct"] or 0) >= 100)
@@ -359,17 +345,15 @@ def parse_tv():
     }
 
 def parse_talent():
-    con = _db()
-    run_id = _latest_run_id(con)
-    if run_id is None:
-        con.close()
-        raise FileNotFoundError("No runs found — run an update first.")
-    rows = [dict(r) for r in con.execute("""
-        SELECT name, role, film_count, avg_rating, top_genre
-        FROM top_talent_snapshots WHERE run_id = ?
-        ORDER BY film_count DESC
-    """, (run_id,)).fetchall()]
-    con.close()
+    with get_engine().connect() as conn:
+        run_id = _latest_run_id(conn)
+        if run_id is None:
+            raise FileNotFoundError("No runs found — run an update first.")
+        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
+            SELECT name, role, film_count, avg_rating, top_genre
+            FROM top_talent_snapshots WHERE run_id = :run_id
+            ORDER BY film_count DESC
+        """), {"run_id": run_id}).fetchall()]
 
     dirs = [{"name": r["name"], "films": r["film_count"], "avg_rating": r["avg_rating"],
               "top_genre": r["top_genre"] or ""} for r in rows if r["role"] == "director"]
@@ -378,35 +362,31 @@ def parse_talent():
     return {"directors": dirs[:25], "actors": acts[:25]}
 
 def parse_franchises():
-    con = _db()
-    run_id = _latest_run_id(con)
-    if run_id is None:
-        con.close()
-        raise FileNotFoundError("No runs found — run an update first.")
-    rows = [dict(r) for r in con.execute("""
-        SELECT franchise_name, have, total, missing_count, pct, status
-        FROM franchise_snapshots WHERE run_id = ?
-        ORDER BY missing_count DESC, total DESC
-    """, (run_id,)).fetchall()]
-    con.close()
+    with get_engine().connect() as conn:
+        run_id = _latest_run_id(conn)
+        if run_id is None:
+            raise FileNotFoundError("No runs found — run an update first.")
+        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
+            SELECT franchise_name, have, total, missing_count, pct, status
+            FROM franchise_snapshots WHERE run_id = :run_id
+            ORDER BY missing_count DESC, total DESC
+        """), {"run_id": run_id}).fetchall()]
     return [{"franchise": r["franchise_name"], "have": r["have"] or 0,
              "total": r["total"] or 0, "missing": r["missing_count"] or 0,
              "pct": r["pct"] or 0, "status": r["status"] or ""} for r in rows]
 
 
 def parse_constellation():
-    con = _db()
-    run_id = _latest_run_id(con)
-    if run_id is None:
-        con.close()
-        raise FileNotFoundError("No runs found — run an update first.")
-    rows = [dict(r) for r in con.execute("""
-        SELECT title, year, imdb_rating, file_size_gb, quality_name, genres
-        FROM movie_snapshots
-        WHERE run_id = ? AND has_file = 1 AND imdb_rating IS NOT NULL
-              AND year IS NOT NULL AND imdb_rating > 0
-    """, (run_id,)).fetchall()]
-    con.close()
+    with get_engine().connect() as conn:
+        run_id = _latest_run_id(conn)
+        if run_id is None:
+            raise FileNotFoundError("No runs found — run an update first.")
+        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
+            SELECT title, year, imdb_rating, file_size_gb, quality_name, genres
+            FROM movie_snapshots
+            WHERE run_id = :run_id AND has_file = 1 AND imdb_rating IS NOT NULL
+                  AND year IS NOT NULL AND imdb_rating > 0
+        """), {"run_id": run_id}).fetchall()]
     return [{"title": r["title"], "year": r["year"],
              "rating": round(r["imdb_rating"], 1),
              "size_gb": round(r["file_size_gb"] or 0, 2),
@@ -442,17 +422,15 @@ def api_constellation():
 
 
 def parse_bloat():
-    con = _db()
-    run_id = _latest_run_id(con)
-    if run_id is None:
-        con.close()
-        raise FileNotFoundError("No runs found — run an update first.")
-    rows = [dict(r) for r in con.execute("""
-        SELECT title, year, quality_name, video_codec, release_group,
-               file_size_gb, runtime, video_bitrate, radarr_id, title_slug
-        FROM movie_snapshots WHERE run_id = ? AND has_file = 1
-    """, (run_id,)).fetchall()]
-    con.close()
+    with get_engine().connect() as conn:
+        run_id = _latest_run_id(conn)
+        if run_id is None:
+            raise FileNotFoundError("No runs found — run an update first.")
+        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
+            SELECT title, year, quality_name, video_codec, release_group,
+                   file_size_gb, runtime, video_bitrate, radarr_id, title_slug
+            FROM movie_snapshots WHERE run_id = :run_id AND has_file = 1
+        """), {"run_id": run_id}).fetchall()]
 
     movies = []
     for r in rows:
@@ -1089,44 +1067,34 @@ def api_snapshot(run_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 503
 def parse_talent_deep():
-    import sqlite3 as _sq
     from collections import defaultdict, Counter
 
-    if not DB_PATH.exists():
+    if not _db_path_exists():
         return {"error": "Database not found"}
 
-    # ── Load movies from SQLite ────────────────────────────────────────────────
-    con_m = _sq.connect(DB_PATH)
-    con_m.row_factory = _sq.Row
-    run_id = _latest_run_id(con_m)
-    if run_id is None:
-        con_m.close()
-        return {"error": "No runs found — run an update first."}
+    with get_engine().connect() as conn:
+        # ── Load movies ────────────────────────────────────────────────────────
+        run_id = _latest_run_id(conn)
+        if run_id is None:
+            return {"error": "No runs found — run an update first."}
 
-    imdb_to_movie = {}
-    for r in con_m.execute("""
-        SELECT imdb_id, title, year, imdb_rating, genres
-        FROM movie_snapshots WHERE run_id = ? AND has_file = 1
-    """, (run_id,)).fetchall():
-        if r["imdb_id"]:
-            imdb_to_movie[r["imdb_id"]] = {
-                "title":  r["title"],
-                "year":   r["year"],
-                "rating": r["imdb_rating"],
-                "genres": r["genres"] or "",
-            }
-    con_m.close()
+        imdb_to_movie = {}
+        for r in conn.execute(sql_text("""
+            SELECT imdb_id, title, year, imdb_rating, genres
+            FROM movie_snapshots WHERE run_id = :run_id AND has_file = 1
+        """), {"run_id": run_id}).fetchall():
+            if r.imdb_id:
+                imdb_to_movie[r.imdb_id] = {
+                    "title":  r.title,
+                    "year":   r.year,
+                    "rating": r.imdb_rating,
+                    "genres": r.genres or "",
+                }
 
-    # ── Load talent cache ──────────────────────────────────────────────────────
-    if not DB_PATH.exists():
-        return {"error": "Database not found"}
-
-    con = _sq.connect(DB_PATH)
-    con.row_factory = _sq.Row
-    rows = con.execute(
-        "SELECT imdb_id, nconst, name, role, ordering FROM talent_cache"
-    ).fetchall()
-    con.close()
+        # ── Load talent cache ──────────────────────────────────────────────────
+        rows = conn.execute(sql_text(
+            "SELECT imdb_id, nconst, name, role, ordering FROM talent_cache"
+        )).fetchall()
 
     # Filter to films we actually have
     talent = defaultdict(list)   # imdb_id -> [{name, nconst, role, ordering}]
@@ -1170,11 +1138,10 @@ def parse_talent_deep():
     # Load true_breakout votes from actor_career for fame suppression
     breakout_votes = {}
     try:
-        con_ac = _sq.connect(DB_PATH)
-        for ac_row in con_ac.execute("SELECT nconst, true_breakout FROM actor_career").fetchall():
-            tb = json.loads(ac_row[1]) if ac_row[1] else None
-            breakout_votes[ac_row[0]] = tb["votes"] if tb else 0
-        con_ac.close()
+        with get_engine().connect() as conn_ac:
+            for ac_row in conn_ac.execute(sql_text("SELECT nconst, true_breakout FROM actor_career")).fetchall():
+                tb = json.loads(ac_row[1]) if ac_row[1] else None
+                breakout_votes[ac_row[0]] = tb["votes"] if tb else 0
     except Exception:
         pass
 
@@ -1313,16 +1280,14 @@ def parse_talent_deep():
     # Load actor_career BTWF data (pre-computed from IMDb TSV scan)
     career_btwf = {}
     try:
-        con_btwf = _sq.connect(DB_PATH)
-        con_btwf.row_factory = _sq.Row
-        for ac_row in con_btwf.execute(
-            "SELECT nconst, true_breakout, btwf_pre_fame FROM actor_career"
-        ).fetchall():
-            tb   = json.loads(ac_row["true_breakout"])  if ac_row["true_breakout"]  else None
-            pre  = json.loads(ac_row["btwf_pre_fame"])   if ac_row["btwf_pre_fame"]   else []
-            if tb:
-                career_btwf[ac_row["nconst"]] = {"true_breakout": tb, "btwf_pre_fame": pre}
-        con_btwf.close()
+        with get_engine().connect() as conn_btwf:
+            for ac_row in conn_btwf.execute(sql_text(
+                "SELECT nconst, true_breakout, btwf_pre_fame FROM actor_career"
+            )).fetchall():
+                tb   = json.loads(ac_row.true_breakout) if ac_row.true_breakout else None
+                pre  = json.loads(ac_row.btwf_pre_fame) if ac_row.btwf_pre_fame else []
+                if tb:
+                    career_btwf[ac_row.nconst] = {"true_breakout": tb, "btwf_pre_fame": pre}
     except Exception:
         pass
 
@@ -1506,32 +1471,21 @@ def api_fingerprint():
 
 
 def parse_deep_wounds():
-    import sqlite3 as _sq
     from collections import defaultdict
 
-    if not DB_PATH.exists():
+    if not _db_path_exists():
         return {"error": "Database not found"}
 
-    con = _sq.connect(DB_PATH)
-    con.row_factory = _sq.Row
-
     try:
-        rows = con.execute(
-            "SELECT nconst, name, horror_credits, true_breakout FROM actor_career"
-        ).fetchall()
+        with get_engine().connect() as conn:
+            rows = conn.execute(sql_text(
+                "SELECT nconst, name, horror_credits, true_breakout FROM actor_career"
+            )).fetchall()
+            lib_nconsts = {r[0] for r in conn.execute(sql_text(
+                "SELECT DISTINCT nconst FROM talent_cache"
+            )).fetchall()}
     except Exception:
-        con.close()
         return {"error": "Career data not yet computed — run an update first."}
-    con.close()
-
-    # Also load talent_cache to know which actors are in the library
-    con2 = _sq.connect(DB_PATH)
-    lib_nconsts = set(
-        r[0] for r in con2.execute(
-            "SELECT DISTINCT nconst FROM talent_cache"
-        ).fetchall()
-    )
-    con2.close()
 
     actors = []
     for row in rows:
@@ -1571,27 +1525,25 @@ def api_deep_wounds():
 
 
 def parse_dna():
-    if not DB_PATH.exists():
+    if not _db_path_exists():
         raise FileNotFoundError(f"Database not found at {DB_PATH}")
 
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
+    conn = get_engine().connect()
 
     # Latest run that has DNA scores
-    cur = con.execute("""
+    row = conn.execute(sql_text("""
         SELECT run_id, COUNT(*) as count, AVG(final_score) as avg_score
         FROM dna_scores
         GROUP BY run_id
         ORDER BY run_id DESC
         LIMIT 1
-    """)
-    row = cur.fetchone()
+    """)).fetchone()
     if not row:
-        con.close()
+        conn.close()
         return {"error": "No DNA scores computed yet — run an update first."}
 
-    run_id    = row["run_id"]
-    avg_score = round(row["avg_score"], 1)
+    run_id    = row.run_id
+    avg_score = round(row.avg_score, 1)
 
     def grade(s):
         if s >= 90: return "A"
@@ -1601,30 +1553,27 @@ def parse_dna():
         return "F"
 
     # Grade distribution
-    cur = con.execute("""
+    grade_dist = {r.grade: r.count for r in conn.execute(sql_text("""
         SELECT grade, COUNT(*) as count
-        FROM dna_scores WHERE run_id = ?
+        FROM dna_scores WHERE run_id = :run_id
         GROUP BY grade ORDER BY grade
-    """, (run_id,))
-    grade_dist = {r["grade"]: r["count"] for r in cur.fetchall()}
+    """), {"run_id": run_id}).fetchall()}
 
     # Best films (top 20)
-    cur = con.execute("""
+    best = [dict(r._mapping) for r in conn.execute(sql_text("""
         SELECT title, imdb_id, final_score, grade, teacher_note,
                d1_score, d2_score, d3_score, d4_score, d5_score, d6_score
-        FROM dna_scores WHERE run_id = ?
+        FROM dna_scores WHERE run_id = :run_id
         ORDER BY final_score DESC LIMIT 20
-    """, (run_id,))
-    best = [dict(r) for r in cur.fetchall()]
+    """), {"run_id": run_id}).fetchall()]
 
     # Worst films (bottom 20)
-    cur = con.execute("""
+    worst = [dict(r._mapping) for r in conn.execute(sql_text("""
         SELECT title, imdb_id, final_score, grade, teacher_note,
                d1_score, d2_score, d3_score, d4_score, d5_score, d6_score
-        FROM dna_scores WHERE run_id = ?
+        FROM dna_scores WHERE run_id = :run_id
         ORDER BY final_score ASC LIMIT 20
-    """, (run_id,))
-    worst = [dict(r) for r in cur.fetchall()]
+    """), {"run_id": run_id}).fetchall()]
 
     # Enrich worst with title_slug from Radarr API (match by title)
     try:
@@ -1646,67 +1595,62 @@ def parse_dna():
         pass  # non-fatal — links just won't appear
 
     # F-grade count
-    cur = con.execute("""
-        SELECT COUNT(*) as count FROM dna_scores WHERE run_id = ? AND grade = 'F'
-    """, (run_id,))
-    f_count = cur.fetchone()["count"]
+    f_count = conn.execute(sql_text("""
+        SELECT COUNT(*) as count FROM dna_scores WHERE run_id = :run_id AND grade = 'F'
+    """), {"run_id": run_id}).fetchone().count
 
     # Historical trend — avg DNA score per run
-    cur = con.execute("""
-        SELECT d.run_id, r.run_date, AVG(d.final_score) as avg_score,
-               COUNT(*) as film_count
-        FROM dna_scores d
-        JOIN runs r ON r.id = d.run_id
-        GROUP BY d.run_id
-        ORDER BY d.run_id
-    """)
     trend = [
         {
-            "run_id":     r["run_id"],
-            "date":       r["run_date"],
-            "avg_score":  round(r["avg_score"], 1),
-            "film_count": r["film_count"],
+            "run_id":     r.run_id,
+            "date":       r.run_date,
+            "avg_score":  round(r.avg_score, 1),
+            "film_count": r.film_count,
         }
-        for r in cur.fetchall()
+        for r in conn.execute(sql_text("""
+            SELECT d.run_id, r.run_date, AVG(d.final_score) as avg_score,
+                   COUNT(*) as film_count
+            FROM dna_scores d
+            JOIN runs r ON r.id = d.run_id
+            GROUP BY d.run_id, r.run_date
+            ORDER BY d.run_id
+        """)).fetchall()
     ]
 
     # Library-wide dimension averages
-    cur = con.execute("""
+    dim_row = conn.execute(sql_text("""
         SELECT AVG(d1_score) as d1, AVG(d2_score) as d2, AVG(d3_score) as d3,
                AVG(d4_score) as d4, AVG(d5_score) as d5, AVG(d6_score) as d6
-        FROM dna_scores WHERE run_id = ?
-    """, (run_id,))
-    dim_row = cur.fetchone()
+        FROM dna_scores WHERE run_id = :run_id
+    """), {"run_id": run_id}).fetchone()
     dimensions = [
-        {"key": "d1", "label": "Score Authenticity",   "weight": 25, "score": round(dim_row["d1"] or 0, 1)},
-        {"key": "d2", "label": "Intentionality",        "weight": 25, "score": round(dim_row["d2"] or 0, 1)},
-        {"key": "d3", "label": "Talent Crossover",      "weight": 10, "score": round(dim_row["d3"] or 0, 1)},
-        {"key": "d4", "label": "Franchise Context",     "weight": 20, "score": round(dim_row["d4"] or 0, 1)},
-        {"key": "d5", "label": "Vote Density by Era",   "weight": 10, "score": round(dim_row["d5"] or 0, 1)},
-        {"key": "d6", "label": "Genre Coherence",       "weight": 10, "score": round(dim_row["d6"] or 0, 1)},
+        {"key": "d1", "label": "Score Authenticity",   "weight": 25, "score": round(dim_row.d1 or 0, 1)},
+        {"key": "d2", "label": "Intentionality",        "weight": 25, "score": round(dim_row.d2 or 0, 1)},
+        {"key": "d3", "label": "Talent Crossover",      "weight": 10, "score": round(dim_row.d3 or 0, 1)},
+        {"key": "d4", "label": "Franchise Context",     "weight": 20, "score": round(dim_row.d4 or 0, 1)},
+        {"key": "d5", "label": "Vote Density by Era",   "weight": 10, "score": round(dim_row.d5 or 0, 1)},
+        {"key": "d6", "label": "Genre Coherence",       "weight": 10, "score": round(dim_row.d6 or 0, 1)},
     ]
 
     # Expulsion list — D/F films that carry at least one *-hate tag
-    cur = con.execute("""
+    expulsion_candidates = [dict(r._mapping) for r in conn.execute(sql_text("""
         SELECT title, imdb_id, final_score, grade, teacher_note
-        FROM dna_scores WHERE run_id = ? AND grade IN ('D', 'F')
+        FROM dna_scores WHERE run_id = :run_id AND grade IN ('D', 'F')
         ORDER BY final_score ASC
-    """, (run_id,))
-    expulsion_candidates = [dict(r) for r in cur.fetchall()]
-    con.close()
+    """), {"run_id": run_id}).fetchall()]
 
     # Build imdb_id → tags map from movie_snapshots (latest run)
     tag_map = {}
     try:
-        con2 = sqlite3.connect(DB_PATH)
-        for r in con2.execute("""
+        for r in conn.execute(sql_text("""
             SELECT imdb_id, tags FROM movie_snapshots
-            WHERE run_id = ? AND imdb_id IS NOT NULL AND imdb_id != ''
-        """, (run_id,)).fetchall():
+            WHERE run_id = :run_id AND imdb_id IS NOT NULL AND imdb_id != ''
+        """), {"run_id": run_id}).fetchall():
             tag_map[r[0]] = (r[1] or "").lower()
-        con2.close()
     except Exception:
         pass
+
+    conn.close()
 
     expulsion = []
     for film in expulsion_candidates:
@@ -1808,28 +1752,26 @@ def _fingerprint_member_data():
     INDIVIDUALS = FINGERPRINT_MEMBERS
     empty = {m: {"genres": Counter(), "titles": set(), "imdb_ids": set(), "rows": []} for m in MEMBERS}
 
-    if not DB_PATH.exists():
+    if not _db_path_exists():
         return empty
 
     try:
-        con = _db()
-        run_id = _latest_run_id(con)
-        if run_id is None:
-            con.close()
-            return empty
+        with get_engine().connect() as conn:
+            run_id = _latest_run_id(conn)
+            if run_id is None:
+                return empty
 
-        all_rows = []
-        for r in con.execute("""
-            SELECT title, imdb_id, year, genres, tags, imdb_rating AS rating, 'movie' AS source
-            FROM movie_snapshots WHERE run_id = ? AND has_file = 1
-        """, (run_id,)).fetchall():
-            all_rows.append(dict(r))
-        for r in con.execute("""
-            SELECT title, imdb_id, year, genres, tags, rating, 'tv' AS source
-            FROM tv_snapshots WHERE run_id = ? AND episodes_have > 0
-        """, (run_id,)).fetchall():
-            all_rows.append(dict(r))
-        con.close()
+            all_rows = []
+            for r in conn.execute(sql_text("""
+                SELECT title, imdb_id, year, genres, tags, imdb_rating AS rating, 'movie' AS source
+                FROM movie_snapshots WHERE run_id = :run_id AND has_file = 1
+            """), {"run_id": run_id}).fetchall():
+                all_rows.append(dict(r._mapping))
+            for r in conn.execute(sql_text("""
+                SELECT title, imdb_id, year, genres, tags, rating, 'tv' AS source
+                FROM tv_snapshots WHERE run_id = :run_id AND episodes_have > 0
+            """), {"run_id": run_id}).fetchall():
+                all_rows.append(dict(r._mapping))
     except Exception:
         return empty
 
@@ -2044,22 +1986,21 @@ def parse_fingerprint_hated():
     # Query ALL library films directly — do not filter by member base tag.
     # A film tagged only with [member]-hate (no base tag) must still appear.
     deduped = []
-    if DB_PATH.exists():
+    if _db_path_exists():
         try:
-            con = _db()
-            run_id = _latest_run_id(con)
-            if run_id is not None:
-                for r in con.execute("""
-                    SELECT title, imdb_id, year, genres, tags, imdb_rating AS rating, 'movie' AS source
-                    FROM movie_snapshots WHERE run_id = ? AND has_file = 1
-                """, (run_id,)).fetchall():
-                    deduped.append(dict(r))
-                for r in con.execute("""
-                    SELECT title, imdb_id, year, genres, tags, rating, 'tv' AS source
-                    FROM tv_snapshots WHERE run_id = ? AND episodes_have > 0
-                """, (run_id,)).fetchall():
-                    deduped.append(dict(r))
-            con.close()
+            with get_engine().connect() as conn:
+                run_id = _latest_run_id(conn)
+                if run_id is not None:
+                    for r in conn.execute(sql_text("""
+                        SELECT title, imdb_id, year, genres, tags, imdb_rating AS rating, 'movie' AS source
+                        FROM movie_snapshots WHERE run_id = :run_id AND has_file = 1
+                    """), {"run_id": run_id}).fetchall():
+                        deduped.append(dict(r._mapping))
+                    for r in conn.execute(sql_text("""
+                        SELECT title, imdb_id, year, genres, tags, rating, 'tv' AS source
+                        FROM tv_snapshots WHERE run_id = :run_id AND episodes_have > 0
+                    """), {"run_id": run_id}).fetchall():
+                        deduped.append(dict(r._mapping))
         except Exception:
             pass
 
@@ -2168,9 +2109,8 @@ def api_settings_config():
     sqlite_src = env.get("DB_PATH", "")
     out["sqlite_path_exists"] = Path(sqlite_src).exists() if sqlite_src else False
     try:
-        con = _db()
-        ts = con.execute("SELECT MAX(updated_at) FROM actor_career").fetchone()[0]
-        con.close()
+        with get_engine().connect() as conn:
+            ts = conn.execute(sql_text("SELECT MAX(updated_at) FROM actor_career")).fetchone()[0]
         out["imdb_last_built"] = ts
     except Exception:
         out["imdb_last_built"] = None
@@ -2371,10 +2311,8 @@ def api_db_migrate_status():
 def api_imdb_refresh():
     app.logger.info("IMDb refresh triggered")
     try:
-        con = _db()
-        con.execute("DELETE FROM actor_career")
-        con.commit()
-        con.close()
+        with get_engine().begin() as conn:
+            conn.execute(sql_text("DELETE FROM actor_career"))
     except Exception as e:
         return jsonify({"ok": False, "error": "DB clear failed: {}".format(str(e))}), 500
     try:

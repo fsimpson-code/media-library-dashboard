@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 library_runner.py
-Fetches data from Radarr and Sonarr APIs + IMDb datasets and writes to SQLite.
+Fetches data from Radarr and Sonarr APIs + IMDb datasets and writes to the
+configured database backend (SQLite by default; Postgres or MySQL/MariaDB via
+DB_TYPE env var).
 
 Run: python3 /scripts/library_runner.py
 """
@@ -10,6 +12,7 @@ import os, sys, gzip, csv, json, requests, shutil, sqlite3, math
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 from pathlib import Path
+from sqlalchemy import create_engine, text as sql_text, MetaData, Table, Column, Integer, String, Float, Text, inspect as sa_inspect
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 try:
@@ -42,14 +45,38 @@ IMDB_URLS = {
     "name_basics":      "https://datasets.imdbws.com/name.basics.tsv.gz",
 }
 
-# ── DB_TYPE guard ─────────────────────────────────────────────────────────────
-_db_type = os.environ.get("DB_TYPE", "sqlite")
-if _db_type != "sqlite":
-    print(
-        f"WARNING: library_runner.py only supports SQLite. "
-        f"For MariaDB/Postgres, a future migration tool is needed."
-    )
-    exit(1)
+# ── Multi-backend DB engine ────────────────────────────────────────────────────
+_engine = None
+_engine_lock = __import__("threading").Lock()
+
+def get_engine():
+    global _engine
+    with _engine_lock:
+        if _engine is None:
+            db_type = os.getenv("DB_TYPE", "sqlite")
+            if db_type == "postgres":
+                _engine = create_engine("postgresql://{}:{}@{}:{}/{}".format(
+                    os.getenv("DB_USER", ""), os.getenv("DB_PASS", ""),
+                    os.getenv("DB_HOST", ""), os.getenv("DB_PORT", "5432"),
+                    os.getenv("DB_NAME", "")))
+            elif db_type == "mysql":
+                _engine = create_engine("mysql+pymysql://{}:{}@{}:{}/{}".format(
+                    os.getenv("DB_USER", ""), os.getenv("DB_PASS", ""),
+                    os.getenv("DB_HOST", ""), os.getenv("DB_PORT", "3306"),
+                    os.getenv("DB_NAME", "")))
+            else:
+                _engine = create_engine("sqlite:///{}".format(
+                    os.getenv("DB_PATH", str(DB_PATH))))
+    return _engine
+
+def _insert_returning_id(conn, stmt, params):
+    """Execute an INSERT and return the new row's primary key, cross-backend."""
+    db_type = os.getenv("DB_TYPE", "sqlite")
+    if db_type == "postgres":
+        row = conn.execute(sql_text(stmt + " RETURNING id"), params).fetchone()
+        return row[0]
+    result = conn.execute(sql_text(stmt), params)
+    return result.lastrowid
 
 # ── API helpers ────────────────────────────────────────────────────────────────
 def radarr(endpoint):
@@ -238,7 +265,7 @@ def fetch_series():
     return series
 
 # ── Library DNA Score ──────────────────────────────────────────────────────────
-def compute_dna_scores(movies, talent_data, run_id, con):
+def compute_dna_scores(movies, talent_data, run_id, conn):
     """Compute Library DNA Score for each film and write to dna_scores table."""
     print("\nComputing Library DNA Scores...")
 
@@ -456,300 +483,250 @@ def compute_dna_scores(movies, talent_data, run_id, con):
             "d4": round(d4, 1), "d5": round(d5, 1), "d6": round(d6, 1),
             "d7": round(d7, 1),
         }
-        rows.append((
-            run_id, imdb_id, m["title"],
-            scores["d1"], scores["d2"], scores["d3"], scores["d4"],
-            scores["d5"], scores["d6"], scores["d7"],
-            final, grade(final), build_teacher_note(scores, final),
-        ))
+        rows.append({
+            "run_id": run_id, "imdb_id": imdb_id, "title": m["title"],
+            "d1_score": scores["d1"], "d2_score": scores["d2"],
+            "d3_score": scores["d3"], "d4_score": scores["d4"],
+            "d5_score": scores["d5"], "d6_score": scores["d6"],
+            "d7_score": scores["d7"],
+            "final_score": final, "grade": grade(final),
+            "teacher_note": build_teacher_note(scores, final),
+        })
 
-    con.executemany("""
-        INSERT INTO dna_scores
-            (run_id, imdb_id, title,
-             d1_score, d2_score, d3_score, d4_score,
-             d5_score, d6_score, d7_score,
-             final_score, grade, teacher_note)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """, rows)
-    con.commit()
+    if rows:
+        conn.execute(
+            sql_text("INSERT INTO dna_scores "
+                     "(run_id, imdb_id, title, d1_score, d2_score, d3_score, d4_score, "
+                     "d5_score, d6_score, d7_score, final_score, grade, teacher_note) "
+                     "VALUES (:run_id,:imdb_id,:title,:d1_score,:d2_score,:d3_score,:d4_score,"
+                     ":d5_score,:d6_score,:d7_score,:final_score,:grade,:teacher_note)"),
+            rows)
     print(f"  DNA scores computed — {len(rows)} films scored.")
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 # ── SQLite history ─────────────────────────────────────────────────────────────
 def init_db():
-    con = sqlite3.connect(DB_PATH)
-    cur = con.cursor()
+    """Create all tables if needed; return the SQLAlchemy engine."""
+    engine = get_engine()
+    meta = MetaData()
 
-    # runs — historical, append-only
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS runs (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_date    TEXT NOT NULL,
-            run_ts      TEXT NOT NULL,
-            movie_count INTEGER,
-            tv_count    INTEGER,
-            movie_gb    REAL,
-            tv_gb       REAL,
-            x264_count  INTEGER,
-            x265_count  INTEGER
-        )
-    """)
+    Table("runs", meta,
+        Column("id",          Integer, primary_key=True, autoincrement=True),
+        Column("run_date",    String(20),  nullable=False),
+        Column("run_ts",      String(25),  nullable=False),
+        Column("movie_count", Integer),
+        Column("tv_count",    Integer),
+        Column("movie_gb",    Float),
+        Column("tv_gb",       Float),
+        Column("x264_count",  Integer),
+        Column("x265_count",  Integer),
+    )
+    Table("dna_scores", meta,
+        Column("id",           Integer, primary_key=True, autoincrement=True),
+        Column("run_id",       Integer, nullable=False),
+        Column("imdb_id",      String(20)),
+        Column("title",        String(512), nullable=False),
+        Column("d1_score",     Float), Column("d2_score", Float),
+        Column("d3_score",     Float), Column("d4_score", Float),
+        Column("d5_score",     Float), Column("d6_score", Float),
+        Column("d7_score",     Float),
+        Column("final_score",  Float),
+        Column("grade",        String(2)),
+        Column("teacher_note", Text),
+    )
+    Table("actor_career", meta,
+        Column("nconst",         String(20),  primary_key=True),
+        Column("name",           String(255)),
+        Column("horror_credits", Text),
+        Column("true_breakout",  Text),
+        Column("btwf_pre_fame",  Text),
+        Column("updated_at",     String(25)),
+        Column("cached_date",    String(25), nullable=False),
+    )
+    Table("talent_cache", meta,
+        Column("id",          Integer, primary_key=True, autoincrement=True),
+        Column("imdb_id",     String(20),  nullable=False),
+        Column("nconst",      String(20),  nullable=False),
+        Column("name",        String(255), nullable=False),
+        Column("role",        String(50),  nullable=False),
+        Column("ordering",    Integer),
+        Column("cached_date", String(25),  nullable=False),
+    )
+    Table("movie_snapshots", meta,
+        Column("id",             Integer, primary_key=True, autoincrement=True),
+        Column("run_id",         Integer, nullable=False),
+        Column("run_date",       String(20), nullable=False),
+        Column("radarr_id",      Integer),
+        Column("title_slug",     String(512)),
+        Column("title",          String(512)),
+        Column("original_title", String(512)),
+        Column("year",           Integer),
+        Column("status",         String(50)),
+        Column("studio",         String(255)),
+        Column("certification",  String(20)),
+        Column("runtime",        Integer),
+        Column("genres",         Text),
+        Column("keywords",       Text),
+        Column("imdb_id",        String(20)),
+        Column("tmdb_id",        Integer),
+        Column("has_file",       Integer),
+        Column("monitored",      Integer),
+        Column("added",          String(30)),
+        Column("in_cinemas",     String(30)),
+        Column("popularity",     Float),
+        Column("collection",     String(512)),
+        Column("collection_id",  String(50)),
+        Column("quality_name",   String(100)),
+        Column("source",         String(50)),
+        Column("resolution",     Integer),
+        Column("is_repack",      Integer),
+        Column("release_group",  String(100)),
+        Column("edition",        String(100)),
+        Column("file_size_gb",   Float),
+        Column("cutoff_not_met", Integer),
+        Column("video_codec",    String(50)),
+        Column("video_bitrate",  Integer),
+        Column("bit_depth",      String(10)),
+        Column("hdr_type",       String(50)),
+        Column("audio_codec",    String(50)),
+        Column("audio_channels", String(20)),
+        Column("imdb_rating",    Float),
+        Column("imdb_votes",     Integer),
+        Column("tmdb_rating",    Float),
+        Column("metacritic",     Float),
+        Column("rotten_tomatoes",Float),
+        Column("trakt_rating",   Float),
+        Column("trakt_votes",    Integer),
+        Column("tags",           Text),
+    )
+    Table("tv_snapshots", meta,
+        Column("id",             Integer, primary_key=True, autoincrement=True),
+        Column("run_id",         Integer, nullable=False),
+        Column("run_date",       String(20), nullable=False),
+        Column("sonarr_id",      Integer),
+        Column("title",          String(512)),
+        Column("year",           Integer),
+        Column("status",         String(50)),
+        Column("ended",          Integer),
+        Column("network",        String(255)),
+        Column("certification",  String(20)),
+        Column("runtime",        Integer),
+        Column("genres",         Text),
+        Column("imdb_id",        String(20)),
+        Column("tvdb_id",        Integer),
+        Column("monitored",      Integer),
+        Column("first_aired",    String(30)),
+        Column("last_aired",     String(30)),
+        Column("added",          String(30)),
+        Column("season_count",   Integer),
+        Column("episodes_have",  Integer),
+        Column("episodes_total", Integer),
+        Column("completion_pct", Float),
+        Column("specials_have",  Integer),
+        Column("specials_total", Integer),
+        Column("has_specials",   Integer),
+        Column("size_gb",        Float),
+        Column("rating",         Float),
+        Column("rating_votes",   Integer),
+        Column("tags",           Text),
+    )
+    Table("franchise_snapshots", meta,
+        Column("id",             Integer, primary_key=True, autoincrement=True),
+        Column("run_id",         Integer, nullable=False),
+        Column("franchise_name", String(512), nullable=False),
+        Column("have",           Integer),
+        Column("total",          Integer),
+        Column("missing_count",  Integer),
+        Column("pct",            Float),
+        Column("status",         String(100)),
+        Column("missing_titles", Text),
+    )
+    Table("top_talent_snapshots", meta,
+        Column("id",              Integer, primary_key=True, autoincrement=True),
+        Column("run_id",          Integer, nullable=False),
+        Column("name",            String(255), nullable=False),
+        Column("role",            String(50),  nullable=False),
+        Column("film_count",      Integer),
+        Column("avg_rating",      Float),
+        Column("top_genre",       String(100)),
+        Column("top_genre_count", Integer),
+    )
 
-    # dna_scores — derived, run-keyed
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS dna_scores (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id       INTEGER NOT NULL,
-            imdb_id      TEXT,
-            title        TEXT NOT NULL,
-            d1_score     REAL,
-            d2_score     REAL,
-            d3_score     REAL,
-            d4_score     REAL,
-            d5_score     REAL,
-            d6_score     REAL,
-            d7_score     REAL,
-            final_score  REAL,
-            grade        TEXT,
-            teacher_note TEXT,
-            FOREIGN KEY (run_id) REFERENCES runs(id)
-        )
-    """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_dna_run ON dna_scores(run_id)")
+    meta.create_all(engine, checkfirst=True)
 
-    # actor_career — cached, not run-keyed
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS actor_career (
-            nconst          TEXT PRIMARY KEY,
-            name            TEXT,
-            horror_credits  TEXT,
-            true_breakout   TEXT,
-            btwf_pre_fame   TEXT,
-            cached_date     TEXT NOT NULL
-        )
-    """)
+    # Schema migrations — add columns that may be missing in older DBs
+    insp = sa_inspect(engine)
+    with engine.begin() as conn:
+        # movie_snapshots: ensure radarr_id column exists
+        ms_cols = {c["name"] for c in insp.get_columns("movie_snapshots")}
+        if "radarr_id" not in ms_cols:
+            conn.execute(sql_text("ALTER TABLE movie_snapshots ADD COLUMN radarr_id INTEGER"))
+        # actor_career: ensure btwf_pre_fame + updated_at columns exist
+        ac_cols = {c["name"] for c in insp.get_columns("actor_career")}
+        if "btwf_pre_fame" not in ac_cols:
+            conn.execute(sql_text("ALTER TABLE actor_career ADD COLUMN btwf_pre_fame TEXT"))
+        if "updated_at" not in ac_cols:
+            conn.execute(sql_text("ALTER TABLE actor_career ADD COLUMN updated_at TEXT"))
 
-    # talent_cache — cached, not run-keyed
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS talent_cache (
-            imdb_id     TEXT NOT NULL,
-            nconst      TEXT NOT NULL,
-            name        TEXT NOT NULL,
-            role        TEXT NOT NULL,
-            ordering    INTEGER,
-            cached_date TEXT NOT NULL
-        )
-    """)
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_talent_imdb ON talent_cache(imdb_id)")
-
-    con.commit()
-
-    # Drop and recreate run-keyed snapshot tables with full schema
-    existing = {r[0] for r in con.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()}
-    needs_rebuild = "movie_snapshots" not in existing
-    if not needs_rebuild:
-        cols = {r[1] for r in con.execute("PRAGMA table_info(movie_snapshots)").fetchall()}
-        if "radarr_id" not in cols:
-            needs_rebuild = True
-    if needs_rebuild:
-        con.execute("DROP TABLE IF EXISTS movie_snapshots")
-        con.execute("DROP TABLE IF EXISTS tv_snapshots")
-        con.execute("DROP TABLE IF EXISTS franchise_snapshots")
-        con.execute("DROP TABLE IF EXISTS top_talent_snapshots")
-
-    cur.executescript("""
-        CREATE TABLE IF NOT EXISTS movie_snapshots (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id          INTEGER NOT NULL,
-            run_date        TEXT NOT NULL,
-            radarr_id       INTEGER,
-            title_slug      TEXT,
-            title           TEXT,
-            original_title  TEXT,
-            year            INTEGER,
-            status          TEXT,
-            studio          TEXT,
-            certification   TEXT,
-            runtime         INTEGER,
-            genres          TEXT,
-            keywords        TEXT,
-            imdb_id         TEXT,
-            tmdb_id         INTEGER,
-            has_file        INTEGER,
-            monitored       INTEGER,
-            added           TEXT,
-            in_cinemas      TEXT,
-            popularity      REAL,
-            collection      TEXT,
-            collection_id   TEXT,
-            quality_name    TEXT,
-            source          TEXT,
-            resolution      INTEGER,
-            is_repack       INTEGER,
-            release_group   TEXT,
-            edition         TEXT,
-            file_size_gb    REAL,
-            cutoff_not_met  INTEGER,
-            video_codec     TEXT,
-            video_bitrate   INTEGER,
-            bit_depth       TEXT,
-            hdr_type        TEXT,
-            audio_codec     TEXT,
-            audio_channels  TEXT,
-            imdb_rating     REAL,
-            imdb_votes      INTEGER,
-            tmdb_rating     REAL,
-            metacritic      REAL,
-            rotten_tomatoes REAL,
-            trakt_rating    REAL,
-            trakt_votes     INTEGER,
-            tags            TEXT,
-            FOREIGN KEY (run_id) REFERENCES runs(id)
-        );
-        CREATE TABLE IF NOT EXISTS tv_snapshots (
-            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id              INTEGER NOT NULL,
-            run_date            TEXT NOT NULL,
-            sonarr_id           INTEGER,
-            title               TEXT,
-            year                INTEGER,
-            status              TEXT,
-            ended               INTEGER,
-            network             TEXT,
-            certification       TEXT,
-            runtime             INTEGER,
-            genres              TEXT,
-            imdb_id             TEXT,
-            tvdb_id             INTEGER,
-            monitored           INTEGER,
-            first_aired         TEXT,
-            last_aired          TEXT,
-            added               TEXT,
-            season_count        INTEGER,
-            episodes_have       INTEGER,
-            episodes_total      INTEGER,
-            completion_pct      REAL,
-            specials_have       INTEGER,
-            specials_total      INTEGER,
-            has_specials        INTEGER,
-            size_gb             REAL,
-            rating              REAL,
-            rating_votes        INTEGER,
-            tags                TEXT,
-            FOREIGN KEY (run_id) REFERENCES runs(id)
-        );
-        CREATE TABLE IF NOT EXISTS franchise_snapshots (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id          INTEGER NOT NULL,
-            franchise_name  TEXT NOT NULL,
-            have            INTEGER,
-            total           INTEGER,
-            missing_count   INTEGER,
-            pct             REAL,
-            status          TEXT,
-            missing_titles  TEXT,
-            FOREIGN KEY (run_id) REFERENCES runs(id)
-        );
-        CREATE TABLE IF NOT EXISTS top_talent_snapshots (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id          INTEGER NOT NULL,
-            name            TEXT NOT NULL,
-            role            TEXT NOT NULL,
-            film_count      INTEGER,
-            avg_rating      REAL,
-            top_genre       TEXT,
-            top_genre_count INTEGER,
-            FOREIGN KEY (run_id) REFERENCES runs(id)
-        );
-    """)
-    con.commit()
-
-    # Migrations for cached tables
-    try:
-        con.execute("ALTER TABLE actor_career ADD COLUMN btwf_pre_fame TEXT")
-        con.commit()
-    except Exception:
-        pass
-    return con
+    return engine
 
 def imdb_cache_valid():
     """Check if talent cache exists and is not stale."""
     try:
-        con = sqlite3.connect(DB_PATH)
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM talent_cache")
-        count = cur.fetchone()[0]
-        if count == 0:
-            con.close()
-            return False
-        cur.execute("SELECT cached_date FROM talent_cache LIMIT 1")
-        row = cur.fetchone()
-        con.close()
-        if not row:
-            return False
-        from datetime import datetime
-        age = (datetime.now() - datetime.fromisoformat(row[0])).days
-        return age < IMDB_MAX_AGE_DAYS
+        with get_engine().connect() as conn:
+            count = conn.execute(sql_text("SELECT COUNT(*) FROM talent_cache")).fetchone()[0]
+            if count == 0:
+                return False
+            row = conn.execute(sql_text("SELECT cached_date FROM talent_cache LIMIT 1")).fetchone()
+            if not row:
+                return False
+            age = (datetime.now() - datetime.fromisoformat(row[0])).days
+            return age < IMDB_MAX_AGE_DAYS
     except Exception:
         return False
 
 def load_imdb_talent_cached(imdb_ids):
-    """Load talent from SQLite cache, falling back to TSV scan if needed."""
-    # Ensure cache table exists
-    con = sqlite3.connect(DB_PATH)
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS talent_cache (
-            imdb_id     TEXT NOT NULL,
-            nconst      TEXT NOT NULL,
-            name        TEXT NOT NULL,
-            role        TEXT NOT NULL,
-            ordering    INTEGER,
-            cached_date TEXT NOT NULL
-        )""")
-    con.execute("CREATE INDEX IF NOT EXISTS idx_talent_imdb ON talent_cache(imdb_id)")
-    con.commit()
-    
+    """Load talent from cache, falling back to TSV scan if needed."""
     if imdb_cache_valid():
         print("  Loading IMDb talent from cache...")
         id_set = set(imdb_ids)
         talent = defaultdict(list)
         name_lookup = {}
-        cur = con.execute(
-            "SELECT imdb_id, nconst, name, role, ordering FROM talent_cache")
-        for imdb_id, nconst, name, role, ordering in cur.fetchall():
-            if imdb_id in id_set:
-                talent[imdb_id].append({
-                    "name": name, "role": role,
-                    "order": ordering or 99, "nconst": nconst
-                })
-            name_lookup[nconst] = name
-        con.close()
+        with get_engine().connect() as conn:
+            for row in conn.execute(sql_text(
+                "SELECT imdb_id, nconst, name, role, ordering FROM talent_cache"
+            )).fetchall():
+                imdb_id, nconst, name, role, ordering = row
+                if imdb_id in id_set:
+                    talent[imdb_id].append({
+                        "name": name, "role": role,
+                        "order": ordering or 99, "nconst": nconst
+                    })
+                name_lookup[nconst] = name
         print(f"  Cache hit — {len(talent)} movies loaded instantly.")
         return talent, name_lookup
-    
-    # Cache miss — do full TSV scan
-    con.close()
+
     print("  Cache miss — scanning IMDb TSV files...")
     talent, name_lookup = load_imdb_talent(imdb_ids)
-    
-    # Write to cache
-    print("  Writing talent cache to SQLite...")
+
+    print("  Writing talent cache to DB...")
     cached_date = datetime.now().isoformat()
-    con = sqlite3.connect(DB_PATH)
-    con.execute("DELETE FROM talent_cache")
     rows = []
     for imdb_id, people in talent.items():
         for p in people:
-            rows.append((imdb_id, p["nconst"], p["name"],
-                         p["role"], p["order"], cached_date))
-    con.executemany(
-        "INSERT INTO talent_cache (imdb_id,nconst,name,role,ordering,cached_date) VALUES (?,?,?,?,?,?)",
-        rows)
-    con.commit()
-    con.close()
+            rows.append({
+                "imdb_id": imdb_id, "nconst": p["nconst"],
+                "name": p["name"], "role": p["role"],
+                "ordering": p["order"], "cached_date": cached_date,
+            })
+    with get_engine().begin() as conn:
+        conn.execute(sql_text("DELETE FROM talent_cache"))
+        if rows:
+            conn.execute(
+                sql_text("INSERT INTO talent_cache (imdb_id,nconst,name,role,ordering,cached_date) "
+                         "VALUES (:imdb_id,:nconst,:name,:role,:ordering,:cached_date)"),
+                rows)
     print(f"  Talent cache written — {len(rows)} entries.")
     return talent, name_lookup
 
@@ -759,20 +736,15 @@ HORROR_GENRES = {"Horror", "Thriller", "Mystery", "Crime"}
 
 def career_cache_valid():
     try:
-        con = sqlite3.connect(DB_PATH)
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM actor_career")
-        count = cur.fetchone()[0]
-        if count == 0:
-            con.close()
-            return False
-        cur.execute("SELECT cached_date FROM actor_career LIMIT 1")
-        row = cur.fetchone()
-        con.close()
-        if not row:
-            return False
-        age = (datetime.now() - datetime.fromisoformat(row[0])).days
-        return age < IMDB_MAX_AGE_DAYS
+        with get_engine().connect() as conn:
+            count = conn.execute(sql_text("SELECT COUNT(*) FROM actor_career")).fetchone()[0]
+            if count == 0:
+                return False
+            row = conn.execute(sql_text("SELECT cached_date FROM actor_career LIMIT 1")).fetchone()
+            if not row:
+                return False
+            age = (datetime.now() - datetime.fromisoformat(row[0])).days
+            return age < IMDB_MAX_AGE_DAYS
     except Exception:
         return False
 
@@ -971,51 +943,44 @@ def load_actor_career_cached(talent_data, name_lookup, library_imdb_ids):
 
     if career_cache_valid():
         print("  Loading actor career data from cache...")
-        con = sqlite3.connect(DB_PATH)
-        # Migrate: add btwf_pre_fame column if missing, then force rebuild so it gets populated
-        col_names = [r[1] for r in con.execute("PRAGMA table_info(actor_career)").fetchall()]
-        if "btwf_pre_fame" not in col_names:
-            con.execute("ALTER TABLE actor_career ADD COLUMN btwf_pre_fame TEXT")
-            con.commit()
-            con.close()
-            print("  btwf_pre_fame column added — forcing career rebuild...")
-        else:
-            rows = con.execute(
+        with get_engine().connect() as conn:
+            rows = conn.execute(sql_text(
                 "SELECT nconst, name, horror_credits, true_breakout, btwf_pre_fame FROM actor_career"
-            ).fetchall()
-            con.close()
-            result = {}
-            for nconst, name, hc_json, tb_json, btwf_json in rows:
-                result[nconst] = {
-                    "name":           name,
-                    "horror_credits": json.loads(hc_json) if hc_json else [],
-                    "true_breakout":  json.loads(tb_json) if tb_json else None,
-                    "btwf_pre_fame":  json.loads(btwf_json) if btwf_json else [],
-                }
-            print(f"  Career cache hit — {len(result)} actors loaded.")
-            return result
+            )).fetchall()
+        result = {}
+        for nconst, name, hc_json, tb_json, btwf_json in rows:
+            result[nconst] = {
+                "name":           name,
+                "horror_credits": json.loads(hc_json) if hc_json else [],
+                "true_breakout":  json.loads(tb_json) if tb_json else None,
+                "btwf_pre_fame":  json.loads(btwf_json) if btwf_json else [],
+            }
+        print(f"  Career cache hit — {len(result)} actors loaded.")
+        return result
+
     print("  Career cache miss — scanning IMDb TSVs (takes a few minutes)...")
     career_data = load_actor_career(list(all_nconsts), library_imdb_ids)
 
     cached_date = datetime.now().isoformat()
-    con = sqlite3.connect(DB_PATH)
-    con.execute("DELETE FROM actor_career")
     insert_rows = []
     for nconst, data in career_data.items():
         name = name_lookup.get(nconst, "Unknown")
-        insert_rows.append((
-            nconst, name,
-            json.dumps(data["horror_credits"]),
-            json.dumps(data["true_breakout"]) if data["true_breakout"] else None,
-            json.dumps(data["btwf_pre_fame"]) if data["btwf_pre_fame"] else None,
-            cached_date,
-        ))
-    con.executemany(
-        "INSERT OR REPLACE INTO actor_career (nconst,name,horror_credits,true_breakout,btwf_pre_fame,cached_date) VALUES (?,?,?,?,?,?)",
-        insert_rows
-    )
-    con.commit()
-    con.close()
+        insert_rows.append({
+            "nconst":          nconst,
+            "name":            name,
+            "horror_credits":  json.dumps(data["horror_credits"]),
+            "true_breakout":   json.dumps(data["true_breakout"]) if data["true_breakout"] else None,
+            "btwf_pre_fame":   json.dumps(data["btwf_pre_fame"]) if data["btwf_pre_fame"] else None,
+            "cached_date":     cached_date,
+        })
+    with get_engine().begin() as conn:
+        conn.execute(sql_text("DELETE FROM actor_career"))
+        if insert_rows:
+            conn.execute(
+                sql_text("INSERT INTO actor_career "
+                         "(nconst,name,horror_credits,true_breakout,btwf_pre_fame,cached_date) "
+                         "VALUES (:nconst,:name,:horror_credits,:true_breakout,:btwf_pre_fame,:cached_date)"),
+                insert_rows)
     print(f"  Actor career cache written — {len(insert_rows)} actors.")
     result = {}
     for nconst, data in career_data.items():
@@ -1029,7 +994,7 @@ def load_actor_career_cached(talent_data, name_lookup, library_imdb_ids):
 
 
 
-def write_history(con, movies, series, run_ts):
+def write_history(conn, movies, series, run_ts):
     run_date   = run_ts[:10]
     has_file   = [m for m in movies if m["has_file"]]
     movie_gb   = sum(m["file_size_gb"] for m in has_file)
@@ -1037,78 +1002,108 @@ def write_history(con, movies, series, run_ts):
     x264_count = sum(1 for m in has_file if m["video_codec"] in ("x264", "h264"))
     x265_count = sum(1 for m in has_file if m["video_codec"] in ("x265", "h265", "HEVC"))
 
-    cur = con.cursor()
-    cur.execute("""
-        INSERT INTO runs
-            (run_date, run_ts, movie_count, tv_count, movie_gb, tv_gb,
-             x264_count, x265_count)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (run_date, run_ts, len(movies), len(series),
-          round(movie_gb, 2), round(tv_gb, 2),
-          x264_count, x265_count))
-    run_id = cur.lastrowid
+    run_id = _insert_returning_id(conn,
+        "INSERT INTO runs (run_date, run_ts, movie_count, tv_count, movie_gb, tv_gb, x264_count, x265_count) "
+        "VALUES (:run_date, :run_ts, :movie_count, :tv_count, :movie_gb, :tv_gb, :x264_count, :x265_count)",
+        {
+            "run_date": run_date, "run_ts": run_ts,
+            "movie_count": len(movies), "tv_count": len(series),
+            "movie_gb": round(movie_gb, 2), "tv_gb": round(tv_gb, 2),
+            "x264_count": x264_count, "x265_count": x265_count,
+        }
+    )
 
     def _num(v):
         return v if isinstance(v, (int, float)) else None
 
-    cur.executemany("""
-        INSERT INTO movie_snapshots
-            (run_id, run_date, radarr_id, title_slug, title, original_title, year, status,
-             studio, certification, runtime, genres, keywords, imdb_id, tmdb_id,
-             has_file, monitored, added, in_cinemas, popularity, collection, collection_id,
-             quality_name, source, resolution, is_repack, release_group, edition,
-             file_size_gb, cutoff_not_met, video_codec, video_bitrate, bit_depth, hdr_type,
-             audio_codec, audio_channels, imdb_rating, imdb_votes,
-             tmdb_rating, metacritic, rotten_tomatoes, trakt_rating, trakt_votes, tags)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """, [(
-        run_id, run_date,
-        m["radarr_id"], m["title_slug"], m["title"], m["original_title"],
-        m["year"], m["status"], m["studio"], m["certification"], m["runtime"],
-        m["genres"], m["keywords"], m["imdb_id"], m["tmdb_id"],
-        1 if m["has_file"] else 0, 1 if m["monitored"] else 0,
-        m["added"], m["in_cinemas"], m["popularity"],
-        m["collection"], m["collection_id"],
-        m["quality_name"], m["source"], m["resolution"],
-        1 if m["is_repack"] else 0, m["release_group"], m["edition"],
-        m["file_size_gb"], 1 if m["cutoff_not_met"] else 0,
-        m["video_codec"], _num(m["video_bitrate"]), m["bit_depth"], m["hdr_type"],
-        m["audio_codec"], m["audio_channels"],
-        _num(m["imdb_rating"]), _num(m["imdb_votes"]),
-        _num(m["tmdb_rating"]), _num(m["metacritic"]),
-        _num(m["rotten_tomatoes"]), _num(m["trakt_rating"]), _num(m["trakt_votes"]),
-        m["tags"],
-    ) for m in movies])
+    conn.execute(
+        sql_text("""
+            INSERT INTO movie_snapshots
+                (run_id, run_date, radarr_id, title_slug, title, original_title, year, status,
+                 studio, certification, runtime, genres, keywords, imdb_id, tmdb_id,
+                 has_file, monitored, added, in_cinemas, popularity, collection, collection_id,
+                 quality_name, source, resolution, is_repack, release_group, edition,
+                 file_size_gb, cutoff_not_met, video_codec, video_bitrate, bit_depth, hdr_type,
+                 audio_codec, audio_channels, imdb_rating, imdb_votes,
+                 tmdb_rating, metacritic, rotten_tomatoes, trakt_rating, trakt_votes, tags)
+            VALUES (:run_id,:run_date,:radarr_id,:title_slug,:title,:original_title,:year,:status,
+                    :studio,:certification,:runtime,:genres,:keywords,:imdb_id,:tmdb_id,
+                    :has_file,:monitored,:added,:in_cinemas,:popularity,:collection,:collection_id,
+                    :quality_name,:source,:resolution,:is_repack,:release_group,:edition,
+                    :file_size_gb,:cutoff_not_met,:video_codec,:video_bitrate,:bit_depth,:hdr_type,
+                    :audio_codec,:audio_channels,:imdb_rating,:imdb_votes,
+                    :tmdb_rating,:metacritic,:rotten_tomatoes,:trakt_rating,:trakt_votes,:tags)
+        """),
+        [{
+            "run_id": run_id, "run_date": run_date,
+            "radarr_id": m["radarr_id"], "title_slug": m["title_slug"],
+            "title": m["title"], "original_title": m["original_title"],
+            "year": m["year"], "status": m["status"], "studio": m["studio"],
+            "certification": m["certification"], "runtime": m["runtime"],
+            "genres": m["genres"], "keywords": m["keywords"],
+            "imdb_id": m["imdb_id"], "tmdb_id": m["tmdb_id"],
+            "has_file": 1 if m["has_file"] else 0,
+            "monitored": 1 if m["monitored"] else 0,
+            "added": m["added"], "in_cinemas": m["in_cinemas"],
+            "popularity": m["popularity"],
+            "collection": m["collection"], "collection_id": m["collection_id"],
+            "quality_name": m["quality_name"], "source": m["source"],
+            "resolution": m["resolution"],
+            "is_repack": 1 if m["is_repack"] else 0,
+            "release_group": m["release_group"], "edition": m["edition"],
+            "file_size_gb": m["file_size_gb"],
+            "cutoff_not_met": 1 if m["cutoff_not_met"] else 0,
+            "video_codec": m["video_codec"], "video_bitrate": _num(m["video_bitrate"]),
+            "bit_depth": m["bit_depth"], "hdr_type": m["hdr_type"],
+            "audio_codec": m["audio_codec"], "audio_channels": m["audio_channels"],
+            "imdb_rating": _num(m["imdb_rating"]), "imdb_votes": _num(m["imdb_votes"]),
+            "tmdb_rating": _num(m["tmdb_rating"]), "metacritic": _num(m["metacritic"]),
+            "rotten_tomatoes": _num(m["rotten_tomatoes"]),
+            "trakt_rating": _num(m["trakt_rating"]), "trakt_votes": _num(m["trakt_votes"]),
+            "tags": m["tags"],
+        } for m in movies]
+    )
 
-    cur.executemany("""
-        INSERT INTO tv_snapshots
-            (run_id, run_date, sonarr_id, title, year, status, ended, network,
-             certification, runtime, genres, imdb_id, tvdb_id, monitored,
-             first_aired, last_aired, added, season_count, episodes_have,
-             episodes_total, completion_pct, specials_have, specials_total,
-             has_specials, size_gb, rating, rating_votes, tags)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """, [(
-        run_id, run_date,
-        s["sonarr_id"], s["title"], s["year"], s["status"],
-        1 if s["ended"] else 0, s["network"], s["certification"], s["runtime"],
-        s["genres"], s["imdb_id"], s["tvdb_id"],
-        1 if s["monitored"] else 0,
-        s["first_aired"], s["last_aired"], s["added"],
-        s["season_count"], s["episodes_have"], s["episodes_total"],
-        s["completion_pct"], s["specials_have"], s["specials_total"],
-        1 if s["has_specials"] else 0, s["size_gb"],
-        _num(s["rating"]), _num(s["rating_votes"]), s["tags"],
-    ) for s in series])
+    conn.execute(
+        sql_text("""
+            INSERT INTO tv_snapshots
+                (run_id, run_date, sonarr_id, title, year, status, ended, network,
+                 certification, runtime, genres, imdb_id, tvdb_id, monitored,
+                 first_aired, last_aired, added, season_count, episodes_have,
+                 episodes_total, completion_pct, specials_have, specials_total,
+                 has_specials, size_gb, rating, rating_votes, tags)
+            VALUES (:run_id,:run_date,:sonarr_id,:title,:year,:status,:ended,:network,
+                    :certification,:runtime,:genres,:imdb_id,:tvdb_id,:monitored,
+                    :first_aired,:last_aired,:added,:season_count,:episodes_have,
+                    :episodes_total,:completion_pct,:specials_have,:specials_total,
+                    :has_specials,:size_gb,:rating,:rating_votes,:tags)
+        """),
+        [{
+            "run_id": run_id, "run_date": run_date,
+            "sonarr_id": s["sonarr_id"], "title": s["title"],
+            "year": s["year"], "status": s["status"],
+            "ended": 1 if s["ended"] else 0, "network": s["network"],
+            "certification": s["certification"], "runtime": s["runtime"],
+            "genres": s["genres"], "imdb_id": s["imdb_id"], "tvdb_id": s["tvdb_id"],
+            "monitored": 1 if s["monitored"] else 0,
+            "first_aired": s["first_aired"], "last_aired": s["last_aired"],
+            "added": s["added"], "season_count": s["season_count"],
+            "episodes_have": s["episodes_have"], "episodes_total": s["episodes_total"],
+            "completion_pct": s["completion_pct"],
+            "specials_have": s["specials_have"], "specials_total": s["specials_total"],
+            "has_specials": 1 if s["has_specials"] else 0,
+            "size_gb": s["size_gb"],
+            "rating": _num(s["rating"]), "rating_votes": _num(s["rating_votes"]),
+            "tags": s["tags"],
+        } for s in series]
+    )
 
-    con.commit()
     print(f"  History written — run_id {run_id} ({run_date})")
     return run_id
 
 
-def compute_franchise_snapshot(movies, run_id, con):
+def compute_franchise_snapshot(movies, run_id, conn):
     """Compute and store franchise completion data for this run."""
-    from collections import defaultdict
     franchises = defaultdict(list)
     for m in movies:
         if m["collection"]:
@@ -1121,19 +1116,22 @@ def compute_franchise_snapshot(movies, run_id, con):
         missing = [f["title"] for f in films if not f["has_file"]]
         pct     = round(have / total * 100, 1) if total else 0
         status  = "Complete" if have == total else f"{len(missing)} missing"
-        rows.append((run_id, fname, have, total, len(missing), pct, status,
-                     " | ".join(missing)))
+        rows.append({
+            "run_id": run_id, "franchise_name": fname,
+            "have": have, "total": total, "missing_count": len(missing),
+            "pct": pct, "status": status, "missing_titles": " | ".join(missing),
+        })
 
-    con.executemany("""
-        INSERT INTO franchise_snapshots
-            (run_id, franchise_name, have, total, missing_count, pct, status, missing_titles)
-        VALUES (?,?,?,?,?,?,?,?)
-    """, rows)
-    con.commit()
+    if rows:
+        conn.execute(
+            sql_text("INSERT INTO franchise_snapshots "
+                     "(run_id, franchise_name, have, total, missing_count, pct, status, missing_titles) "
+                     "VALUES (:run_id,:franchise_name,:have,:total,:missing_count,:pct,:status,:missing_titles)"),
+            rows)
     print(f"  Franchise snapshot written — {len(rows)} franchises.")
 
 
-def compute_top_talent_snapshot(movies, talent_data, run_id, con):
+def compute_top_talent_snapshot(movies, talent_data, run_id, conn):
     """Compute and store top directors/actors for this run."""
     has_file = [m for m in movies if m["has_file"]]
     imdb_to_movie = {m["imdb_id"]: m for m in has_file if m["imdb_id"]}
@@ -1173,20 +1171,22 @@ def compute_top_talent_snapshot(movies, talent_data, run_id, con):
     for name, count in directors.most_common(50):
         avg_r = round(sum(dir_ratings[name]) / len(dir_ratings[name]), 2) if dir_ratings[name] else None
         tg = dir_genres[name].most_common(1)
-        rows.append((run_id, name, "director", count, avg_r,
-                     tg[0][0] if tg else None, tg[0][1] if tg else None))
+        rows.append({"run_id": run_id, "name": name, "role": "director", "film_count": count,
+                     "avg_rating": avg_r, "top_genre": tg[0][0] if tg else None,
+                     "top_genre_count": tg[0][1] if tg else None})
     for name, count in actors.most_common(75):
         avg_r = round(sum(act_ratings[name]) / len(act_ratings[name]), 2) if act_ratings[name] else None
         tg = act_genres[name].most_common(1)
-        rows.append((run_id, name, "actor", count, avg_r,
-                     tg[0][0] if tg else None, tg[0][1] if tg else None))
+        rows.append({"run_id": run_id, "name": name, "role": "actor", "film_count": count,
+                     "avg_rating": avg_r, "top_genre": tg[0][0] if tg else None,
+                     "top_genre_count": tg[0][1] if tg else None})
 
-    con.executemany("""
-        INSERT INTO top_talent_snapshots
-            (run_id, name, role, film_count, avg_rating, top_genre, top_genre_count)
-        VALUES (?,?,?,?,?,?,?)
-    """, rows)
-    con.commit()
+    if rows:
+        conn.execute(
+            sql_text("INSERT INTO top_talent_snapshots "
+                     "(run_id, name, role, film_count, avg_rating, top_genre, top_genre_count) "
+                     "VALUES (:run_id,:name,:role,:film_count,:avg_rating,:top_genre,:top_genre_count)"),
+            rows)
     print(f"  Top talent snapshot written — {len(rows)} entries.")
 
 
@@ -1222,12 +1222,12 @@ def main():
         career_data = load_actor_career_cached(talent_data, name_lookup, imdb_ids)
 
     print("\nWriting to database...")
-    con = init_db()
-    run_id = write_history(con, movies, series, run_ts)
-    compute_franchise_snapshot(movies, run_id, con)
-    compute_top_talent_snapshot(movies, talent_data, run_id, con)
-    compute_dna_scores(movies, talent_data, run_id, con)
-    con.close()
+    engine = init_db()
+    with engine.begin() as conn:
+        run_id = write_history(conn, movies, series, run_ts)
+        compute_franchise_snapshot(movies, run_id, conn)
+        compute_top_talent_snapshot(movies, talent_data, run_id, conn)
+        compute_dna_scores(movies, talent_data, run_id, conn)
 
     print(f"\n  Finished: {datetime.now():%Y-%m-%d %H:%M:%S}")
     print("=" * 60)
