@@ -31,37 +31,6 @@
 - Docker + Docker Compose
 - Python 3.10+
 
-## Database Backends
-
-### SQLite (default)
-
-Zero config — works out of the box. Recommended for most installs. Set `DB_PATH` in `.env` to choose the file location; if unset, a default path is used.
-
-### MariaDB/MySQL and PostgreSQL
-
-Supported for dashboard data only. Configure via `.env`:
-
-```
-DB_TYPE=mysql     # or: postgres
-DB_HOST=your-db-host
-DB_PORT=3306      # or 5432 for PostgreSQL
-DB_USER=youruser
-DB_PASS=yourpassword
-DB_NAME=yourdbname
-```
-
-The user roster, groups, and settings layer will use your external DB. **Note:** The data pipeline (`library_runner.py`) requires SQLite and will exit with an error if `DB_TYPE` is not `sqlite`. A future release will address this.
-
-### Third-party application databases
-
-> **Note:** Third-party application databases (Plex, Radarr, Sonarr) are always accessed as SQLite files directly on disk regardless of `DB_TYPE`. This is a read-only side-channel and cannot be changed — these databases are owned and managed by those applications.
-
-Features that depend on this:
-- **Container Hitlist** — reads the Radarr SQLite DB directly
-- **Request Audit watch history** — reads the Plex SQLite DB directly
-
-`PLEX_DB_PATH` and `RADARR_DB_PATH` in `.env` must point to the local filesystem path of those files. These features require the dashboard container to have filesystem access to the Plex and Radarr data directories.
-
 ## Quick Start
 
 ```bash
