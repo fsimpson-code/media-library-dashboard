@@ -607,6 +607,9 @@ except Exception as _re:
     _log.getLogger(__name__).warning("Could not init roster tables: %s", _re)
 
 
+# NOTE: Plex's own database is always SQLite regardless of DB_TYPE.
+# This read-only direct connection is intentional — do not migrate
+# to the SQLAlchemy engine.
 def _ra_plex_ro():
     if not _PLEX_DB_RA:
         raise RuntimeError("PLEX_DB_PATH not configured — set this in .env to enable Plex watch data")
@@ -617,6 +620,10 @@ def _ra_plex_ro():
     return con
 
 
+# NOTE: _HIST_DB_RA is a dedicated watch-history file used only by the
+# Request Audit feature. It is separate from the main library database
+# and is always SQLite regardless of DB_TYPE. Do not migrate this
+# connection to the SQLAlchemy engine.
 def _ra_hist_ro():
     con = sqlite3.connect(_HIST_DB_RA)
     con.row_factory = sqlite3.Row
