@@ -4,5 +4,5 @@ cinemagoer>=2023.0
 python-semantic-release>=9.0
 sqlalchemy>=2.0
 python-dotenv>=1.0
-pymysql>=1.1
+PyMySQL>=1.1.0
 psycopg2-binary>=2.9
