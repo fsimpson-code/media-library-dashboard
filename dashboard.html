@@ -1741,7 +1741,13 @@ function showBloatTab(name, el) {
     if (window._containerData) { renderBloatTable(null, 'container'); return; }
     fetch('/api/container-hitlist')
       .then(r => r.json())
-      .then(data => { window._containerData = data; renderBloatTable(null, 'container'); })
+      .then(data => {
+        if (data.error) {
+          document.getElementById('bl-tbody').innerHTML = `<tr><td colspan="7" style="color:#ff6b6b">Container Hitlist unavailable: ${data.error}</td></tr>`;
+          return;
+        }
+        window._containerData = data; renderBloatTable(null, 'container');
+      })
       .catch(err => { document.getElementById('bl-tbody').innerHTML = `<tr><td colspan="7" style="color:#ff6b6b">Failed: ${err.message}</td></tr>`; });
     return;
   }
