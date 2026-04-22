@@ -337,11 +337,9 @@ def compute_dna_scores(movies, talent_data, run_id, con):
     # ── External DB lookups for D2 (built once before per-film loop) ─────────
     import urllib.parse
 
-    _RADARR_DB   = "/your/appdata/app_mounts/radarr/config/radarr.db"
-    _JELLYSEER_DB = "/your/nas/path/Plex-Config/jellyseerr/db/db.sqlite3"
-    _PLEX_DB     = ("/your/nas/path/Plex-Config/Library/Application Support/"
-                    "Plex Media Server/Plug-in Support/Databases/"
-                    "com.plexapp.plugins.library.db")
+    _RADARR_DB    = os.getenv("RADARR_DB_PATH", "")
+    _JELLYSEER_DB = os.getenv("JELLYSEERR_DB_PATH", "")
+    _PLEX_DB      = os.getenv("PLEX_DB_PATH", "")
     _PLEX_FAMILY   = {1, 29089754, 29091010, 77898712}
     _SEER_FAMILY   = {1, 2, 3, 5}
 
@@ -1316,11 +1314,7 @@ def resolve_watch_history(con):
     """Classify every (account_id, guid) into real_stream / corroborated_mark / unverified_mark."""
     import urllib.parse, time
 
-    PLEX_DB = (
-        "/your/nas/path/Plex-Config/Library/Application Support/"
-        "Plex Media Server/Plug-in Support/Databases/"
-        "com.plexapp.plugins.library.db"
-    )
+    PLEX_DB = os.getenv("PLEX_DB_PATH", "")
     FAMILY   = {1, 29089754, 29091010, 77898712, 222944852}
     EXTENDED = {3670375}
     FRIENDS  = {137417867, 210861484, 615117225}

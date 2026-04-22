@@ -33,7 +33,7 @@ JELLYSEERR_INTERNAL_URL = "http://localhost:5055"
 JELLYSEERR_API_KEY      = ""
 
 # Radarr internal DB path (optional — only needed for Container Hitlist feature)
-RADARR_DB_PATH = ""  # e.g. "/path/to/radarr/config/radarr.db" (TrueNAS: /your/appdata/app_mounts/radarr/config/radarr.db)
+RADARR_DB_PATH = ""  # e.g. "/path/to/radarr/config/radarr.db"
 
 # Watch history DB (optional — for Request Audit cross-reference)
 HISTORY_DB_PATH = ""  # defaults to data/library_history_watch.db if blank
