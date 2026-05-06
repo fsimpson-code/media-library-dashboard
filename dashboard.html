@@ -132,8 +132,8 @@ body{font-family:Space Grotesk,sans-serif;background:#080810;color:#c8c8e8;min-h
 .section{display:none}.section.active{display:block}
 
 /* ── KPI row ── */
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.25rem}
-.kpi{background:#0a0a1c;border:1px solid #1e1e3a;border-radius:6px;padding:.875rem 1rem;position:relative;overflow:hidden}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
+.kpi{background:#0a0a1c;border:1px solid #1e1e3a;border-radius:6px;padding:.875rem 1rem;position:relative;overflow:hidden;min-width:0}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
 .kpi.g::before{background:#00e5ff}
 .kpi.p::before{background:#b060ff}
@@ -159,7 +159,7 @@ body{font-family:Space Grotesk,sans-serif;background:#080810;color:#c8c8e8;min-h
 .grid1{margin-bottom:12px}
 
 /* ── Cards ── */
-.card{background:#0a0a1c;border:1px solid #1e1e3a;border-radius:6px;padding:1rem 1.125rem}
+.card{background:#0a0a1c;border:1px solid #1e1e3a;border-radius:6px;padding:1rem 1.125rem;min-width:0}
 .card-title{font-size:11px;font-weight:700;color:#00b8d4;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.875rem}
 
 /* ── Donut charts ── */
@@ -357,6 +357,7 @@ tr:hover td{background:#0d0d1e}
 .dna-scroll::-webkit-scrollbar-thumb{background:#1a1a32}
 @media(max-width:1400px){.topbar{padding:.75rem 1rem;gap:.5rem}.tab{padding:5px 9px;font-size:10px;letter-spacing:.04em}.run-btn{padding:5px 10px;font-size:10px}}@media(max-width:900px){
   .topbar{grid-template-columns:1fr;justify-items:center;gap:.5rem}
+  .kpi-row{grid-template-columns:1fr 1fr}
   .grid2,.grid3,.grid4{grid-template-columns:1fr}
   .kpi-value{font-size:1.7rem}
   .donut-wrap{flex-direction:column}
@@ -612,6 +613,9 @@ a{color:var(--link)}
 .cp-glow:focus{outline:none;border-color:var(--border-accent)}
 .cp-section{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:.75rem 0 .5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
 </style>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" href="/favicon.svg">
+    <meta name="theme-color" content="#39ff14">
 </head>
 <body>
 
@@ -623,8 +627,6 @@ a{color:var(--link)}
     <div class="tabs">
       <button class="tab active" onclick="showTab('movies',this)">Movies</button>
       <button class="tab" onclick="showTab('tv',this)">TV Series</button>
-      <button class="tab" onclick="showTab('talent',this)">Talent</button>
-      <button class="tab" onclick="showTab('franchises',this)">Franchises</button>
       <button class="tab" onclick="showTab('bloat',this)">Bloat</button>
       <button class="tab" onclick="showTab('constellation',this)">Constellation</button>
       <button class="tab" onclick="showTab('trends',this)">Trends</button>
@@ -722,114 +724,6 @@ a{color:var(--link)}
     </div>
   </div>
 
-  <!-- TALENT -->
-  <div class="section" id="sec-talent">
-    <div class="talent-tabs">
-      <button class="talent-tab active" data-tab="top" onclick="showTalentTab('top',this)">⭐ Top Talent</button>
-      <button class="talent-tab" data-tab="btwf" onclick="showTalentTab('btwf',this)">🎬 Before They Were Famous</button>
-      <button class="talent-tab" data-tab="unsung" onclick="showTalentTab('unsung',this)">🎭 The Unsung</button>
-      <button class="talent-tab" data-tab="everywhere" onclick="showTalentTab('everywhere',this)">🌐 The Everywheremen</button>
-      <button class="talent-tab" data-tab="loyalty" onclick="showTalentTab('loyalty',this)">🎯 Director Loyalty</button>
-      <button class="talent-tab" data-tab="wounds" onclick="showTalentTab('wounds',this)">🩸 Deep Wounds</button>
-    </div>
-
-    <!-- Top Talent -->
-    <div class="talent-panel active" id="tp-top">
-      <div class="grid2">
-        <div class="card">
-          <div class="card-title">Top Directors — Films in Library</div>
-          <div id="t-dir-films"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Top Directors — Avg IMDb Rating</div>
-          <div id="t-dir-rating"></div>
-        </div>
-      </div>
-      <div class="grid1">
-        <div class="card">
-          <div class="card-title">Top Actors — Films in Library (Top-5 Billed)</div>
-          <div id="t-actors"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Before They Were Famous -->
-    <div class="talent-panel" id="tp-btwf">
-      <div class="card">
-        <div class="card-title">🎬 Before They Were Famous</div>
-        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Actors with lead roles in your library who also appear in earlier films with supporting billing — their "before" moment.</div>
-        <div class="td-scroll" id="btwf-list"><div class="no-data">Loading...</div></div>
-      </div>
-    </div>
-
-    <!-- The Unsung -->
-    <div class="talent-panel" id="tp-unsung">
-      <div class="card">
-        <div class="card-title">🎭 The Unsung — Always Present, Never Leading</div>
-        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Actors who appear consistently across the library in supporting roles (billing 4+) with rarely more than 2 lead appearances.</div>
-        <div class="td-scroll">
-          <table class="td-table" id="unsung-table">
-            <thead><tr><th>Name</th><th>Support</th><th>Leads</th><th>Avg IMDb</th><th>Top Genre</th><th>Notable Films</th></tr></thead>
-            <tbody id="unsung-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- The Everywheremen -->
-    <div class="talent-panel" id="tp-everywhere">
-      <div class="card">
-        <div class="card-title">🌐 The Everywheremen — Broadest Library Presence</div>
-        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">The "Hey, it's that guy!" list — character actors who appear constantly across the library but never as the star. Ranked by appearances, billing depth, genre breadth, and fame suppression. If you know their face but not their name, they belong here.</div>
-        <div class="td-scroll">
-          <table class="td-table" id="everywhere-table">
-            <thead><tr><th>Name</th><th>Appearances</th><th>Avg Billing</th><th>Supporting</th><th>Genres</th><th>Decades</th><th>Avg IMDb</th><th>Recent Films</th></tr></thead>
-            <tbody id="everywhere-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Director Loyalty -->
-    <div class="talent-panel" id="tp-loyalty">
-      <div class="card">
-        <div class="card-title">🎯 Director Loyalty Index</div>
-        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Directors ranked by how deeply and consistently the library returns to their work — film count weighted by rating and decade spread.</div>
-        <div class="td-scroll">
-          <table class="td-table" id="loyalty-table">
-            <thead><tr><th>Director</th><th>Films</th><th>Loyalty Score</th><th>Avg IMDb</th><th>Top Genre</th><th>Decades</th><th>Recent Films</th></tr></thead>
-            <tbody id="loyalty-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div><!-- /tp-loyalty -->
-
-    <!-- Deep Wounds -->
-    <div class="talent-panel" id="tp-wounds">
-      <div class="card">
-        <div class="card-title" style="color:#ff6b6b">🩸 Deep Wounds — Horror &amp; Thriller Roots</div>
-        <div style="font-size:10px;color:#55558a;margin-bottom:1rem">Famous actors in your library with horror, thriller, mystery, or crime credits — what you have and what you're missing. Click any missing title to request it on Jellyseer.</div>
-        <div class="td-scroll" id="wounds-list"><div class="no-data">Loading...</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FRANCHISES -->
-  <div class="section" id="sec-franchises">
-    <div class="grid2">
-      <div class="card">
-        <div class="card-title">Incomplete Franchises</div>
-        <div id="fr-incomplete"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Complete Franchises</div>
-        <div id="fr-complete"></div>
-      </div>
-    </div>
-  </div>
-
-
-
   <!-- BLOAT -->
   <div class="section" id="sec-bloat">
     <div class="kpi-row" id="bl-kpis"></div>
@@ -904,7 +798,6 @@ a{color:var(--link)}
   <div class="section" id="sec-trends">
     <div class="sub-tab-bar" style="display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid #1a1a32;padding-bottom:8px">
       <button class="sub-tab active" id="trtab-entropy" onclick="showTrendsTab(&#39;entropy&#39;)">&#x26A1; Health Score</button>
-      <button class="sub-tab"        id="trtab-dna"     onclick="showTrendsTab(&#39;dna&#39;)">&#x1F9EC; Library DNA</button>
       <button class="sub-tab"        id="trtab-history" onclick="showTrendsTab(&#39;history&#39;)">&#x1F4C8; History</button>
     </div>
 
@@ -922,39 +815,6 @@ a{color:var(--link)}
           <div class="card-title">Score Breakdown</div>
           <div id="entropy-detail" style="padding:.25rem 0"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- ── DNA panel ── -->
-    <div id="tr-panel-dna" style="display:none">
-      <div class="grid3" style="margin-bottom:12px">
-        <div class="card">
-          <div class="card-title">Library DNA Score</div>
-          <div id="dna-grade-wrap"><div class="no-data">Loading DNA scores...</div></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Dimension Breakdown</div>
-          <div id="dna-dim-wrap"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Grade Distribution</div>
-          <div id="dna-dist-wrap"></div>
-        </div>
-      </div>
-      <div class="grid2" style="margin-bottom:12px">
-        <div class="card">
-          <div class="card-title">&#x1F3C6; Honor Roll &#x2014; Top Films</div>
-          <div class="dna-scroll"><div id="dna-best-wrap"><div class="no-data">Loading...</div></div></div>
-        </div>
-        <div class="card">
-          <div class="card-title">&#x1F4CB; See Me After Class &#x2014; Bottom Films</div>
-          <div class="dna-scroll"><div id="dna-worst-wrap"><div class="no-data">Loading...</div></div></div>
-        </div>
-      </div>
-      <div class="card" style="border-top:2px solid #ff4444;margin-bottom:12px">
-        <div class="card-title" style="color:#ff4444">&#x1F6A8; Expulsion List &#x2014; Failing &amp; Hated</div>
-        <div style="font-size:10px;color:#44446a;margin-bottom:12px;font-family:Space Grotesk,sans-serif">Grade D or F films that at least one family member has actively tagged as hated. These are not earning their keep.</div>
-        <div id="expulsion-wrap"><div class="no-data">Loading...</div></div>
       </div>
     </div>
 
@@ -983,16 +843,21 @@ a{color:var(--link)}
       </div>
       <div class="grid1">
         <div class="card">
-          <div class="card-title">Run History</div>
-          <div class="tbl-wrap">
-            <table class="trend-table" id="tr-table">
-              <thead><tr>
-                <th>Date</th><th>Time</th><th>Movies</th><th>TV</th>
-                <th>Total Size</th><th>Size &#x394;</th>
-                <th>x264</th><th>x265</th><th></th>
-              </tr></thead>
-              <tbody></tbody>
-            </table>
+          <div id="run-history-toggle" onclick="toggleRunHistory()" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:2px 0;user-select:none">
+            <span id="run-history-arrow" style="font-size:10px;color:#44446a;display:inline-block;transition:transform .2s">&#x25BA;</span>
+            <span id="run-history-label" class="card-title" style="margin:0;cursor:pointer">RUN HISTORY</span>
+          </div>
+          <div id="run-history-body" style="display:none;margin-top:10px">
+            <div class="tbl-wrap">
+              <table class="trend-table" id="tr-table">
+                <thead><tr>
+                  <th>Date</th><th>Time</th><th>Movies</th><th>TV</th>
+                  <th>Total Size</th><th>Size &#x394;</th>
+                  <th>x264</th><th>x265</th><th></th>
+                </tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1273,48 +1138,6 @@ a{color:var(--link)}
         </div>
       </div>
 
-      <!-- DNA Scoring Weights -->
-      <div class="settings-group">
-        <div class="settings-group-title">DNA Scoring Weights</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Weights must total exactly 100. Each slider adjusts one component of the DNA score calculation.</div>
-        <div class="setting-row" style="align-items:center">
-          <label class="setting-label" style="min-width:140px">D1 Score Authority</label>
-          <input type="range" id="dna-w-scoreauth" min="0" max="100" value="25" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-scoreauth" style="min-width:32px;text-align:right;font-size:12px">25</span>
-        </div>
-        <div class="setting-row" style="align-items:center">
-          <label class="setting-label" style="min-width:140px">D2 Intent</label>
-          <input type="range" id="dna-w-intent" min="0" max="100" value="25" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-intent" style="min-width:32px;text-align:right;font-size:12px">25</span>
-        </div>
-        <div class="setting-row" style="align-items:center">
-          <label class="setting-label" style="min-width:140px">D3 Talent</label>
-          <input type="range" id="dna-w-talent" min="0" max="100" value="10" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-talent" style="min-width:32px;text-align:right;font-size:12px">10</span>
-        </div>
-        <div class="setting-row" style="align-items:center">
-          <label class="setting-label" style="min-width:140px">D4 Franchise</label>
-          <input type="range" id="dna-w-franchise" min="0" max="100" value="20" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-franchise" style="min-width:32px;text-align:right;font-size:12px">20</span>
-        </div>
-        <div class="setting-row" style="align-items:center">
-          <label class="setting-label" style="min-width:140px">D5 Vote Density</label>
-          <input type="range" id="dna-w-votedensity" min="0" max="100" value="10" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-votedensity" style="min-width:32px;text-align:right;font-size:12px">10</span>
-        </div>
-        <div class="setting-row" style="align-items:center">
-          <label class="setting-label" style="min-width:140px">D6 Genre Fit</label>
-          <input type="range" id="dna-w-genrefit" min="0" max="100" value="10" style="flex:1" oninput="dnaWeightUpdate()">
-          <span id="dna-v-genrefit" style="min-width:32px;text-align:right;font-size:12px">10</span>
-        </div>
-        <div class="setting-row" style="gap:8px;margin-top:8px">
-          <label class="setting-label"></label>
-          <span style="font-size:12px;color:var(--muted)">Total: <strong id="dna-total" style="color:var(--accent1)">100</strong> / 100</span>
-          <button id="dna-save-btn" class="settings-btn primary" onclick="saveDnaWeights()">Save DNA Weights</button>
-          <span id="s-dna-badge" class="test-badge"></span>
-        </div>
-      </div>
-
       <!-- Health Score Weights -->
       <div class="settings-group">
         <div class="settings-group-title">Health Score Weights</div>
@@ -1364,8 +1187,6 @@ a{color:var(--link)}
           <select id="s-default-tab" class="setting-select">
             <option value="movies">Movies</option>
             <option value="tv">TV Series</option>
-            <option value="talent">Talent</option>
-            <option value="franchises">Franchises</option>
             <option value="bloat">Bloat</option>
             <option value="trends">Trends</option>
           </select>
@@ -2560,11 +2381,12 @@ function showTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('sec-' + name).classList.add('active');
   el.classList.add('active');
+  if (name !== 'bloat') _reqPanel(false);
   if (name === 'constellation') loadConstellation();
   if (name === 'bloat') loadBloat();
   if (name === 'tv' && _tvData) renderTVCanvas(_tvData);
   if (name === 'movies' && _mData) renderMoviesCanvas(_mData);
-  if (name === 'trends') { if (_mData && _tvData) renderEntropy(); if (!_dnaData) loadDNA(); }
+  if (name === 'trends') { if (_mData && _tvData) renderEntropy(); }
   if (name === 'fingerprint' && !_fpData) loadFingerprint();
   if (name === 'settings') loadSettings();
 }
@@ -3031,213 +2853,7 @@ function renderTV(d) {
 }
 
 
-// ── Talent sub-tab switcher ───────────────────────────────────────────────────
-function showTalentTab(name, btn) {
-  document.querySelectorAll('.talent-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.talent-tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('tp-' + name).classList.add('active');
-  btn.classList.add('active');
-  if (name !== 'top' && !_deepLoaded) loadTalentDeep();
-  if (name === 'wounds' && !_woundsLoaded) loadDeepWounds();
-}
 
-let _deepLoaded = false;
-let _woundsLoaded = false;
-function loadDeepWounds() {
-  if (_woundsLoaded) return;
-  fetch('/api/deep-wounds')
-    .then(r => r.json())
-    .then(data => { _woundsLoaded = true; renderDeepWounds(data); })
-    .catch(err => {
-      const el = document.getElementById('wounds-list');
-      if (el) el.innerHTML = '<div class="no-data">Failed to load: ' + err.message + '</div>';
-    });
-}
-
-let _deepData   = null;
-
-function loadTalentDeep() {
-  if (_deepLoaded) return;
-  fetch('/api/talent/deep')
-    .then(r => r.json())
-    .then(data => {
-      _deepData   = data;
-      _deepLoaded = true;
-      renderTalentDeep(data);
-    })
-    .catch(err => {
-
-      ['btwf-list','unsung-tbody','everywhere-tbody','loyalty-tbody'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '<tr><td colspan="9" class="no-data">Failed to load: ' + err.message + '</td></tr>';
-      });
-    });
-}
-
-function renderTalentDeep(data) {
-  // ── Before They Were Famous ──────────────────────────────────────────────────
-  const btwfEl = document.getElementById('btwf-list');
-  if (btwfEl && data.btwf) {
-    if (!data.btwf.length) {
-      btwfEl.innerHTML = '<div class="no-data">No matches found — run an update to rebuild career data.</div>';
-    } else {
-      btwfEl.innerHTML = data.btwf.map(p => {
-        const votes = p.breakout_votes >= 1000000 ? (p.breakout_votes/1000000).toFixed(1)+'M'
-                    : p.breakout_votes >= 1000 ? (p.breakout_votes/1000).toFixed(0)+'k' : '';
-        const breakoutVotesBadge = votes ? `<span style="color:#55558a;font-size:8px;font-family:JetBrains Mono,monospace"> · ${votes} votes</span>` : '';
-        const imdbBadge = p.imdb_source
-          ? `<span style="font-size:8px;color:#00e5ff44;font-family:JetBrains Mono,monospace;border:1px solid #00e5ff22;border-radius:2px;padding:1px 4px;margin-left:6px">IMDb</span>`
-          : `<span style="font-size:8px;color:#55558a;font-family:JetBrains Mono,monospace;border:1px solid #2a2a4a;border-radius:2px;padding:1px 4px;margin-left:6px">library</span>`;
-
-        const inLibHtml = p.early_in_lib && p.early_in_lib.length
-          ? `<div class="btwf-early" style="margin-top:5px">
-               <span style="font-size:9px;color:#44446a;text-transform:uppercase;letter-spacing:.08em;margin-right:6px">In your library —</span>
-               ${p.early_in_lib.map(f =>
-                 `<span title="Billing #${f.ordering}">${f.title} <span style="color:#55558a">(${f.year})</span> <span style="color:#e040fb55;font-size:8px">#${f.ordering}</span></span>`
-               ).join('')}
-             </div>`
-          : '';
-
-        const missingHtml = p.early_missing && p.early_missing.length
-          ? `<div style="margin-top:6px">
-               <span style="font-size:9px;color:#00ff9f88;text-transform:uppercase;letter-spacing:.08em;font-family:JetBrains Mono,monospace">⬇ Not in library — click to request</span><br>
-               <div style="margin-top:4px">
-               ${p.early_missing.map(f => {
-                 const _sb1=(_appConfig&&_appConfig.seerr_url)?_appConfig.seerr_url.replace(/\/$/,''):'';
-                 const url = _sb1?_sb1+'/search?query='+encodeURIComponent(f.title+' '+f.year):'https://www.imdb.com/find?q='+encodeURIComponent(f.title);
-                 const fVotes = f.votes >= 1000000 ? (f.votes/1000000).toFixed(1)+'M' : f.votes >= 1000 ? (f.votes/1000).toFixed(0)+'k' : f.votes;
-                 const fRating = f.rating ? ' · ★' + f.rating : '';
-                 return `<a href="${url}" target="_blank" style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;background:#0a1a10;border:1px solid #00ff9f44;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;color:#00ff9f;text-decoration:none;cursor:pointer" title="Billing #${f.ordering} · ${f.genres} · ${fVotes} votes${fRating}">${f.title} (${f.year})${fRating}</a>`;
-               }).join('')}
-               </div>
-             </div>`
-          : `<div style="margin-top:6px;font-size:9px;color:#1d9e75;font-family:JetBrains Mono,monospace">✓ All known pre-fame appearances are already in your library</div>`;
-
-        const fallbackEarlyHtml = !p.imdb_source && p.early_in_lib && p.early_in_lib.length
-          ? `<div class="btwf-early" style="margin-top:6px">
-               <span style="font-size:9px;color:#44446a;text-transform:uppercase;letter-spacing:.08em;margin-right:6px">Before that —</span>
-               ${p.early_in_lib.map(f =>
-                 `<span title="Billing #${f.ordering}">${f.title} <span style="color:#55558a">(${f.year})</span> <span style="color:#e040fb55;font-size:8px">#${f.ordering}</span></span>`
-               ).join('')}
-             </div>`
-          : '';
-
-        return `<div class="btwf-card">
-          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
-            <div class="btwf-name">${p.name}${imdbBadge}</div>
-            <div style="font-size:9px;color:#44446a;font-family:JetBrains Mono,monospace">${p.total_films} films in library</div>
-          </div>
-          <div class="btwf-breakout">
-            <span style="color:#7777aa;font-weight:400">↑ BREAKOUT </span>
-            <span style="color:#e040fb">${p.breakout_film}</span>
-            <span style="color:#55558a"> (${p.breakout_year})</span>${breakoutVotesBadge}
-          </div>
-          ${p.imdb_source ? inLibHtml : fallbackEarlyHtml}
-          ${missingHtml}
-        </div>`;
-      }).join('');
-    }
-  }
-
-  // ── The Unsung ───────────────────────────────────────────────────────────────
-  const unsungEl = document.getElementById('unsung-tbody');
-  if (unsungEl && data.unsung) {
-    unsungEl.innerHTML = data.unsung.map((p, i) => {
-      const heat = Math.min(1, p.support_count / 25);
-      const nameCol = `hsl(${260 + heat*40}, 60%, ${55 + heat*20}%)`;
-      return `<tr>
-        <td class="name" style="color:${nameCol}">${p.name}</td>
-        <td style="color:#b060ff;font-weight:700;font-size:12px">${p.support_count}</td>
-        <td style="color:${p.lead_count === 0 ? '#1e1e3a' : '#55558a'}">${p.lead_count || '—'}</td>
-        <td style="color:${p.avg_rating >= 8 ? '#00ff9f' : p.avg_rating >= 7 ? '#ffcc00' : '#ff6b6b'}">${p.avg_rating ?? '—'}</td>
-        <td><span style="display:inline-block;padding:1px 7px;border-radius:3px;background:#0d0d22;border:1px solid #1e1e3a;color:#8888cc;font-size:9px">${p.top_genre}</span></td>
-        <td class="films-list">${p.films.map(f => `<span style="color:#aaaacc">${f.title}</span> <span style="color:#44446a">(${f.year ?? '?'})</span><span style="color:#533483;font-size:8px"> #${f.ordering}</span>`).join(' · ')}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // ── The Everywheremen ────────────────────────────────────────────────────────
-  const evEl = document.getElementById('everywhere-tbody');
-  if (evEl && data.everywheremen) {
-    evEl.innerHTML = data.everywheremen.map((p, i) => {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#44446a">${i+1}</span>`;
-      const billingCol = p.avg_billing >= 7 ? '#00ff9f' : p.avg_billing >= 5 ? '#ffcc00' : '#ff6b6b';
-      return `<tr>
-        <td class="name">${medal} ${p.name}</td>
-        <td style="color:#00e5ff;font-weight:700">${p.film_count}</td>
-        <td style="color:${billingCol};font-weight:700" title="Avg billing position — higher = deeper in cast">#${p.avg_billing}</td>
-        <td style="color:#b060ff">${p.deep_count}</td>
-        <td style="color:#e040fb">${p.genre_count}</td>
-        <td style="color:#7777aa">${p.decade_count}</td>
-        <td style="color:${p.avg_rating >= 8 ? '#00ff9f' : p.avg_rating >= 7 ? '#ffcc00' : '#ff6b6b'}">${p.avg_rating ?? '—'}</td>
-        <td class="films-list">${p.films.map(f => `<span style="color:#aaaacc">${f.title}</span> <span style="color:#44446a">(${f.year ?? '?'})</span><span style="color:#55558a;font-size:8px"> #${f.ordering}</span>`).join(' · ')}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // ── Director Loyalty ─────────────────────────────────────────────────────────
-  const loyEl = document.getElementById('loyalty-tbody');
-  if (loyEl && data.loyalty) {
-    loyEl.innerHTML = data.loyalty.map((d, i) => {
-      const score = d.loyalty_score || 0;
-      const scoreCol = score >= 50 ? '#00ff9f' : score >= 30 ? '#ffcc00' : '#e040fb';
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#44446a">${i+1}</span>`;
-      return `<tr>
-        <td class="name">${medal} ${d.name}</td>
-        <td style="color:#00e5ff;font-weight:700">${d.film_count}</td>
-        <td style="color:${scoreCol};font-weight:700;font-size:12px;text-shadow:0 0 8px ${scoreCol}66">${d.loyalty_score}</td>
-        <td style="color:${d.avg_rating >= 8 ? '#00ff9f' : d.avg_rating >= 7 ? '#ffcc00' : '#ff6b6b'}">${d.avg_rating ?? '—'}</td>
-        <td><span style="display:inline-block;padding:1px 7px;border-radius:3px;background:#0d0d22;border:1px solid #1e1e3a;color:#8888cc;font-size:9px">${d.top_genre}</span></td>
-        <td style="color:#7777aa">${d.decade_count}</td>
-        <td class="films-list">${d.films.map(f => `<span style="color:#aaaacc">${f.title}</span> <span style="color:#44446a">(${f.year ?? '?'})</span>`).join(' · ')}</td>
-      </tr>`;
-    }).join('');
-  }
-}
-
-
-// ── Deep Wounds ───────────────────────────────────────────────────────────────
-function renderDeepWounds(data) {
-  const el = document.getElementById('wounds-list');
-  if (!el) return;
-  if (data.error) { el.innerHTML = '<div class="no-data">' + data.error + '</div>'; return; }
-  if (!data.actors || !data.actors.length) {
-    el.innerHTML = '<div class="no-data">No horror/thriller career data yet — run an update first.</div>';
-    return;
-  }
-  el.innerHTML = data.actors.map(actor => {
-    const tb = actor.true_breakout;
-    const tbHtml = tb
-      ? `<div style="font-size:10px;color:#00e5ff;margin-bottom:6px;font-family:JetBrains Mono,monospace;text-shadow:0 0 8px #00e5ff44">⚡ Breakout: <span style="color:#00ffff;font-weight:700">${tb.title}</span> <span style="color:#00e5ff66">(${tb.year})</span> · <span style="color:#00e5ff88">${(tb.votes/1000).toFixed(0)}k votes</span></div>`
-      : '';
-    const haveHtml = actor.horror_have.length
-      ? `<div style="margin-bottom:6px">
-           <span style="font-size:9px;color:#ff6b6b88;text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace">🩸 In Library (${actor.horror_have.length})</span><br>
-           ${actor.horror_have.map(f =>
-             `<span style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;background:#1f0505;border:1px solid #ff6b6b55;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;color:#ff8888;box-shadow:0 0 6px #ff6b6b22" title="${f.genres}">${f.title} <span style="color:#ff6b6b55">(${f.year})</span></span>`
-           ).join('')}
-         </div>`
-      : '';
-    const missingHtml = actor.horror_missing.length
-      ? `<div>
-           <span style="font-size:9px;color:#00ff9f88;text-transform:uppercase;letter-spacing:.1em;font-family:JetBrains Mono,monospace">💀 Missing — Click to Request</span><br>
-           ${actor.horror_missing.map(f => {
-             const _sb2=(_appConfig&&_appConfig.seerr_url)?_appConfig.seerr_url.replace(/\/$/,''):'';
-             const url = _sb2?_sb2+'/search?query='+encodeURIComponent(f.title+' '+f.year):'https://www.imdb.com/find?q='+encodeURIComponent(f.title);
-             const votes = f.votes >= 1000 ? (f.votes/1000).toFixed(0)+'k' : f.votes;
-             const rating = f.rating ? ' · ★' + f.rating : '';
-             return `<a href="${url}" target="_blank" style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;background:#0a1a10;border:1px solid #00ff9f44;border-radius:3px;font-family:JetBrains Mono,monospace;font-size:9px;color:#00ff9f;text-decoration:none;cursor:pointer" title="${f.genres} · ${votes} votes${rating}">${f.title} (${f.year})${rating}</a>`;
-           }).join('')}
-         </div>`
-      : '';
-    return `<div class="btwf-card" style="border-color:#ff6b6b44;border-left:3px solid #ff6b6b;background:#080308">
-      <div class="btwf-name" style="color:#ff9999;text-shadow:0 0 12px #ff6b6b44">${actor.name}</div>
-      ${tbHtml}
-      ${haveHtml}
-      ${missingHtml}
-    </div>`;
-  }).join('');
-}
 
 // ── Family Fingerprint ────────────────────────────────────────────────────────
 let _fpData = null;
@@ -3327,43 +2943,8 @@ function renderFingerprint(data) {
 }
 
 // ── Render: Talent ────────────────────────────────────────────────────────────
-function renderTalent(d) {
-  bars('t-dir-films', d.directors.map(x => ({label:x.name, value:x.films})),
-       '#00e5ff', {labelClass:'w150'});
-  bars('t-dir-rating',
-       d.directors.filter(x=>x.avg_rating).sort((a,b)=>b.avg_rating-a.avg_rating).slice(0,15)
-         .map(x => ({label:x.name, value:x.avg_rating})),
-       '#ffcc00', {labelClass:'w150', max:10, fmt:v=>v.toFixed(2)});
-  bars('t-actors', d.actors.map(x => ({label:x.name, value:x.films})),
-       '#e040fb', {labelClass:'w180'});
-}
 
-// ── Render: Franchises ────────────────────────────────────────────────────────
-function renderFranchises(data) {
-  const incomplete = data.filter(f => f.pct < 100).sort((a,b) => b.missing - a.missing);
-  const complete   = data.filter(f => f.pct === 100).sort((a,b) => b.total - a.total);
-
-  function frBars(id, items) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = items.map(f => {
-      const color = f.pct === 100 ? '#00e5ff' : f.pct >= 75 ? '#b060ff' : '#e040fb';
-      const statusCls = f.pct === 100 ? 'bg' : f.pct >= 75 ? 'ba' : 'br';
-      return `<div class="fr-row">
-        <div class="fr-name" title="${f.franchise}">${f.franchise.replace(' Collection','').replace(' Franchise','')}</div>
-        <div class="fr-track"><div class="fr-fill" style="width:${Math.round(f.pct)}%;background:${color}"></div></div>
-        <div class="fr-pct">${f.pct.toFixed(0)}%</div>
-        <div class="fr-status"><span class="badge ${statusCls}">${f.have}/${f.total}</span></div>
-      </div>`;
-    }).join('');
-  }
-
-  frBars('fr-incomplete', incomplete.slice(0,40));
-  frBars('fr-complete',   complete.slice(0,40));
-}
-
-
-// ── DNA Score Dashboard ────────────────────────────────────────────────────────
+// ── DNA Score Dashboard (kept for debugging via /api/dna) ─────────────────────
 let _dnaData = null;
 
 const RADARR_BASE = 'http://truenas.local:7878';
@@ -3574,15 +3155,26 @@ function renderEntropy() {
   // Penalize more harshly when avg GB/hr is high — 3 GB/hr = perfect, 20+ = 0
   const efficiencyScore = Math.round(Math.max(0, Math.min(hwEfficiency, (1 - Math.max(0, gbHr - 3) / 17) * hwEfficiency)));
 
-  const totalScore = encodeScore + ratingScore + upgradeScore + tvScore + curationScore + efficiencyScore;
+  // 7. Storage Efficiency — D7 hygiene factor (5 pts fixed, not configurable)
+  // Uses bloat avg GB/hr if available; falls back to movies avg_gb_per_hr
+  const d7AvgGbHr = (_bloatData && _bloatData.kpi && _bloatData.kpi.avg_gb_hr != null)
+    ? _bloatData.kpi.avg_gb_hr
+    : (m.kpi.avg_gb_per_hr || 5);
+  // Full 5 pts at ≤3.0 GB/hr, sliding to 0 at ≥8.0 GB/hr
+  const d7Score = Math.round(Math.max(0, Math.min(5, (8.0 - d7AvgGbHr) / 5.0 * 5)));
+
+  // Normalize: configurable dims scale to 95, D7 adds up to 5 → total out of 100
+  const sliderTotal = encodeScore + ratingScore + upgradeScore + tvScore + curationScore + efficiencyScore;
+  const totalScore = Math.min(100, Math.round(sliderTotal * 0.95) + d7Score);
 
   const components = [
-    {label:'Encode Quality',   score:encodeScore,    max:hwEncode,     detail:`${x265} x265 vs ${x264} x264`,       sub:`${hwEncode} pts max`},
-    {label:'Upgrade Queue',    score:upgradeScore,   max:hwUpgrade,    detail:`${upgradeQ} files pending`,           sub:`${hwUpgrade} pts max`},
-    {label:'TV Completion',    score:tvScore,         max:hwTv,         detail:`${tvComplete}% main run complete`,   sub:`${hwTv} pts max`},
-    {label:'Curation Depth',   score:curationScore,  max:hwCuration,   detail:curationDetail,                       sub:`${hwCuration} pts max`},
-    {label:'Encode Efficiency',score:efficiencyScore,max:hwEfficiency, detail:`${gbHr} GB/hr avg`,                  sub:`${hwEfficiency} pts max`},
-    {label:'Rating Quality',   score:ratingScore,    max:hwRating,     detail:`Avg IMDb ${avgRating.toFixed(2)}`,   sub:`${hwRating} pts max`},
+    {label:'Encode Quality',     score:encodeScore,    max:hwEncode,     detail:`${x265} x265 vs ${x264} x264`,       sub:`${hwEncode} pts max`},
+    {label:'Upgrade Queue',      score:upgradeScore,   max:hwUpgrade,    detail:`${upgradeQ} files pending`,           sub:`${hwUpgrade} pts max`},
+    {label:'TV Completion',      score:tvScore,         max:hwTv,         detail:`${tvComplete}% main run complete`,   sub:`${hwTv} pts max`},
+    {label:'Curation Depth',     score:curationScore,  max:hwCuration,   detail:curationDetail,                       sub:`${hwCuration} pts max`},
+    {label:'Encode Efficiency',  score:efficiencyScore,max:hwEfficiency, detail:`${gbHr} GB/hr avg`,                  sub:`${hwEfficiency} pts max`},
+    {label:'Rating Quality',     score:ratingScore,    max:hwRating,     detail:`Avg IMDb ${avgRating.toFixed(2)}`,   sub:`${hwRating} pts max`},
+    {label:'Storage Efficiency', score:d7Score,         max:5,            detail:`${d7AvgGbHr.toFixed(2)} GB/hr avg`, sub:'5 pts max (hygiene)'},
   ];
 
   // ── Score color ──
@@ -3714,6 +3306,10 @@ function renderTrends(runs) {
   sparkline('tr-x264-spark',  runs.map(r => r.x264_count),                  cssVar('--danger'));
   sparkline('tr-x265-spark',  runs.map(r => r.x265_count),                  cssVar('--positive'));
 
+  // Update collapsible label with run count
+  const runLabel = document.getElementById('run-history-label');
+  if (runLabel) runLabel.textContent = `RUN HISTORY (${runs.length} runs)`;
+
   const tbody = document.querySelector('#tr-table tbody');
   tbody.innerHTML = [...runs].reverse().map((r, i, arr) => {
     const prev      = arr[i + 1];
@@ -3816,6 +3412,15 @@ function triggerRun() {
 }
 
 // ── Delete run ────────────────────────────────────────────────────────────────
+function toggleRunHistory() {
+  const body  = document.getElementById('run-history-body');
+  const arrow = document.getElementById('run-history-arrow');
+  if (!body) return;
+  const visible = body.style.display !== 'none';
+  body.style.display = visible ? 'none' : '';
+  if (arrow) arrow.style.transform = visible ? '' : 'rotate(90deg)';
+}
+
 function deleteRun(runId) {
   if (!confirm('Delete this run from history? This cannot be undone.')) return;
   fetch('/api/history/' + runId, {method: 'DELETE'})
@@ -3837,8 +3442,6 @@ function loadSnapshot(runId) {
     fetch('/api/stats').then(r => r.json()).then(data => {
       renderMovies(data.movies);
       renderTV(data.tv);
-      renderTalent(data.talent);
-      renderFranchises(data.franchises);
     });
     return;
   }
@@ -3940,8 +3543,6 @@ fetch('/api/stats')
     if (_defBtn) showTab(_defTab, _defBtn); else document.getElementById('sec-movies').classList.add('active');
     renderMovies(data.movies);
     renderTV(data.tv);
-    renderTalent(data.talent);
-    renderFranchises(data.franchises);
     renderEntropy();
   })
   .catch(err => {
@@ -3956,10 +3557,8 @@ fetch('/api/history/trends')
   .then(data => renderTrends(data.runs || []))
   .catch(() => renderTrends([]));
 
-fetch('/api/dna')
-  .then(r => r.json())
-  .then(data => renderDNA(data))
-  .catch(() => renderDNA({error: 'DNA scores unavailable.'}));
+// Legacy /api/dna fetch kept for debugging:
+// fetch('/api/dna').then(r=>r.json()).then(data=>renderDNA(data)).catch(()=>{});
 
 
 function loadFingerprint() {
@@ -4102,13 +3701,12 @@ function loadHated(){
 
 // ── Trends sub-tab switcher ──────────────────────────────────────────────────
 function showTrendsTab(name) {
-  ['entropy','dna','history'].forEach(t => {
+  ['entropy','history'].forEach(t => {
     document.getElementById('tr-panel-'+t).style.display = t===name ? '' : 'none';
     const btn = document.getElementById('trtab-'+t);
     if (btn) btn.classList.toggle('active', t===name);
   });
   if (name === 'entropy' && _mData && _tvData) renderEntropy();
-  if (name === 'dna' && !_dnaData) loadDNA();
 }
 
 // ── DNA lazy loader ───────────────────────────────────────────────────────────
@@ -4454,14 +4052,6 @@ function loadSettings() {
       // Theme
       buildThemeCards(cfg.theme || 'neon-noir');
       populateCustomPickers(cfg);
-      // Populate DNA weight sliders
-      const dnaKeys = ['scoreauth','intent','talent','franchise','votedensity','genrefit'];
-      const dnaDefaults = {scoreauth:25,intent:25,talent:10,franchise:20,votedensity:10,genrefit:10};
-      dnaKeys.forEach(k => {
-        const el = document.getElementById('dna-w-' + k);
-        if (el) { el.value = cfg['dna_weight_' + k] || dnaDefaults[k]; }
-      });
-      dnaWeightUpdate();
       // Populate Health weight sliders
       const healthKeys = ['encode','upgrade','tvcompletion','curation','efficiency','rating'];
       const healthDefaults = {encode:30,upgrade:20,tvcompletion:15,curation:15,efficiency:10,rating:10};
@@ -4712,31 +4302,6 @@ function runMigration() {
   es.onerror = () => es.close();
 }
 
-function dnaWeightUpdate() {
-  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit'];
-  let total = 0;
-  ids.forEach(k => {
-    const el = document.getElementById('dna-w-' + k);
-    const lbl = document.getElementById('dna-v-' + k);
-    if (el && lbl) { lbl.textContent = el.value; total += parseInt(el.value) || 0; }
-  });
-  const tot = document.getElementById('dna-total');
-  if (tot) { tot.textContent = total; tot.style.color = total === 100 ? 'var(--positive)' : 'var(--danger)'; }
-  const btn = document.getElementById('dna-save-btn');
-  if (btn) btn.disabled = total !== 100;
-}
-function saveDnaWeights() {
-  const ids = ['scoreauth','intent','talent','franchise','votedensity','genrefit'];
-  const payload = {};
-  ids.forEach(k => {
-    const el = document.getElementById('dna-w-' + k);
-    if (el) payload['dna_weight_' + k] = parseInt(el.value);
-  });
-  fetch('/api/settings/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
-    .then(r => r.json())
-    .then(d => setBadge('s-dna-badge', d.ok, d.ok ? 'Saved' : d.error))
-    .catch(e => setBadge('s-dna-badge', false, String(e)));
-}
 function healthWeightUpdate() {
   const ids = ['encode','upgrade','tvcompletion','curation','efficiency','rating'];
   let total = 0;

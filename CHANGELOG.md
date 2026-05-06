@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.3.9] - 2026-05-06
+
+### Features
+- **Smart bloat detection** — Replaced flat GB/hr threshold with codec- and release-group-aware logic: remux and x264/h264 are always flagged; HEVC from preferred groups (tigole, qxr, flux, etc.) use a 25 GB/hr ceiling; LQ groups (yify, evo, rarbg, etc.) are always flagged
+- **Watch history resolution** — New `resolve_watch_history()` pipeline stage writes watch classifications (real_stream, corroborated_mark, unverified_mark) into a persistent `watch_resolved` table for use by Request Audit
+- **Favicon** — SVG favicon served at `/favicon.svg` with full HTML head wiring and `theme-color` meta tag
+- **History limit raised** — Run history and trends queries now return up to 500 records (was 90)
+
+### Changes
+- Removed Talent and Franchises tabs from both the dashboard and the backend; `parse_talent()`, `parse_franchises()`, and `parse_talent_deep()` removed from `app.py`
+- Removed DNA Trends panel from the Trends tab
+- Removed DNA weight config fields from `/api/config` response (`dna_weight_*`)
+- D4 (Franchise Context) retired from DNA scoring; D1/D2 (ScoreAuth/Intent) reweighted to 35% each to fill the gap
+- `SCRIPT_PATH` in `runner.py` corrected to `/app/library_runner.py` (was `/scripts/library_runner.py`)
+- Recoverable GB calculation now uses the smart `is_bloat()` filter instead of a flat GB/hr cutoff
+- KPI row gap and card `min-width: 0` fix to prevent overflow on narrow viewports
+- Mobile breakpoint: KPI row switches to 2-column grid at ≤900px
+
+### Security
+- Removed hardcoded personal Plex account IDs from `resolve_watch_history()`; replaced with `PLEX_FAMILY_IDS`, `PLEX_EXTENDED_IDS`, `PLEX_FRIEND_IDS` environment variables (comma-separated integers)
+- Updated `config.example.py` and `docker-compose.yml.example` with new vars
+
+### Removed
+- `pyproject.toml`, `setup.py`, `simpson_library.py` — no longer needed
+- `watch_resolved` DDL is now created inline by `init_db()` rather than via setup tooling
+
+---
+
 ## [1.3.4] - 2026-04-21
 
 ### Bug Fixes

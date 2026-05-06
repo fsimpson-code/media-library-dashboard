@@ -45,6 +45,10 @@ services:
       - JELLYSEERR_API_KEY=
       # Plex DB path (optional — required for Request Audit watch history)
       - PLEX_DB_PATH=
+      # Plex account ID groups (comma-separated) — required for watch history resolution
+      - PLEX_FAMILY_IDS=
+      - PLEX_EXTENDED_IDS=
+      - PLEX_FRIEND_IDS=
       # Radarr internal DB path (optional — required for Container Hitlist feature)
       - RADARR_DB_PATH=
       # Watch history DB path (optional — for Request Audit cross-reference)

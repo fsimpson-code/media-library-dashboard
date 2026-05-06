@@ -14,12 +14,13 @@
 ## Features
 
 - **Movies + TV stats** — KPIs, codec breakdown, resolution, HDR, size
-- **Library DNA** — Multi-dimensional scoring and grading system across your entire collection
-- **Bloat analysis** — Identify oversized encodes with one-click Radarr replace
-- **Franchise tracker** — Collection completion with missing title drill-down
-- **Talent deep dive** — Everywheremen, Unsung Heroes, BTWF, Deep Wounds analysis
+- **Bloat analysis** — Smart bloat detection by codec, release group, and bitrate; one-click Radarr replace
+- **Constellation** — Visual map of your library's genre and quality landscape
 - **Trend history** — Sparklines and history table across all pipeline runs
 - **Historical snapshots** — Browse any past run via the dropdown
+- **Request Audit** — Cross-reference Jellyseerr requests against Plex watch history
+- **Container Hitlist** — Surface non-MKV files sourced directly from Radarr DB
+- **User Roster** — DB-backed user management with display names and group assignments
 - **Optional: Family Fingerprint** — Per-member taste profiles, genre overlap, and recommendations
 - **Optional: Hated titles** — Track and surface titles tagged for removal
 

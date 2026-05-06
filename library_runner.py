@@ -412,7 +412,7 @@ def compute_dna_scores(movies, talent_data, run_id, conn):
         elif crossover >= 1:  d3 = 30.0
         else:                 d3 = 0.0
 
-        # ── D4: Franchise Context (15%) ───────────────────────────────────────
+        # ── D4: Franchise Context — RETIRED (weight removed; score preserved for schema compat) ──
         collection = (m.get("collection") or "").strip()
         if not collection:
             d4 = 75.0  # standalone — neutral-positive
@@ -473,8 +473,8 @@ def compute_dna_scores(movies, talent_data, run_id, conn):
 
         # ── Weighted final score ───────────────────────────────────────────────
         final = round(
-            d1 * 0.20 + d2 * 0.20 + d3 * 0.10 +
-            d4 * 0.15 + d5 * 0.10 + d6 * 0.10 + d7 * 0.15,
+            d1 * 0.35 + d2 * 0.35 + d3 * 0.10 +
+            d5 * 0.10 + d6 * 0.10 + d7 * 0.15,
             1
         )
 
@@ -668,6 +668,19 @@ def init_db():
             conn.execute(sql_text("ALTER TABLE actor_career ADD COLUMN btwf_pre_fame TEXT"))
         if "updated_at" not in ac_cols:
             conn.execute(sql_text("ALTER TABLE actor_career ADD COLUMN updated_at TEXT"))
+
+    # watch_resolved: ensure table exists (sqlite only; compound PK, easier via raw SQL)
+    with engine.begin() as conn:
+        conn.execute(sql_text("""
+            CREATE TABLE IF NOT EXISTS watch_resolved (
+                account_id      INTEGER NOT NULL,
+                guid            TEXT NOT NULL,
+                watch_type      TEXT NOT NULL,
+                corroborated_by TEXT,
+                updated_at      INTEGER,
+                PRIMARY KEY (account_id, guid)
+            )
+        """))
 
     return engine
 
@@ -1190,6 +1203,147 @@ def compute_top_talent_snapshot(movies, talent_data, run_id, conn):
     print(f"  Top talent snapshot written — {len(rows)} entries.")
 
 
+
+def resolve_watch_history():
+    """Read Plex DB and write watch classifications into watch_resolved."""
+    import urllib.parse, time
+
+    PLEX_DB  = os.getenv("PLEX_DB_PATH", "")
+    def _parse_ids(env_var):
+        val = os.getenv(env_var, "")
+        return {int(x.strip()) for x in val.split(",") if x.strip().isdigit()}
+
+    FAMILY   = _parse_ids("PLEX_FAMILY_IDS")
+    EXTENDED = _parse_ids("PLEX_EXTENDED_IDS")
+    FRIENDS  = _parse_ids("PLEX_FRIEND_IDS")
+    SCOPED   = FAMILY | EXTENDED
+
+    print("\nResolving watch history...")
+
+    if not PLEX_DB:
+        print("  watch_resolved: PLEX_DB_PATH not set — skipping")
+        return
+
+    def _ro(path):
+        uri = "file:" + urllib.parse.quote(path, safe="/:") + "?mode=ro"
+        return sqlite3.connect(uri, uri=True)
+
+    try:
+        pc = _ro(PLEX_DB)
+    except Exception as e:
+        print(f"  watch_resolved: Plex DB unavailable ({e}) — skipping")
+        return
+
+    ph     = ",".join("?" * len(SCOPED))
+    params = list(SCOPED)
+
+    real_streams = set(pc.execute(
+        f"SELECT DISTINCT account_id, guid FROM metadata_item_views WHERE account_id IN ({ph})",
+        params
+    ).fetchall())
+
+    all_watched = pc.execute(
+        f"SELECT DISTINCT account_id, guid FROM metadata_item_settings "
+        f"WHERE view_count > 0 AND account_id IN ({ph})",
+        params
+    ).fetchall()
+    pc.close()
+
+    family_streams_by_guid = defaultdict(set)
+    for acct_id, guid in real_streams:
+        if acct_id in FAMILY:
+            family_streams_by_guid[guid].add(acct_id)
+
+    now  = int(time.time())
+    rows = []
+
+    watched_pairs = set()
+    for acct_id, guid in all_watched:
+        if acct_id in FRIENDS:
+            continue
+        watched_pairs.add((acct_id, guid))
+        if (acct_id, guid) in real_streams:
+            rows.append((acct_id, guid, "real_stream", None, now))
+        elif acct_id in FAMILY:
+            corroborators = family_streams_by_guid[guid] - {acct_id}
+            if corroborators:
+                rows.append((acct_id, guid, "corroborated_mark",
+                              ",".join(str(a) for a in sorted(corroborators)), now))
+            else:
+                rows.append((acct_id, guid, "unverified_mark", None, now))
+
+    for acct_id, guid in real_streams:
+        if acct_id in FRIENDS:
+            continue
+        if (acct_id, guid) not in watched_pairs:
+            rows.append((acct_id, guid, "real_stream", None, now))
+
+    con = sqlite3.connect(str(DB_PATH))
+    con.executemany(
+        "INSERT OR REPLACE INTO watch_resolved "
+        "(account_id, guid, watch_type, corroborated_by, updated_at) VALUES (?,?,?,?,?)",
+        rows
+    )
+    con.commit()
+    con.close()
+
+    counts = {}
+    for r in rows:
+        counts[r[2]] = counts.get(r[2], 0) + 1
+    print(f"  watch_resolved: {len(rows)} records written.")
+    for wt, cnt in sorted(counts.items()):
+        print(f"    {wt}: {cnt}")
+
+def dedup_runs(engine):
+    """Remove consecutive identical runs, keeping the oldest of each group.
+    Two runs are identical if movie_count, tv_count, ROUND(movie_gb+tv_gb,1),
+    x264_count, and x265_count all match.
+    The single most recent run (highest id) is always preserved unconditionally.
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(sql_text(
+            "SELECT id, movie_count, tv_count, "
+            "ROUND(movie_gb + tv_gb, 1) AS total_gb, x264_count, x265_count "
+            "FROM runs ORDER BY id ASC"
+        )).fetchall()
+
+    if len(rows) < 2:
+        print("  Dedup: not enough runs to compare.")
+        return 0
+
+    def _key(r):
+        return (r[1], r[2], r[3], r[4], r[5])
+
+    most_recent_id = rows[-1][0]
+    to_delete = []
+    prev = rows[0]
+
+    for row in rows[1:]:
+        if _key(row) == _key(prev):
+            if row[0] != most_recent_id:
+                to_delete.append(row[0])
+            # prev stays — keep older, discard newer
+        else:
+            prev = row
+
+    if not to_delete:
+        print("  Dedup: no consecutive duplicate runs found.")
+        return 0
+
+    # Build safe IN clause — IDs are integers from the DB, no injection risk
+    id_list = ",".join(str(i) for i in to_delete)
+    with engine.begin() as conn:
+        for tbl in ("movie_snapshots", "tv_snapshots", "franchise_snapshots", "dna_scores"):
+            try:
+                conn.execute(sql_text(f"DELETE FROM {tbl} WHERE run_id IN ({id_list})"))
+            except Exception:
+                pass  # table may not exist in all DB versions
+        conn.execute(sql_text(f"DELETE FROM runs WHERE id IN ({id_list})"))
+
+    print(f"  Dedup: removed {len(to_delete)} consecutive duplicate run(s).")
+    return len(to_delete)
+
+
 def main():
     print("=" * 60)
     print(f"{DASHBOARD_NAME} Pipeline")
@@ -1228,6 +1382,11 @@ def main():
         compute_franchise_snapshot(movies, run_id, conn)
         compute_top_talent_snapshot(movies, talent_data, run_id, conn)
         compute_dna_scores(movies, talent_data, run_id, conn)
+
+    resolve_watch_history()
+
+    print("\nRunning dedup check...")
+    dedup_runs(engine)
 
     print(f"\n  Finished: {datetime.now():%Y-%m-%d %H:%M:%S}")
     print("=" * 60)

@@ -27,6 +27,9 @@ HATED_ENABLED       = False
 
 # Plex integration (optional — required for Request Audit watch history)
 PLEX_DB_PATH = ""  # e.g. "/path/to/com.plexapp.plugins.library.db"
+PLEX_FAMILY_IDS   = ""  # comma-separated Plex account IDs for family members, e.g. "1,12345"
+PLEX_EXTENDED_IDS = ""  # comma-separated Plex account IDs for extended family
+PLEX_FRIEND_IDS   = ""  # comma-separated Plex account IDs for friends
 
 # Jellyseerr internal URL (used server-side for Request Audit API calls)
 JELLYSEERR_INTERNAL_URL = "http://localhost:5055"

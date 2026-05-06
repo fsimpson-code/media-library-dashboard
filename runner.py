@@ -19,7 +19,7 @@ from flask import Flask, Response, jsonify, send_file, abort
 
 app = Flask(__name__)
 
-SCRIPT_PATH  = "/scripts/library_runner.py"
+SCRIPT_PATH  = "/app/library_runner.py"
 HISTORY_DIR  = Path("/scripts/history")
 
 try:
@@ -155,7 +155,7 @@ def history():
                movie_gb, tv_gb, x264_count, x265_count
         FROM runs
         ORDER BY run_ts DESC
-        LIMIT 90
+        LIMIT 500
     """).fetchall()
     con.close()
     return jsonify([dict(r) for r in rows])
@@ -177,7 +177,7 @@ def trends():
                x264_count, x265_count
         FROM runs
         ORDER BY run_ts ASC
-        LIMIT 90
+        LIMIT 500
     """).fetchall()
     con.close()
 

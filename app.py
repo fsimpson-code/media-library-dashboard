@@ -8,7 +8,7 @@ import os, re, json, sqlite3
 from datetime import datetime
 from pathlib import Path
 from collections import Counter, defaultdict
-from flask import Flask, jsonify, send_file, abort, Response, stream_with_context, request
+from flask import Flask, jsonify, send_file, send_from_directory, abort, Response, stream_with_context, request
 import requests as req
 import subprocess
 import threading
@@ -163,13 +163,6 @@ def api_config():
         "theme_custom_btn_primary_glow":os.getenv("THEME_CUSTOM_BTN_PRIMARY_GLOW", ""),
         "font_display":                 os.getenv("FONT_DISPLAY", ""),
         "font_body":                    os.getenv("FONT_BODY", ""),
-        "dna_weight_scoreauth":         int(os.getenv("DNA_WEIGHT_SCOREAUTH", "20")),
-        "dna_weight_intent":            int(os.getenv("DNA_WEIGHT_INTENT", "20")),
-        "dna_weight_talent":            int(os.getenv("DNA_WEIGHT_TALENT", "10")),
-        "dna_weight_franchise":         int(os.getenv("DNA_WEIGHT_FRANCHISE", "15")),
-        "dna_weight_votedensity":       int(os.getenv("DNA_WEIGHT_VOTEDENSITY", "10")),
-        "dna_weight_genrefit":          int(os.getenv("DNA_WEIGHT_GENREFIT", "10")),
-        "dna_weight_audcritic":         int(os.getenv("DNA_WEIGHT_AUDCRITIC", "15")),
         "health_weight_encode":         int(os.getenv("HEALTH_WEIGHT_ENCODE", "30")),
         "health_weight_upgrade":        int(os.getenv("HEALTH_WEIGHT_UPGRADE", "20")),
         "health_weight_tvcompletion":   int(os.getenv("HEALTH_WEIGHT_TVCOMPLETION", "15")),
@@ -344,38 +337,6 @@ def parse_tv():
         "incomplete":         incomplete_out,
     }
 
-def parse_talent():
-    with get_engine().connect() as conn:
-        run_id = _latest_run_id(conn)
-        if run_id is None:
-            raise FileNotFoundError("No runs found — run an update first.")
-        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
-            SELECT name, role, film_count, avg_rating, top_genre
-            FROM top_talent_snapshots WHERE run_id = :run_id
-            ORDER BY film_count DESC
-        """), {"run_id": run_id}).fetchall()]
-
-    dirs = [{"name": r["name"], "films": r["film_count"], "avg_rating": r["avg_rating"],
-              "top_genre": r["top_genre"] or ""} for r in rows if r["role"] == "director"]
-    acts = [{"name": r["name"], "films": r["film_count"], "avg_rating": r["avg_rating"],
-              "top_genre": r["top_genre"] or ""} for r in rows if r["role"] == "actor"]
-    return {"directors": dirs[:25], "actors": acts[:25]}
-
-def parse_franchises():
-    with get_engine().connect() as conn:
-        run_id = _latest_run_id(conn)
-        if run_id is None:
-            raise FileNotFoundError("No runs found — run an update first.")
-        rows = [dict(r._mapping) for r in conn.execute(sql_text("""
-            SELECT franchise_name, have, total, missing_count, pct, status
-            FROM franchise_snapshots WHERE run_id = :run_id
-            ORDER BY missing_count DESC, total DESC
-        """), {"run_id": run_id}).fetchall()]
-    return [{"franchise": r["franchise_name"], "have": r["have"] or 0,
-             "total": r["total"] or 0, "missing": r["missing_count"] or 0,
-             "pct": r["pct"] or 0, "status": r["status"] or ""} for r in rows]
-
-
 def parse_constellation():
     with get_engine().connect() as conn:
         run_id = _latest_run_id(conn)
@@ -402,10 +363,8 @@ def api_stats():
         return jsonify({"error": "No library data found — run an update first."}), 404
     try:
         data = {
-            "movies":     parse_movies(),
-            "tv":         parse_tv(),
-            "talent":     parse_talent(),
-            "franchises": parse_franchises(),
+            "movies": parse_movies(),
+            "tv":     parse_tv(),
         }
         return jsonify(data)
     except Exception as e:
@@ -463,9 +422,46 @@ def parse_bloat():
     x264_gb         = sum(m["size_gb"] for m in x264)
     top10_gb        = sum(m["size_gb"] for m in sorted(movies, key=lambda x: x["size_gb"], reverse=True)[:10])
     avg_gb_hr       = round(sum(m["gb_hr"] for m in with_gh) / len(with_gh), 2) if with_gh else 0
-    bloat           = [m for m in with_gh if m["gb_hr"] > 10]
+    LQ_GROUPS = {
+        "yify","evo","rarbg","hqmux","hdonly","tigole"
+    }
+    PREFERRED_GROUPS = {
+        "tigole","qxr","megusta","ezzrips","flux","triton",
+        "psa","ben","ben.the.men","framestor","d-zon3","terminal"
+    }
+
+    def is_bloat(m):
+        codec = (m.get("video_codec") or "").lower()
+        group = (m.get("release_group") or "").lower()
+        quality = (m.get("quality_name") or "").lower()
+        gb_hr = m.get("gb_hr") or 0
+        size = m.get("size_gb") or 0
+
+        # Always bloat: remux
+        if "remux" in quality:
+            return True
+
+        # Always bloat: x264/h264/avc regardless of size
+        if any(c in codec for c in ["x264","h264","avc"]):
+            return True
+
+        # Always bloat: LQ release group
+        if group in LQ_GROUPS:
+            return True
+
+        # x265 from preferred group: only flag if extremely high GB/hr (>25)
+        if any(c in codec for c in ["x265","hevc","h265"]):
+            if group in PREFERRED_GROUPS:
+                return gb_hr > 25
+            else:
+                return gb_hr > 15
+
+        # Unknown codec: flag if over 10 GB/hr
+        return gb_hr > 10
+
+    bloat = [m for m in with_gh if is_bloat(m)]
     avg_bloat_gb_hr = round(sum(m["gb_hr"] for m in bloat) / len(bloat), 2) if bloat else 0
-    recoverable_gb  = round(sum(m["size_gb"] for m in with_gh if m["gb_hr"] > 8), 1)
+    recoverable_gb  = round(sum(m["size_gb"] for m in bloat), 1)
 
     return {
         "kpi": {
@@ -1058,6 +1054,10 @@ def api_trends():
 def index():
     return send_file("/app/dashboard.html", mimetype="text/html")
 
+@app.route("/favicon.svg")
+def favicon():
+    return send_from_directory("/app", "favicon.svg", mimetype="image/svg+xml")
+
 @app.route("/api/history/<int:run_id>", methods=["DELETE"])
 def api_delete_run(run_id):
     try:
@@ -1073,356 +1073,6 @@ def api_snapshot(run_id):
         return jsonify(r.json()), r.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 503
-def parse_talent_deep():
-    from collections import defaultdict, Counter
-
-    if not _db_path_exists():
-        return {"error": "Database not found"}
-
-    with get_engine().connect() as conn:
-        # ── Load movies ────────────────────────────────────────────────────────
-        run_id = _latest_run_id(conn)
-        if run_id is None:
-            return {"error": "No runs found — run an update first."}
-
-        imdb_to_movie = {}
-        for r in conn.execute(sql_text("""
-            SELECT imdb_id, title, year, imdb_rating, genres
-            FROM movie_snapshots WHERE run_id = :run_id AND has_file = 1
-        """), {"run_id": run_id}).fetchall():
-            if r.imdb_id:
-                imdb_to_movie[r.imdb_id] = {
-                    "title":  r.title,
-                    "year":   r.year,
-                    "rating": r.imdb_rating,
-                    "genres": r.genres or "",
-                }
-
-        # ── Load talent cache ──────────────────────────────────────────────────
-        rows = conn.execute(sql_text(
-            "SELECT imdb_id, nconst, name, role, ordering FROM talent_cache"
-        )).fetchall()
-
-    # Filter to films we actually have
-    talent = defaultdict(list)   # imdb_id -> [{name, nconst, role, ordering}]
-    for r in rows:
-        if r["imdb_id"] in imdb_to_movie:
-            talent[r["imdb_id"]].append({
-                "name": r["name"], "nconst": r["nconst"],
-                "role": r["role"], "ordering": r["ordering"] or 99,
-            })
-
-    # ── Per-person aggregates ──────────────────────────────────────────────────
-    # nconst -> list of {imdb_id, ordering, year, title, rating, genres}
-    person_appearances = defaultdict(list)
-    person_names = {}
-    person_roles = {}
-
-    for imdb_id, people in talent.items():
-        movie = imdb_to_movie.get(imdb_id)
-        if not movie:
-            continue
-        for p in people:
-            nc = p["nconst"]
-            person_names[nc] = p["name"]
-            person_roles[nc] = p["role"]
-            person_appearances[nc].append({
-                "imdb_id":  imdb_id,
-                "title":    movie["title"],
-                "year":     movie["year"],
-                "rating":   movie["rating"],
-                "genres":   movie["genres"],
-                "ordering": p["ordering"],
-                "role":     p["role"],
-            })
-
-    # ── 1. The Everywheremen ──────────────────────────────────────────────────
-    # "Hey it's that guy!" — character actors woven deep into the library.
-    # Scored by: appearances × billing_depth × fame_suppression × breadth_bonus
-    # Fame ceiling via actor_career true_breakout votes — if you were never
-    # top-2 billed in a 100k+ vote film, you're character actor territory.
-
-    # Load true_breakout votes from actor_career for fame suppression
-    breakout_votes = {}
-    try:
-        with get_engine().connect() as conn_ac:
-            for ac_row in conn_ac.execute(sql_text("SELECT nconst, true_breakout FROM actor_career")).fetchall():
-                tb = json.loads(ac_row[1]) if ac_row[1] else None
-                breakout_votes[ac_row[0]] = tb["votes"] if tb else 0
-    except Exception:
-        pass
-
-    def fame_factor(votes):
-        """1.0 for unknown character actors, down to 0.05 for mega-stars."""
-        if not votes or votes < 50_000:
-            return 1.0
-        if votes < 150_000:
-            return 0.75
-        if votes < 300_000:
-            return 0.45
-        if votes < 500_000:
-            return 0.2
-        return 0.05
-
-    EVERYWHEREMEN_EXCLUDE_GENRES = {"Animation", "Anime"}
-
-    everywheremen = []
-    for nc, apps in person_appearances.items():
-        if person_roles.get(nc) not in ("actor", "actress"):
-            continue
-        if len(apps) < 4:
-            continue
-
-        # Deduplicate by imdb_id (can appear multiple times per film)
-        seen_ids = set()
-        deduped = []
-        for a in apps:
-            if a["imdb_id"] not in seen_ids:
-                seen_ids.add(a["imdb_id"])
-                # Exclude Animation-genre films — voice actors skew all metrics
-                film_genres = {g.strip() for g in a["genres"].split(",")}
-                if film_genres & EVERYWHEREMEN_EXCLUDE_GENRES:
-                    continue
-                deduped.append(a)
-
-        total = len(deduped)
-        if total < 3:  # not enough non-animation appearances
-            continue
-        orderings  = [a["ordering"] for a in deduped]
-        avg_order  = sum(orderings) / len(orderings)   # higher = deeper in cast
-        lead_count = sum(1 for o in orderings if o <= 2)
-        deep_count = sum(1 for o in orderings if o >= 4)  # billing 4+ = supporting
-
-        # Need at least 3 deep supporting appearances
-        if deep_count < 3:
-            continue
-
-        # Billing depth weight: avg ordering mapped to 0-1 (billing 10+ = 1.0)
-        billing_weight = min(avg_order / 10.0, 1.0)
-
-        # Lead suppression: heavy penalty if lots of lead appearances
-        lead_ratio = lead_count / total
-        lead_penalty = max(0.1, 1.0 - (lead_ratio * 2.5))
-
-        # Fame suppression
-        peak_votes = breakout_votes.get(nc, 0)
-        ff = fame_factor(peak_votes)
-
-        # Breadth bonus
-        genres = set()
-        decades = set()
-        for a in deduped:
-            for g in a["genres"].split(","):
-                g = g.strip()
-                if g:
-                    genres.add(g)
-            if a["year"]:
-                decades.add((a["year"] // 10) * 10)
-        breadth = (len(genres) * len(decades)) ** 0.4
-
-        score = total * billing_weight * lead_penalty * ff * breadth
-
-        ratings = [a["rating"] for a in deduped if a["rating"]]
-        avg_r   = round(sum(ratings) / len(ratings), 2) if ratings else None
-
-        everywheremen.append({
-            "name":         person_names[nc],
-            "film_count":   total,
-            "deep_count":   deep_count,
-            "lead_count":   lead_count,
-            "avg_billing":  round(avg_order, 1),
-            "genre_count":  len(genres),
-            "decade_count": len(decades),
-            "avg_rating":   avg_r,
-            "peak_votes":   peak_votes,
-            "score":        round(score, 2),
-            "films":        sorted(deduped, key=lambda x: x["year"] or 0, reverse=True)[:8],
-        })
-
-    everywheremen.sort(key=lambda x: x["score"], reverse=True)
-    everywheremen = everywheremen[:30]
-    for e in everywheremen:
-        e["films"] = [{"title": f["title"], "year": f["year"], "ordering": f["ordering"]} for f in e["films"]]
-
-    # ── 2. The Unsung ─────────────────────────────────────────────────────────
-    # Actors consistently appearing with billing 5+ — rarely leads, always present
-    unsung = []
-    for nc, apps in person_appearances.items():
-        if person_roles.get(nc) not in ("actor", "actress"):
-            continue
-        # Exclude Animation-genre films from Unsung
-        non_anim = [a for a in apps if not ({"Animation","Anime"} & {g.strip() for g in a["genres"].split(",")})]
-        if len(non_anim) < 2:
-            continue  # skip actors whose library presence is mostly animation
-        supporting = [a for a in non_anim if a["ordering"] >= 4]
-        lead_count  = sum(1 for a in non_anim if a["ordering"] <= 2)
-        if len(supporting) < 4 or lead_count > 2:
-            continue
-        ratings = [a["rating"] for a in supporting if a["rating"]]
-        avg_r = round(sum(ratings) / len(ratings), 2) if ratings else None
-        genres = Counter()
-        for a in supporting:
-            for g in a["genres"].split(","):
-                g = g.strip()
-                if g:
-                    genres[g] += 1
-        unsung.append({
-            "name":         person_names[nc],
-            "support_count":len(supporting),
-            "lead_count":   lead_count,
-            "avg_rating":   avg_r,
-            "top_genre":    genres.most_common(1)[0][0] if genres else "",
-            "films":        sorted(supporting, key=lambda x: x["rating"] or 0, reverse=True)[:6],
-        })
-    unsung.sort(key=lambda x: x["support_count"], reverse=True)
-    unsung = unsung[:30]
-    for u in unsung:
-        u["films"] = [{"title": f["title"], "year": f["year"], "ordering": f["ordering"], "rating": f["rating"]} for f in u["films"]]
-
-    # ── 3. Before They Were Famous ────────────────────────────────────────────
-    # Uses full IMDb filmography from actor_career to find pre-fame appearances
-    # NOT in the library, with Jellyseer links to request them.
-    ANIM_GENRES = {"Animation", "Anime"}
-
-    # Load actor_career BTWF data (pre-computed from IMDb TSV scan)
-    career_btwf = {}
-    try:
-        with get_engine().connect() as conn_btwf:
-            for ac_row in conn_btwf.execute(sql_text(
-                "SELECT nconst, true_breakout, btwf_pre_fame FROM actor_career"
-            )).fetchall():
-                tb   = json.loads(ac_row.true_breakout) if ac_row.true_breakout else None
-                pre  = json.loads(ac_row.btwf_pre_fame) if ac_row.btwf_pre_fame else []
-                if tb:
-                    career_btwf[ac_row.nconst] = {"true_breakout": tb, "btwf_pre_fame": pre}
-    except Exception:
-        pass
-
-    btwf = []
-    for nc, apps in person_appearances.items():
-        if person_roles.get(nc) not in ("actor", "actress"):
-            continue
-
-        non_anim = [a for a in apps if not (ANIM_GENRES & {g.strip() for g in a["genres"].split(",")})]
-
-        career = career_btwf.get(nc)
-        if career:
-            # ── IMDb-backed path ──────────────────────────────────────────────
-            tb            = career["true_breakout"]
-            breakout_year = tb["year"]
-            breakout_film = tb["title"]
-            breakout_votes = tb.get("votes", 0)
-            pre_fame      = career["btwf_pre_fame"]
-            early_in_lib  = [f for f in pre_fame if     f.get("in_library")]
-            early_missing = [f for f in pre_fame if not f.get("in_library")]
-            if not early_in_lib and not early_missing:
-                continue
-            btwf.append({
-                "name":           person_names[nc],
-                "breakout_film":  breakout_film,
-                "breakout_year":  breakout_year,
-                "breakout_votes": breakout_votes,
-                "missing_count":  len(early_missing),
-                "early_count":    len(pre_fame),
-                "early_in_lib":   sorted(early_in_lib,  key=lambda x: x["year"])[:5],
-                "early_missing":  sorted(early_missing, key=lambda x: x["year"])[:10],
-                "total_films":    len(non_anim),
-                "imdb_source":    True,
-            })
-        else:
-            # ── Library-only fallback (no career cache entry) ─────────────────
-            if len(non_anim) < 3:
-                continue
-            leads = sorted(
-                [a for a in non_anim if a["ordering"] <= 2 and a["year"]],
-                key=lambda x: x["year"]
-            )
-            if not leads:
-                continue
-            breakout_year = leads[0]["year"]
-            breakout_film = leads[0]["title"]
-            early = [
-                a for a in non_anim
-                if a["ordering"] >= 5 and a["year"] and a["year"] < breakout_year
-            ]
-            if not early:
-                continue
-            btwf.append({
-                "name":           person_names[nc],
-                "breakout_film":  breakout_film,
-                "breakout_year":  breakout_year,
-                "breakout_votes": 0,
-                "missing_count":  0,
-                "early_count":    len(early),
-                "early_in_lib":   [{"title": f["title"], "year": f["year"], "ordering": f["ordering"]}
-                                   for f in sorted(early, key=lambda x: x["year"])[:5]],
-                "early_missing":  [],
-                "total_films":    len(non_anim),
-                "imdb_source":    False,
-            })
-
-    # Prioritise actors with the most missing pre-fame discoveries
-    btwf.sort(key=lambda x: (x["missing_count"], x["early_count"]), reverse=True)
-    btwf = btwf[:30]
-
-    # ── 4. Director Loyalty Index ──────────────────────────────────────────────
-    # Directors ranked by film count, avg rating, genre range
-    loyalty = []
-    for nc, apps in person_appearances.items():
-        if person_roles.get(nc) != "director":
-            continue
-        # Exclude animation films from director loyalty
-        apps = [a for a in apps if not ({"Animation","Anime"} & {g.strip() for g in a["genres"].split(",")})]
-        if len(apps) < 2:
-            continue
-        ratings = [a["rating"] for a in apps if a["rating"]]
-        avg_r = round(sum(ratings) / len(ratings), 2) if ratings else None
-        genres = Counter()
-        decades = set()
-        for a in apps:
-            for g in a["genres"].split(","):
-                g = g.strip()
-                if g:
-                    genres[g] += 1
-            if a["year"]:
-                decades.add((a["year"] // 10) * 10)
-        # Loyalty score: film count weighted by avg rating and consistency
-        loyalty_score = round(
-            len(apps) * (avg_r / 10 if avg_r else 0.5) * (1 + len(decades) * 0.1), 2
-        )
-        loyalty.append({
-            "name":          person_names[nc],
-            "film_count":    len(apps),
-            "avg_rating":    avg_r,
-            "top_genre":     genres.most_common(1)[0][0] if genres else "",
-            "genre_count":   len(genres),
-            "decade_count":  len(decades),
-            "loyalty_score": loyalty_score,
-            "films":         sorted(apps, key=lambda x: x["year"] or 0, reverse=True)[:6],
-        })
-    loyalty.sort(key=lambda x: x["loyalty_score"], reverse=True)
-    loyalty = loyalty[:30]
-    for d in loyalty:
-        d["films"] = [{"title": f["title"], "year": f["year"], "rating": f["rating"]} for f in d["films"]]
-
-    return {
-        "everywheremen": everywheremen,
-        "unsung":        unsung,
-        "btwf":          btwf,
-        "loyalty":       loyalty,
-    }
-
-
-@app.route("/api/talent/deep")
-def api_talent_deep():
-    try:
-        data = parse_talent_deep()
-        if "error" in data:
-            return jsonify(data), 404
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 
 def parse_fingerprint():
     MEMBERS = FINGERPRINT_MEMBERS + ["family"]
@@ -1473,60 +1123,6 @@ def api_fingerprint():
         return jsonify({"enabled": False})
     try:
         return jsonify(parse_fingerprint())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-def parse_deep_wounds():
-    from collections import defaultdict
-
-    if not _db_path_exists():
-        return {"error": "Database not found"}
-
-    try:
-        with get_engine().connect() as conn:
-            rows = conn.execute(sql_text(
-                "SELECT nconst, name, horror_credits, true_breakout FROM actor_career"
-            )).fetchall()
-            lib_nconsts = {r[0] for r in conn.execute(sql_text(
-                "SELECT DISTINCT nconst FROM talent_cache"
-            )).fetchall()}
-    except Exception:
-        return {"error": "Career data not yet computed — run an update first."}
-
-    actors = []
-    for row in rows:
-        if row["nconst"] not in lib_nconsts:
-            continue
-        hc = json.loads(row["horror_credits"]) if row["horror_credits"] else []
-        tb = json.loads(row["true_breakout"])  if row["true_breakout"]  else None
-        if not hc:
-            continue
-
-        have    = [f for f in hc if f["in_library"]]
-        missing = [f for f in hc if not f["in_library"] and f.get("votes", 0) >= 20_000]
-        missing.sort(key=lambda x: x.get("votes", 0), reverse=True)
-
-        actors.append({
-            "name":          row["name"],
-            "nconst":        row["nconst"],
-            "true_breakout": tb,
-            "horror_have":   have,
-            "horror_missing": missing[:10],
-        })
-
-    # Sort by total horror credits descending
-    actors.sort(key=lambda x: len(x["horror_have"]) + len(x["horror_missing"]), reverse=True)
-    return {"actors": actors[:50]}
-
-
-@app.route("/api/deep-wounds")
-def api_deep_wounds():
-    try:
-        data = parse_deep_wounds()
-        if "error" in data:
-            return jsonify(data), 404
-        return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1631,10 +1227,9 @@ def parse_dna():
         FROM dna_scores WHERE run_id = :run_id
     """), {"run_id": run_id}).fetchone()
     dimensions = [
-        {"key": "d1", "label": "Score Authenticity",   "weight": 25, "score": round(dim_row.d1 or 0, 1)},
-        {"key": "d2", "label": "Intentionality",        "weight": 25, "score": round(dim_row.d2 or 0, 1)},
+        {"key": "d1", "label": "Score Authenticity",   "weight": 35, "score": round(dim_row.d1 or 0, 1)},
+        {"key": "d2", "label": "Intentionality",        "weight": 35, "score": round(dim_row.d2 or 0, 1)},
         {"key": "d3", "label": "Talent Crossover",      "weight": 10, "score": round(dim_row.d3 or 0, 1)},
-        {"key": "d4", "label": "Franchise Context",     "weight": 20, "score": round(dim_row.d4 or 0, 1)},
         {"key": "d5", "label": "Vote Density by Era",   "weight": 10, "score": round(dim_row.d5 or 0, 1)},
         {"key": "d6", "label": "Genre Coherence",       "weight": 10, "score": round(dim_row.d6 or 0, 1)},
     ]
@@ -1740,6 +1335,7 @@ def api_dna():
         return jsonify({"error": str(e)}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 
@@ -2107,8 +1703,6 @@ def api_settings_config():
         "THEME_CUSTOM_TEXT_HEADING", "THEME_CUSTOM_TEXT_LABEL",
         "THEME_CUSTOM_LINK",
         "FONT_DISPLAY", "FONT_BODY",
-        "DNA_WEIGHT_SCOREAUTH", "DNA_WEIGHT_INTENT", "DNA_WEIGHT_TALENT",
-        "DNA_WEIGHT_FRANCHISE", "DNA_WEIGHT_VOTEDENSITY", "DNA_WEIGHT_GENREFIT", "DNA_WEIGHT_AUDCRITIC",
         "HEALTH_WEIGHT_ENCODE", "HEALTH_WEIGHT_UPGRADE", "HEALTH_WEIGHT_TVCOMPLETION",
         "HEALTH_WEIGHT_CURATION", "HEALTH_WEIGHT_EFFICIENCY", "HEALTH_WEIGHT_RATING",
     ]
@@ -2170,13 +1764,6 @@ def api_settings_save():
         "theme_custom_btn_primary_glow": "THEME_CUSTOM_BTN_PRIMARY_GLOW",
         "font_display": "FONT_DISPLAY",
         "font_body": "FONT_BODY",
-        "dna_weight_scoreauth": "DNA_WEIGHT_SCOREAUTH",
-        "dna_weight_intent": "DNA_WEIGHT_INTENT",
-        "dna_weight_talent": "DNA_WEIGHT_TALENT",
-        "dna_weight_franchise": "DNA_WEIGHT_FRANCHISE",
-        "dna_weight_votedensity": "DNA_WEIGHT_VOTEDENSITY",
-        "dna_weight_genrefit": "DNA_WEIGHT_GENREFIT",
-        "dna_weight_audcritic": "DNA_WEIGHT_AUDCRITIC",
         "health_weight_encode": "HEALTH_WEIGHT_ENCODE",
         "health_weight_upgrade": "HEALTH_WEIGHT_UPGRADE",
         "health_weight_tvcompletion": "HEALTH_WEIGHT_TVCOMPLETION",
